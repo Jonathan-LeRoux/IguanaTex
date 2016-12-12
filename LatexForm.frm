@@ -2,8 +2,8 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
    ClientHeight    =   5880
-   ClientLeft      =   21
-   ClientTop       =   336
+   ClientLeft      =   14
+   ClientTop       =   329
    ClientWidth     =   7560
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
@@ -29,8 +29,9 @@ Dim theAppEventHandler As New AppEventHandler
 Sub InitializeApp()
     Set theAppEventHandler.App = Application
     
-    AddMenuItem "New Latex e&quation...", "NewLatexEquation", 18 '226
-    AddMenuItem "Edit Latex equation...", "EditLatexEquation", 37
+    AddMenuItem "New Latex display...", "NewLatexEquation", 18 '226
+    AddMenuItem "Edit Latex display...", "EditLatexEquation", 37
+    AddMenuItem "Regenerate selected displays...", "RegenerateSelectedDisplays", 19
     AddMenuItem "Settings...", "LoadSetTempForm", 548
     
 End Sub
@@ -69,8 +70,9 @@ End Sub
 
 Sub UnInitializeApp()
     
-    RemoveMenuItem "New Latex e&quation..."
-    RemoveMenuItem "Edit Latex equation..."
+    RemoveMenuItem "New Latex display..."
+    RemoveMenuItem "Edit Latex display..."
+    RemoveMenuItem "Regenerate selected displays..."
     RemoveMenuItem "Settings..."
 
 End Sub
@@ -95,42 +97,9 @@ Private Sub ButtonCancel_Click()
 End Sub
 
 
-Sub ButtonRun_Click()
-    Dim TempPath As String
-    TempPath = GetTempPath()
+Private Function IsPathWritable(TempPath As String) As Boolean
     FilePrefix = GetFilePrefix()
     
-    Dim debugMode As Boolean
-    If checkboxDebug.Value Then
-        debugMode = True
-    Else
-        debugMode = False
-    End If
-    
-    ' Read settings
-    RegPath = "Software\IguanaTex"
-    Dim UseUTF8 As Boolean
-    Dim UsePDF As Boolean
-    UseUTF8 = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
-    'UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
-    gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
-    IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
-    'tex2pdf_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngine", "pdflatex")
-    LaTeXEngineID = ComboBoxLaTexEngine.ListIndex
-    tex2pdf_command = LaTexEngineList(LaTeXEngineID)
-    UsePDF = UsePDFList(LaTeXEngineID)
-    
-    Dim TimeOutTimeString As String
-    Dim TimeOutTime As Long
-    TimeOutTimeString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "20") ' Wait 20 seconds for the processes to complete
-    TimeOutTime = val(TimeOutTimeString) * 1000
-    
-    ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
-    dpi = lDotsPerInch
-    highdpi_rescaling = 1 ' will be used to account for dvipng's handling of high-dpi displays
-        
-    ' Write latex to a temp file
-    Set fs = CreateObject("Scripting.FileSystemObject")
     Dim FName As String
     Dim FHdl As Integer
     FName = TempPath & FilePrefix & ".tmp"
@@ -141,10 +110,18 @@ Sub ButtonRun_Click()
     Close FHdl
     IsPathWritable = True
     Kill FName
+    
     On Error GoTo 0
     
+    Exit Function
+
+TempFolderNotWritable:
+    IsPathWritable = False
+End Function
+
+Private Sub WriteLaTeX2File(TempPath As String, FilePrefix As String)
     Const ForReading = 1, ForWriting = 2, ForAppending = 3
-    
+    Set fs = CreateObject("Scripting.FileSystemObject")
     If fs.FileExists(TempPath & FilePrefix & ".png") Then
         fs.DeleteFile TempPath + FilePrefix + "*.*" 'Make sure we don't keep old files
     End If
@@ -176,10 +153,77 @@ Sub ButtonRun_Click()
         BinaryStream.Flush
         BinaryStream.Close
     End If
+    Set fs = Nothing
+End Sub
+
+Sub ButtonRun_Click()
+    Dim TempPath As String
+    'TempPath = GetTempPath()
+    If Right(TextBoxTempFolder.Text, 1) <> "\" Then
+        TextBoxTempFolder.Text = TextBoxTempFolder.Text & "\"
+    End If
+    TempPath = TextBoxTempFolder.Text
     
-    Dim LogFile As Object
-            
+    If Left(TempPath, 1) = "." Then
+        Dim sPath As String
+        sPath = ActivePresentation.path
+        If Len(sPath) > 0 Then
+            If Right(sPath, 1) <> "\" Then
+                sPath = sPath & "\"
+            End If
+            TempPath = sPath & TempPath
+        Else
+            MsgBox "You need to have saved your presentation once to use a relative path."
+            Exit Sub
+        End If
+    End If
+    
+    Dim FilePrefix As String
+    FilePrefix = GetFilePrefix()
+    
+    Dim debugMode As Boolean
+    If checkboxDebug.Value Then
+        debugMode = True
+    Else
+        debugMode = False
+    End If
+    
+    ' Read settings
+    RegPath = "Software\IguanaTex"
+    Dim UseUTF8 As Boolean
+    Dim UsePDF As Boolean
+    UseUTF8 = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
+    'UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
+    gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
+    IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
+    'tex2pdf_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngine", "pdflatex")
+    LaTeXEngineID = ComboBoxLaTexEngine.ListIndex
+    tex2pdf_command = LaTexEngineList(LaTeXEngineID)
+    UsePDF = UsePDFList(LaTeXEngineID)
+    
+    Dim TimeOutTimeString As String
+    Dim TimeOutTime As Long
+    TimeOutTimeString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "20") ' Wait 20 seconds for the processes to complete
+    TimeOutTime = val(TimeOutTimeString) * 1000
+    
+    ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
+    dpi = lDotsPerInch
+    highdpi_rescaling = 1 ' will be used to account for dvipng's handling of high-dpi displays
+        
+        
+    ' Test if path writable
+    If Not IsPathWritable(TempPath) Then
+        MsgBox "The temporary folder " & TempPath & " appears not to be writable."
+        Exit Sub
+    End If
+    
+    ' Write latex to a temp file
+    Call WriteLaTeX2File(TempPath, FilePrefix)
+    
     ' Run latex
+    Const ForReading = 1, ForWriting = 2, ForAppending = 3
+    Set fs = CreateObject("Scripting.FileSystemObject")
+    Dim LogFile As Object
     FrameProcess.Visible = True
     
     If UsePDF = True Then
@@ -285,6 +329,8 @@ Sub ButtonRun_Click()
     FrameProcess.Repaint
     ' Latex run successful.
     ' If we are in Edit mode, store parameters of old image
+    Dim PosX As Single
+    Dim PosY As Single
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     Dim oldShape As Shape
@@ -320,24 +366,24 @@ Sub ButtonRun_Click()
         Else
             Set oldShape = Sel.ShapeRange(1)
         End If
-        posX = oldShape.Left
-        posY = oldShape.Top
+        PosX = oldShape.Left
+        PosY = oldShape.Top
     Else
-        posX = 200
-        posY = 200
+        PosX = 200
+        PosY = 200
     End If
+    
     
     ' Insert image
     Dim newShape As Shape
-    Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, posX, posY, -1, -1)
+    'Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, PosX, PosY, -1, -1)
+    Set newShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
     ' Resize to the true size of the png file
     newShape.ScaleHeight 1#, msoTrue
     newShape.ScaleWidth 1#, msoTrue
     ' Add tags storing the original height and width, used next time to keep resizing ratio.
     newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
     newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
-    
-    
     
     
     
@@ -403,6 +449,7 @@ Sub ButtonRun_Click()
     newShape.Tags.Add "FILENAME", TextBoxFile.Text
     newShape.Tags.Add "INPUTTYPE", BoolToInt(MultiPage1.Value)
     newShape.Tags.Add "LATEXENGINEID", LaTeXEngineID
+    newShape.Tags.Add "TEMPFOLDER", TextBoxTempFolder.Text
     
     ' Copy animation settings and formatting from old image, then delete it
     If ButtonRun.Caption = "ReGenerate" Then
@@ -503,9 +550,8 @@ Sub ButtonRun_Click()
     Unload LatexForm
 Exit Sub
 
-TempFolderNotWritable:
-    'Debug.Print "The temporary folder " & TempPath & " appears not to be writable."
-    MsgBox "The temporary folder " & TempPath & " appears not to be writable."
+'TempFolderNotWritable:
+'    MsgBox "The temporary folder " & TempPath & " appears not to be writable."
     
 End Sub
 
@@ -591,7 +637,31 @@ Private Function TagGroupHierarchy(arr As Variant, TargetName As String) As Long
 
 End Function
 
-
+' Add picture as shape taking care of not inserting it in empty placeholder
+Private Function AddDisplayShape(path As String, PosX As Single, PosY As Single) As Shape
+' from http://www.vbaexpress.com/forum/showthread.php?47687-Addpicture-adds-the-picture-to-a-placeholder-rather-as-a-new-shape
+    Dim oshp As Shape
+    Dim osld As Slide
+    On Error Resume Next
+    Set osld = ActiveWindow.Selection.SlideRange(1)
+    If Err <> 0 Then Exit Function
+    On Error GoTo 0
+    For Each oshp In osld.Shapes
+        If oshp.Type = msoPlaceholder Then
+            If oshp.PlaceholderFormat.Type = ppPlaceholderObject Then
+               If Not oshp.TextFrame.HasText Then oshp.TextFrame.TextRange = "DUMMY"
+            End If
+        End If
+    Next oshp
+    Set AddDisplayShape = osld.Shapes.AddPicture(path, msoFalse, msoTrue, PosX, PosY, -1, -1)
+    For Each oshp In osld.Shapes
+        If oshp.Type = msoPlaceholder Then
+            If oshp.PlaceholderFormat.Type = ppPlaceholderObject Then
+                If oshp.TextFrame.TextRange = "DUMMY" Then oshp.TextFrame.DeleteText
+            End If
+        End If
+    Next oshp
+End Function
 
 
 Private Function BoundingBoxString(BBXFile As String) As String
@@ -633,12 +703,14 @@ End Sub
 
 Private Sub LoadSettings()
     RegPath = "Software\IguanaTex"
-    checkboxTransp.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Transparent", True)
-    checkboxDebug.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Debug", False)
+    checkboxTransp.Value = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Transparent", True))
+    checkboxDebug.Value = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Debug", False))
     textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "PointSize", "20")
     TextBox1.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCode", "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & Chr(13) & Chr(13) & Chr(13) & "\end{document}")
     TextBox1.SelStart = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCodeCursor", 0)
     MultiPage1.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Multipage", 0)
+    TextBox1.Font.Size = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10"))
+    TextBoxTempFolder.Text = GetTempPath()
     
     LaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex")
     LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)")
@@ -652,16 +724,6 @@ Private Sub LoadSettings()
     TemplateNameSortedListString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TemplateNameSortedList", "New Template")
     ComboBoxTemplate.List = UnpackStringToArray(TemplateNameSortedListString)
 End Sub
-
-Private Function GetTempPath() As String
-    Dim res As String
-    RegPath = "Software\IguanaTex"
-    res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Temp Dir", "c:\temp")
-    If Right(res, 1) <> "\" Then
-        res = res & "\"
-    End If
-    GetTempPath = res
-End Function
 
 Private Function BoolToInt(val) As Long
     If val Then
@@ -714,6 +776,55 @@ Private Sub ButtonMakeDefault_Click()
         Case Else ' Templates
             TextBoxTemplateCode.SetFocus
     End Select
+End Sub
+
+Private Sub CmdButtonExternalEditor_Click()
+        
+    ' Put the temporary path in the right format
+    If Right(TextBoxTempFolder.Text, 1) <> "\" Then
+        TextBoxTempFolder.Text = TextBoxTempFolder.Text & "\"
+    End If
+    Dim TempPath As String
+    TempPath = TextBoxTempFolder.Text
+    If Left(TempPath, 1) = "." Then
+        Dim sPath As String
+        sPath = ActivePresentation.path
+        If Len(sPath) > 0 Then
+            If Right(sPath, 1) <> "\" Then
+                sPath = sPath & "\"
+            End If
+            TempPath = sPath & TempPath
+        Else
+            MsgBox "You need to have saved your presentation once to use a relative path."
+            Exit Sub
+        End If
+    End If
+    
+    Dim FilePrefix As String
+    FilePrefix = GetFilePrefix()
+    
+    ' Test if path writable
+    If Not IsPathWritable(TempPath) Then
+        MsgBox "The temporary folder " & TempPath & " appears not to be writable."
+        Exit Sub
+    End If
+    
+    ' Write latex to a temp file
+    Call WriteLaTeX2File(TempPath, FilePrefix)
+    
+    ' Launch external editor
+    On Error GoTo ShellError
+    Shell """" & GetEditorPath() & """ """ & TempPath & FilePrefix & ".tex""", vbNormalFocus
+    
+    ' Show dialog form to reload from file or cancel
+    ExternalEditorForm.Show
+    Exit Sub
+    
+ShellError:
+    MsgBox "Error Launching External Editor." & vbCrLf & _
+        Err.Description, vbOKOnly Or vbExclamation, _
+        "Error"
+    Exit Sub
 End Sub
 
 Private Sub CmdButtonImportCode_Click()
@@ -776,6 +887,8 @@ Private Sub CmdButtonSaveTemplate_Click()
     SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_DWORD, CLng(TextBoxTemplateCode.SelStart)
     RegStr = "TemplateLaTeXEngineID" & templateID
     SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_DWORD, ComboBoxLaTexEngine.ListIndex
+    RegStr = "TemplateTempFolder" & templateID
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_SZ, CStr(TextBoxTempFolder.Text)
     ' if saved template was the "New Template", prepare new spot for next new template
     If ComboBoxTemplate.ListIndex = ComboBoxTemplate.ListCount - 1 Then
         ComboBoxTemplate.AddItem "New Template"
@@ -796,6 +909,7 @@ Private Sub ComboBoxTemplate_Click()
     If ComboBoxTemplate.ListIndex = ComboBoxTemplate.ListCount - 1 Then
         TextBoxTemplateCode.Text = ""
         ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
+        TextBoxTempFolder.Text = GetTempPath()
     Else
         ' get the right ID from the array of sorted template IDs
         templateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
@@ -808,6 +922,8 @@ Private Sub ComboBoxTemplate_Click()
         TextBoxTemplateCode.SelStart = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, 0)
         RegStr = "TemplateLaTeXEngineID" & templateID
         ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0))
+        RegStr = "TemplateTempFolder" & templateID
+        TextBoxTempFolder.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, GetTempPath())
     End If
     TextBoxTemplateCode.SetFocus
 End Sub
@@ -829,6 +945,30 @@ Private Sub UpdateTemplateRegistry()
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TemplateNameSortedList", REG_SZ, CStr(TemplateNameSortedListString)
 End Sub
 
+Private Sub CmdButtonTemplateFontDown_Click()
+    If TextBoxTemplateCode.Font.Size > 4 Then
+        TextBoxTemplateCode.Font.Size = TextBoxTemplateCode.Font.Size - 1
+    End If
+End Sub
+
+Private Sub CmdButtonTemplateFontUp_Click()
+    If TextBoxTemplateCode.Font.Size < 72 Then
+        TextBoxTemplateCode.Font.Size = TextBoxTemplateCode.Font.Size + 1
+    End If
+End Sub
+
+Private Sub CmdButtonEditorFontDown_Click()
+    If TextBox1.Font.Size > 4 Then
+        TextBox1.Font.Size = TextBox1.Font.Size - 1
+    End If
+End Sub
+
+Private Sub CmdButtonEditorFontUp_Click()
+    If TextBox1.Font.Size < 72 Then
+        TextBox1.Font.Size = TextBox1.Font.Size + 1
+    End If
+End Sub
+
 Private Sub UserForm_Initialize()
     LoadSettings
     
@@ -837,6 +977,7 @@ Private Sub UserForm_Initialize()
     LatexForm.Label3.Visible = True
 
     FrameProcess.Visible = False
+    
     
 End Sub
 
@@ -867,13 +1008,16 @@ Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
                 textboxSize.Text = .Value(j)
             End If
             If (.name(j) = "TRANSPARENCY") Then
-                checkboxTransp.Value = .Value(j)
+                checkboxTransp.Value = CBool(.Value(j))
             End If
             If (.name(j) = "IGUANATEXCURSOR") Then
                 CursorPosition = .Value(j)
             End If
             If (.name(j) = "LATEXENGINEID") Then
                 ComboBoxLaTexEngine.ListIndex = .Value(j)
+            End If
+            If (.name(j) = "TEMPFOLDER") Then
+                TextBoxTempFolder.Text = .Value(j)
             End If
         Next
     End With
@@ -883,8 +1027,16 @@ End Sub
 
 Private Sub UserForm_Resize()
     ' Minimal size
-    minLatexFormHeight = MultiPage1.Top + 18 + 50 + 4 * ButtonAbout.Height
-    minLatexFormWidth = ButtonCancel.Left + ButtonCancel.Width + ButtonAbout.Width + 22
+    Select Case MultiPage1.Value
+     Case 0 ' Direct input
+        minLatexFormHeight = MultiPage1.Top + 18 + 50 + 6 * ButtonAbout.Height
+     Case 1 ' Read from file
+        minLatexFormHeight = MultiPage1.Top + 18 + 50 + 6 * ButtonAbout.Height
+     Case Else ' Templates
+        minLatexFormHeight = MultiPage1.Top + 18 + 50 + 9 * ButtonAbout.Height
+    End Select
+    minLatexFormWidth = ButtonCancel.Left + ButtonCancel.Width + ButtonAbout.Width + 30
+     
     If LatexForm.Height < minLatexFormHeight Then
         LatexForm.Height = minLatexFormHeight
     End If
@@ -903,7 +1055,7 @@ Private Sub ResizeForm()
     MultiPage1.Top = bordersize
     MultiPage1.Width = LatexForm.Width - bordersize * 2
     MultiPage1.Height = LatexForm.Height - MultiPage1.Top - ButtonAbout.Height * 4
-    TextBox1.Width = MultiPage1.Width - 10
+    TextBox1.Width = MultiPage1.Width - 12
     TextBox1.Height = MultiPage1.Height - TextBox1.Top - 20
     
     'Other elements are moved as needed
@@ -919,7 +1071,7 @@ Private Sub ResizeForm()
     LabelProcess.Width = FrameProcess.Width
     LabelProcess.Top = 4
     
-    CmdButtonImportCode.Left = TextBox1.Width - CmdButtonImportCode.Width + 1
+    CmdButtonImportCode.Left = TextBox1.Width - CmdButtonImportCode.Width
     CmdButtonLoadTemplate.Left = CmdButtonImportCode.Left
     CmdButtonSaveTemplate.Left = CmdButtonImportCode.Left
     CmdButtonRemoveTemplate.Left = CmdButtonImportCode.Left
@@ -1021,17 +1173,9 @@ Private Sub ToggleInputMode()
     
     Select Case MultiPage1.Value
         Case 0 ' Direct input
-            'TextBox1.Visible = True
             TextBox1.SetFocus
-            'ButtonTexPath.Visible = False
-            'TextBoxFile.Visible = False
-            'ButtonLoadFile.Visible = False
         Case 1 ' Read from file
-            'TextBox1.Visible = False
-            'TextBoxFile.Visible = True
-            'ButtonTexPath.Visible = True
             TextBoxFile.SetFocus
-            'ButtonLoadFile.Visible = True
             ButtonLoadFile.Enabled = fs.FileExists(TextBoxFile.Text) And isTex(TextBoxFile.Text)
         Case Else ' Templates
             If TextBoxTemplateName.Text = "" Then
@@ -1040,6 +1184,7 @@ Private Sub ToggleInputMode()
             TextBoxTemplateCode.SetFocus
             
     End Select
+    Call UserForm_Resize
     
 End Sub
 

@@ -162,7 +162,7 @@ Function TryEditLatexEquation() As Boolean
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     Dim oldShape As Shape
-    
+                            
     If Sel.Type = ppSelectionShapes Then
         ' Attempt to deal with the case of 1 object inside a group
         If Sel.ShapeRange.Type = msoGroup Then
@@ -180,12 +180,18 @@ Function TryEditLatexEquation() As Boolean
                             Exit Function
                         End If
                         If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
+                            ScalingFactor = 1
+                            Debug.Print .name(j)
                             For j = 1 To .count
+                                'Debug.Print .Name(j) & vbTab & .Value(j)
                                 If (.name(j) = "ORIGWIDTH") Then
-                                    oldShape.Tags.Add "TEXPOINTSCALING", oldShape.Width / .Value(j)
+                                    ScalingFactor = ScalingFactor * oldShape.Width / .Value(j)
                                 End If
+                                'If (.Name(j) = "RES") Then
+                                '    ScalingFactor = ScalingFactor * 1200 / .Value(j)
+                                'End If
                             Next j
-                            
+                            oldShape.Tags.Add "TEXPOINTSCALING", ScalingFactor
                             Load LatexForm
                             
                             Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
@@ -211,12 +217,18 @@ Function TryEditLatexEquation() As Boolean
                         Exit Function
                     End If
                     If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
+                        ScalingFactor = 1
                         For j = 1 To .count
+                            Debug.Print .name(j) & vbTab & .Value(j)
                             If (.name(j) = "ORIGWIDTH") Then
-                                oldShape.Tags.Add "TEXPOINTSCALING", oldShape.Width / .Value(j)
+                                ScalingFactor = ScalingFactor * oldShape.Width / val(.Value(j))
                             End If
+                            'If (.Name(j) = "RES") Then
+                            '    ScalingFactor = ScalingFactor * 1200 / val(.Value(j))
+                            'End If
                         Next j
-                        
+                        oldShape.Tags.Add "TEXPOINTSCALING", ScalingFactor
+                    
                         Load LatexForm
                         
                         Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
@@ -380,3 +392,20 @@ Public Function GetFilePrefix() As String
     GetFilePrefix = "IguanaTex_tmp"
 End Function
 
+Public Function GetTempPath() As String
+    Dim res As String
+    RegPath = "Software\IguanaTex"
+    res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Temp Dir", "c:\temp\")
+    If Right(res, 1) <> "\" Then
+        res = res & "\"
+    End If
+    GetTempPath = res
+End Function
+
+
+Public Function GetEditorPath() As String
+    Dim res As String
+    RegPath = "Software\IguanaTex"
+    res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "texstudio.exe")
+    GetEditorPath = res
+End Function

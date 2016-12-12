@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Settings"
-   ClientHeight    =   4907
+   ClientHeight    =   5369
    ClientLeft      =   14
    ClientTop       =   329
    ClientWidth     =   6286
@@ -17,8 +17,88 @@ Dim LaTexEngineList As Variant
 Dim LaTexEngineDisplayList As Variant
 Dim UsePDFList As Variant
 
+Private Sub ButtonAbsTempPath_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFolderPicker) 'msoFileDialogFilePicker
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = AbsPathTextBox.Text
+    
+    If fd.Show = -1 Then
+
+        For Each vrtSelectedItem In fd.SelectedItems
+
+            AbsPathTextBox.Text = vrtSelectedItem
+
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+End Sub
+
 Private Sub ButtonCancelTemp_Click()
     Unload SetTempForm
+End Sub
+
+Private Sub ButtonEditorPath_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker) 'msoFileDialogFolderPicker
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = TextBoxExternalEditor.Text
+    fd.Filters.Clear
+    fd.Filters.Add "All Files", "*.*", 1
+    
+    If fd.Show = -1 Then
+        For Each vrtSelectedItem In fd.SelectedItems
+            TextBoxExternalEditor.Text = vrtSelectedItem
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+    TextBoxExternalEditor.SetFocus
+End Sub
+
+Private Sub ButtonGSPath_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker) 'msoFileDialogFolderPicker
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = TextBoxGS.Text
+    fd.Filters.Clear
+    fd.Filters.Add "All Files", "*.*", 1
+    
+    If fd.Show = -1 Then
+        For Each vrtSelectedItem In fd.SelectedItems
+            TextBoxGS.Text = vrtSelectedItem
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+    TextBoxGS.SetFocus
+End Sub
+
+Private Sub ButtonIMPath_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker) 'msoFileDialogFolderPicker
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = TextBoxIMconv.Text
+    fd.Filters.Clear
+    fd.Filters.Add "All Files", "*.*", 1
+    
+    If fd.Show = -1 Then
+        For Each vrtSelectedItem In fd.SelectedItems
+            TextBoxIMconv.Text = vrtSelectedItem
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+    TextBoxIMconv.SetFocus
 End Sub
 
 Private Sub ButtonSetTemp_Click()
@@ -29,25 +109,15 @@ Private Sub ButtonSetTemp_Click()
     ' Temp folder
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "AbsOrRel", REG_DWORD, BoolToInt(AbsPathButton.Value)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Abs Temp Dir", REG_SZ, CStr(AbsPathTextBox.Text)
+    If Left(RelPathTextBox.Text, 2) = ".\" Then
+        RelPathTextBox.Text = Mid(RelPathTextBox.Text, 3, Len(RelPathTextBox.Text) - 2)
+    End If
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Rel Temp Dir", REG_SZ, CStr(RelPathTextBox.Text)
     
     If AbsPathButton.Value = True Then
         res = AbsPathTextBox.Text
     Else
-        res = RelPathTextBox.Text
-        Dim sPath As String
-        sPath = ActivePresentation.path
-        If Len(sPath) > 0 Then
-            If Right(sPath, 1) <> "\" Then
-                sPath = sPath & "\"
-            End If
-            res = sPath & res
-        Else
-            MsgBox "Please save your presentation for the relative path to be accessible. " & _
-            "Choose Absolute for now, save your presentation, then come back to the Settings."
-            Exit Sub
-        End If
-    
+        res = ".\" & RelPathTextBox.Text
     End If
     If Right(res, 1) <> "\" Then
         res = res & "\"
@@ -72,8 +142,17 @@ Private Sub ButtonSetTemp_Click()
     If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "IMconv", REG_SZ, CStr(res)
     
+    ' Path to External Editor
+    res = TextBoxExternalEditor.Text
+    If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
+    If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "Editor", REG_SZ, CStr(res)
+    
     ' Time Out Interval for Processes
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TimeOutTime", REG_DWORD, CLng(val(TextBoxTimeOut.Text))
+    
+    ' Font size for text in editor/template windows
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "EditorFontSize", REG_DWORD, CLng(val(TextBoxFontSize.Text))
     
     ' LaTeX Engine
     'SetRegistryValue HKEY_CURRENT_USER, RegPath, "LaTeXEngine", REG_SZ, CStr(ComboBoxEngine.Text)
@@ -88,9 +167,10 @@ Private Sub AbsPathButton_Click()
     SetAbsRelDependencies
 End Sub
 
-Private Sub ComboBoxEngine_Change()
-    SetPDFdependencies
-End Sub
+'Private Sub ComboBoxEngine_Change()
+'    SetPDFdependencies
+'End Sub
+
 
 Private Sub RelPathButton_Click()
     AbsPathButton.Value = False
@@ -103,16 +183,16 @@ Private Sub SetAbsRelDependencies()
     RelPathTextBox.Enabled = RelPathButton.Value
 End Sub
 
-Private Sub CheckBoxPDF_Click()
-
-    If CheckBoxPDF.Value = True Then
-        TextBoxGS.Enabled = True
-        TextBoxIMconv.Enabled = True
-    Else
-        TextBoxGS.Enabled = False
-        TextBoxIMconv.Enabled = False
-    End If
-End Sub
+'Private Sub CheckBoxPDF_Click()
+'
+'    If CheckBoxPDF.Value = True Then
+'        TextBoxGS.Enabled = True
+'        TextBoxIMconv.Enabled = True
+'    Else
+'        TextBoxGS.Enabled = False
+'        TextBoxIMconv.Enabled = False
+'    End If
+'End Sub
 
 Private Sub SetPDFdependencies()
     If UsePDFList(ComboBoxEngine.ListIndex) = True Then
@@ -137,9 +217,11 @@ Private Sub Reset_Click()
     
     TextBoxTimeOut.Text = "60"
     
+    TextBoxFontSize.Text = "10"
+    
     ComboBoxEngine.ListIndex = 0
     
-    SetPDFdependencies
+    'SetPDFdependencies
     SetAbsRelDependencies
     
 End Sub
@@ -167,6 +249,10 @@ Private Sub UserForm_Initialize()
     
     TextBoxTimeOut.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")
     
+    TextBoxFontSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10")
+    
+    TextBoxExternalEditor.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "C:\Program Files (x86)\TeXstudio\texstudio.exe")
+    
     LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)")
     UsePDFList = Array(False, True, True, True)
     
@@ -174,7 +260,7 @@ Private Sub UserForm_Initialize()
     ComboBoxEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
     'CheckBoxPDF.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
     
-    SetPDFdependencies
+    'SetPDFdependencies
     SetAbsRelDependencies
 End Sub
 
