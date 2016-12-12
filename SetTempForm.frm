@@ -253,8 +253,8 @@ Private Sub UserForm_Initialize()
     
     TextBoxExternalEditor.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "C:\Program Files (x86)\TeXstudio\texstudio.exe")
     
-    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)")
-    UsePDFList = Array(False, True, True, True)
+    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)", "platex (PDF->PNG)")
+    UsePDFList = Array(False, True, True, True, True)
     
     ComboBoxEngine.List = LaTexEngineDisplayList
     ComboBoxEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)

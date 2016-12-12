@@ -227,11 +227,18 @@ Sub ButtonRun_Click()
     
     If UsePDF = True Then
     ' pdf to png route
-        LabelProcess.Caption = "LaTeX to PDF..."
-        FrameProcess.Repaint
+        If tex2pdf_command = "platex" Then
+            OutputExt = ".dvi"
+            LabelProcess.Caption = "LaTeX to DVI..."
+            FrameProcess.Repaint
+        Else
+            OutputExt = ".pdf"
+            LabelProcess.Caption = "LaTeX to PDF..."
+            FrameProcess.Repaint
+        End If
         RetVal& = Execute("""" & tex2pdf_command & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
-            
-        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
+        
+        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
             ' Error in Latex code
             ' Read log file and show it to the user
             If fs.FileExists(TempPath & FilePrefix & ".log") Then
@@ -245,6 +252,19 @@ Sub ButtonRun_Click()
             End If
             FrameProcess.Visible = False
             Exit Sub
+        End If
+        
+        If tex2pdf_command = "platex" Then
+            LabelProcess.Caption = "DVI to PDF..."
+            FrameProcess.Repaint
+            ' platex actually outputs a DVI file, which we need to convert to PDF (we could go the EPS route, but this blends easier with IguanaTex's existing code)
+            RetValConv& = Execute("dvipdfmx -o """ + FilePrefix + ".pdf"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
+                ' Error in DVI to PDF conversion
+                MsgBox "Error while using dvipdm to convert from DVI to PDF."
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
         End If
         
         LabelProcess.Caption = "PDF to PNG..."
@@ -304,7 +324,7 @@ Sub ButtonRun_Click()
                 LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
                 LogFileViewer.Show 1
             Else
-                MsgBox "pdflatex did not return in " & TimeOutTimeString & " seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+                MsgBox "latex did not return in " & TimeOutTimeString & " seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
             End If
             FrameProcess.Visible = False
             Exit Sub
@@ -721,9 +741,9 @@ Private Sub LoadSettings()
     TextBox1.Font.Size = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10"))
     TextBoxTempFolder.Text = GetTempPath()
     
-    LaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex")
-    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)")
-    UsePDFList = Array(False, True, True, True)
+    LaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex", "platex")
+    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)", "platex (PDF->PNG)")
+    UsePDFList = Array(False, True, True, True, True)
     ComboBoxLaTexEngine.List = LaTexEngineDisplayList
     ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
     
