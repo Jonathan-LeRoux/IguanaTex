@@ -16,16 +16,26 @@ Attribute VB_Name = "Macros"
 
  Private Declare PtrSafe Function GetWindowLong _
    Lib "user32.dll" Alias "GetWindowLongA" _
-     (ByVal hWnd As Long, _
+     (ByVal hwnd As Long, _
       ByVal nIndex As Long) _
    As Long
                
  Private Declare PtrSafe Function SetWindowLong _
    Lib "user32.dll" Alias "SetWindowLongA" _
-     (ByVal hWnd As Long, _
+     (ByVal hwnd As Long, _
       ByVal nIndex As Long, _
       ByVal dwNewLong As Long) _
    As Long
+ 
+ Private Declare PtrSafe Function GetDC Lib "user32" _
+    (ByVal hwnd As Long) As Long
+
+ Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" _
+    (ByVal hDC As Long, ByVal nIndex As Long) As Long
+
+ Private Declare PtrSafe Function ReleaseDC Lib "user32" _
+    (ByVal hwnd As Long, ByVal hDC As Long) As Long
+
 #Else
  Private Declare Function SetLastError _
    Lib "kernel32.dll" _
@@ -37,34 +47,76 @@ Attribute VB_Name = "Macros"
 
  Private Declare Function GetWindowLong _
    Lib "user32.dll" Alias "GetWindowLongA" _
-     (ByVal hWnd As Long, _
+     (ByVal hwnd As Long, _
       ByVal nIndex As Long) _
    As Long
                
  Private Declare Function SetWindowLong _
    Lib "user32.dll" Alias "SetWindowLongA" _
-     (ByVal hWnd As Long, _
+     (ByVal hwnd As Long, _
       ByVal nIndex As Long, _
       ByVal dwNewLong As Long) _
    As Long
+   
+ Private Declare Function GetDC Lib "user32" _
+    (ByVal hwnd As Long) As Long
+
+ Private Declare Function GetDeviceCaps Lib "gdi32" _
+    (ByVal hDC As Long, ByVal nIndex As Long) As Long
+
+ Private Declare Function ReleaseDC Lib "user32" _
+    (ByVal hwnd As Long, ByVal hDC As Long) As Long
+
 #End If
+
+
+
+Private Const LOGPIXELSX = 88  'Pixels/inch in X
+
+'A point is defined as 1/72 inches
+Private Const POINTS_PER_INCH As Long = 72
+
+'The size of a pixel, in points
+Public Function PointsPerPixel() As Double
+
+ Dim hDC As Long
+ Dim lDotsPerInch As Long
+
+ hDC = GetDC(0)
+ lDotsPerInch = GetDeviceCaps(hDC, LOGPIXELSX)
+ PointsPerPixel = POINTS_PER_INCH / lDotsPerInch
+ ReleaseDC 0, hDC
+
+End Function
+
+'The size of a pixel, in points
+Public Function lDotsPerInch() As Long
+
+ Dim hDC As Long
+'  Dim lDotsPerInch As Long
+
+ hDC = GetDC(0)
+ lDotsPerInch = GetDeviceCaps(hDC, LOGPIXELSX)
+ ReleaseDC 0, hDC
+
+End Function
 
 Public Sub MakeFormResizable()
 
   Dim lStyle As Long
-  Dim hWnd As Long
+  Dim hwnd As Long
   Dim RetVal
   
   Const WS_THICKFRAME = &H40000
   Const GWL_STYLE As Long = (-16)
   
-    hWnd = GetActiveWindow
+    hwnd = GetActiveWindow
   
     'Get the basic window style
-     lStyle = GetWindowLong(hWnd, GWL_STYLE) Or WS_THICKFRAME
+     lStyle = GetWindowLong(hwnd, GWL_STYLE) Or WS_THICKFRAME
      
     'Set the basic window styles
-     RetVal = SetWindowLong(hWnd, GWL_STYLE, lStyle)
+     RetVal = SetWindowLong(hwnd, GWL_STYLE, lStyle)
     
     'Clear any previous API error codes
      SetLastError 0
@@ -81,7 +133,10 @@ Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Be
     LatexForm.textboxSize.Visible = True
     LatexForm.Label2.Visible = True
     LatexForm.Label3.Visible = True
-    
+    If IsEmpty(LatexForm.textboxSize.Text) Then
+        LatexForm.textboxSize.Text = "20"
+    End If
+       
     LatexForm.ButtonRun.Caption = "Create"
     LatexForm.textboxSize.Enabled = True
     LatexForm.Show
@@ -166,6 +221,8 @@ End Function
 Sub Auto_Open()
     ' Runs when the add-in is loaded
     LatexForm.InitializeApp
+    Load LatexForm
+    Unload LatexForm
 End Sub
 
 Sub Auto_Close()

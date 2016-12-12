@@ -98,6 +98,7 @@ Private Sub ButtonRun_Click()
         debugMode = False
     End If
     
+    
     ' Write latex to a temp file
     Const ForReading = 1, ForWriting = 2, ForAppending = 3
     Set fs = CreateObject("Scripting.FileSystemObject")
@@ -120,7 +121,7 @@ Private Sub ButtonRun_Click()
         Exit Sub
     End If
     
-    DviPngSwitches = "-q -D 1200 -T tight"  ' monitor is 96 dpi; add factor of 10 to allow scaling
+    DviPngSwitches = "-q -D 1200 -T tight"  ' monitor is 96 dpi; we use 1200 dpi to get a crisper display, and rescale later on for new displays to match the point size
     If checkboxTransp.Value = True Then
         DviPngSwitches = DviPngSwitches & " -bg Transparent"
     End If
@@ -185,7 +186,8 @@ Private Sub ButtonRun_Click()
     ' Scale it
     If ButtonRun.Caption <> "Modify" Then
         PointSize = val(textboxSize.Text)
-        ScaleFactor = PointSize / 100
+        dpi = lDotsPerInch
+        ScaleFactor = PointSize / 10 * dpi / 1200  ' 1/10 is for the default LaTeX point size (10 pt)
         newShape.ScaleHeight ScaleFactor, msoTrue
         newShape.ScaleWidth ScaleFactor, msoTrue
     Else
