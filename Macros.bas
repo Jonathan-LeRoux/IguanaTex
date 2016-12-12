@@ -177,14 +177,14 @@ Sub LoadSetTempForm()
     SetTempForm.Show
 End Sub
 
-Public Sub RibbonNewLatexEquation(ByVal control As IRibbonControl)
+Public Sub RibbonNewLatexEquation(ByVal control)
     NewLatexEquation
 End Sub
 
-Public Sub RibbonEditLatexEquation(ByVal control As IRibbonControl)
+Public Sub RibbonEditLatexEquation(ByVal control)
     EditLatexEquation
 End Sub
 
-Public Sub RibbonSetTempFolder(ByVal control As IRibbonControl)
+Public Sub RibbonSetTempFolder(ByVal control)
     LoadSetTempForm
 End Sub
