@@ -108,7 +108,7 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
             NORMAL_PRIORITY_CLASS, 0&, sdir, start, proc)
     lastError& = GetLastError()
     If (ret& = 0) Then
-        MsgBox "Could not start process: '" & Pathname & "'. GetLastError returned " & str(lastError&)
+        MsgBox "Could not start process: '" & Pathname & "'. GetLastError returned " & Str(lastError&)
         ShellWait = 1
         Exit Function
     End If
@@ -124,7 +124,7 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
     ret& = GetExitCodeProcess(proc.hProcess, exitcode&)
     If (ret& = 0) Then
         lastError& = GetLastError()
-        MsgBox "GetExitCodeProcess returned " + str(ret&) + ", GetLastError returned " + str(lastError&)
+        MsgBox "GetExitCodeProcess returned " + Str(ret&) + ", GetLastError returned " + Str(lastError&)
     End If
     ' Tidy up if time out
     If (retWait& = 258) Then

@@ -222,9 +222,9 @@ Function TryEditLatexEquation() As Boolean
             With oldShape.Tags
                 For i = 1 To .count
                     If (.name(i) = "LATEXADDIN") Then
-                        'For j = 1 To .Count
-                        '    Debug.Print .Name(j) & vbTab & .Value(j)
-                        'Next j
+                        For j = 1 To .count
+                            Debug.Print .name(j) & vbTab & .Value(j)
+                        Next j
                         Load LatexForm
                         
                         Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))

@@ -148,6 +148,9 @@ Private Sub ButtonSetTemp_Click()
     If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Editor", REG_SZ, CStr(res)
     
+    ' Global dpi setting for latex output
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "OutputDpi", REG_DWORD, CLng(val(TextBoxDpi.Text))
+    
     ' Time Out Interval for Processes
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TimeOutTime", REG_DWORD, CLng(val(TextBoxTimeOut.Text))
     
@@ -166,6 +169,8 @@ Private Sub AbsPathButton_Click()
     AbsPathButton.Value = True
     SetAbsRelDependencies
 End Sub
+
+
 
 'Private Sub ComboBoxEngine_Change()
 '    SetPDFdependencies
@@ -215,6 +220,8 @@ Private Sub Reset_Click()
     
     TextBoxIMconv.Text = "C:\Program Files\ImageMagick\convert.exe"
     
+    TextBoxDpi.Text = "1200"
+    
     TextBoxTimeOut.Text = "60"
     
     TextBoxFontSize.Text = "10"
@@ -246,6 +253,8 @@ Private Sub UserForm_Initialize()
     TextBoxGS.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
     
     TextBoxIMconv.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
+    
+    TextBoxDpi.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
     
     TextBoxTimeOut.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")
     

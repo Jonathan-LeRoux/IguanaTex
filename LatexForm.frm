@@ -196,14 +196,19 @@ Sub ButtonRun_Click()
     Dim UsePDF As Boolean
     gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
     IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
-    LaTeXEngineID = ComboBoxLaTexEngine.ListIndex
-    tex2pdf_command = LaTexEngineList(LaTeXEngineID)
-    UsePDF = UsePDFList(LaTeXEngineID)
+    LATEXENGINEID = ComboBoxLaTexEngine.ListIndex
+    tex2pdf_command = LaTexEngineList(LATEXENGINEID)
+    UsePDF = UsePDFList(LATEXENGINEID)
     
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
     TimeOutTimeString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "20") ' Wait 20 seconds for the processes to complete
     TimeOutTime = val(TimeOutTimeString) * 1000
+    
+    Dim OutputDpiString As String
+    Dim OutputDpi As Long
+    OutputDpiString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
+    OutputDpi = val(OutputDpiString)
     
     ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
     dpi = lDotsPerInch
@@ -286,14 +291,14 @@ Sub ButtonRun_Click()
         Else
             PdfPngDevice = "-sDEVICE=png16m"
         End If
-        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE " & PdfPngDevice & " -r1200 -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
+        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE " & PdfPngDevice & " -r" & OutputDpiString & " -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
         If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
             ' Error in PDF to PNG conversion
             MsgBox "Error while using Ghostscript to convert from PDF to PNG. Is your path correct?"
             FrameProcess.Visible = False
             Exit Sub
         End If
-        ' Unfortunately, the resulting file has a metadata DPI of 1200, not the default screen one (usually 96),
+        ' Unfortunately, the resulting file has a metadata DPI of OutputDpi (=1200), not the default screen one (usually 96),
         ' so there is a discrepancy with the dvipng output.
         ' The only workaround I have found so far is to use Imagemagick's convert to change the DPI (but not the pixel size!)
         ' Execute """" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode
@@ -331,7 +336,7 @@ Sub ButtonRun_Click()
         End If
         LabelProcess.Caption = "DVI to PNG..."
         FrameProcess.Repaint
-        DviPngSwitches = "-q -D 1200 -T tight"  ' monitor is 96 dpi or higher; we use 1200 dpi to get a crisper display, and rescale later on for new displays to match the point size
+        DviPngSwitches = "-q -D " & OutputDpiString & " -T tight"  ' monitor is 96 dpi or higher; we use OutputDpi (=1200 by default) dpi to get a crisper display, and rescale later on for new displays to match the point size
         If checkboxTransp.Value = True Then
             DviPngSwitches = DviPngSwitches & " -bg Transparent"
         End If
@@ -408,13 +413,12 @@ Sub ButtonRun_Click()
     ' Add tags storing the original height and width, used next time to keep resizing ratio.
     newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
     newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
-    
-    
-    
+    newShape.Tags.Add "OUTPUTDPI", OutputDpi
+        
     ' Scale it
     If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value = True Then
         PointSize = val(textboxSize.Text)
-        ScaleFactor = PointSize / 10 * dpi / 1200 * highdpi_rescaling  ' 1/10 is for the default LaTeX point size (10 pt)
+        ScaleFactor = PointSize / 10 * dpi / OutputDpi * highdpi_rescaling  ' 1/10 is for the default LaTeX point size (10 pt)
         newShape.ScaleHeight ScaleFactor, msoTrue
         newShape.ScaleWidth ScaleFactor, msoTrue
         If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
@@ -424,11 +428,16 @@ Sub ButtonRun_Click()
         ' Handle the case of Texpoint displays
         Dim isTexpoint As Boolean
         isTexpoint = False
+        Dim OldDpi As Long
+        OldDpi = 1200
         With oldShape.Tags
             For i = 1 To .count
                 If (.name(i) = "TEXPOINTSCALING") Then
                     isTexpoint = True
-                    tScaleWidth = val(.Value(i)) * dpi / 1200 * highdpi_rescaling
+                    tScaleWidth = val(.Value(i)) * dpi / OutputDpi * highdpi_rescaling
+                End If
+                If (.name(i) = "OUTPUTDPI") Then
+                    OldDpi = val(.Value(i))
                 End If
             Next
         End With
@@ -442,17 +451,17 @@ Sub ButtonRun_Click()
             WidthOld = oldShape.Width
             oldShape.ScaleHeight 1#, msoTrue
             oldShape.ScaleWidth 1#, msoTrue
-            tScaleHeight = HeightOld / oldShape.Height * 0.8 ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
-            tScaleWidth = WidthOld / oldShape.Width * 0.8
+            tScaleHeight = HeightOld / oldShape.Height * 960 / OutputDpi ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
+            tScaleWidth = WidthOld / oldShape.Width * 960 / OutputDpi
             With oldShape.Tags
                 For i = 1 To .count
                     If (.name(i) = "ORIGINALHEIGHT") Then
                         tmpHeight = val(.Value(i))
-                        tScaleHeight = HeightOld / tmpHeight
+                        tScaleHeight = HeightOld / tmpHeight * OldDpi / OutputDpi
                     End If
                     If (.name(i) = "ORIGINALWIDTH") Then
                         tmpWidth = val(.Value(i))
-                        tScaleWidth = WidthOld / tmpWidth
+                        tScaleWidth = WidthOld / tmpWidth * OldDpi / OutputDpi
                     End If
                 Next
             End With
@@ -472,7 +481,7 @@ Sub ButtonRun_Click()
     newShape.Tags.Add "TRANSPARENCY", checkboxTransp.Value
     newShape.Tags.Add "FILENAME", TextBoxFile.Text
     newShape.Tags.Add "INPUTTYPE", BoolToInt(MultiPage1.Value)
-    newShape.Tags.Add "LATEXENGINEID", LaTeXEngineID
+    newShape.Tags.Add "LATEXENGINEID", LATEXENGINEID
     newShape.Tags.Add "TEMPFOLDER", TextBoxTempFolder.Text
     
     ' Copy animation settings and formatting from old image, then delete it
@@ -698,6 +707,10 @@ Private Function BoundingBoxString(BBXFile As String) As String
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set txtStream = fso.OpenTextFile(BBXFile, ForReading, False)
     Dim TextSplit As Variant
+    Dim OutputDpiString As String
+    Dim OutputDpi As Long
+    OutputDpiString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
+    OutputDpi = val(OutputDpiString)
     Do While Not txtStream.AtEndOfStream
     tmptext = txtStream.ReadLine
     TextSplit = Split(tmptext, " ")
@@ -707,10 +720,10 @@ Private Function BoundingBoxString(BBXFile As String) As String
         urx = val(TextSplit(3))
         ury = val(TextSplit(4))
         'compute size and offset
-        sx = CStr(Round((urx - llx) / 72 * 1200))
-        sy = CStr(Round((ury - lly) / 72 * 1200))
-        cx = str(-llx)
-        cy = str(-lly)
+        sx = CStr(Round((urx - llx) / 72 * OutputDpi))
+        sy = CStr(Round((ury - lly) / 72 * OutputDpi))
+        cx = Str(-llx)
+        cy = Str(-lly)
     End If
     Loop
     txtStream.Close
@@ -1037,17 +1050,23 @@ Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
     
     TextBox1.Text = mainText
     CursorPosition = Len(TextBox1.Text)
-    
+                
     With oldShape.Tags
         For j = 1 To .count
             If (.name(j) = "IGUANATEXSIZE") Then
                 textboxSize.Text = .Value(j)
             End If
             If (.name(j) = "TRANSPARENCY") Then
-                checkboxTransp.Value = CBool(.Value(j))
+                checkboxTransp.Value = SanitizeTransparency(.Value(j))
             End If
             If (.name(j) = "TRANSPARENT") Then
-                checkboxTransp.Value = CBool(.Value(j))
+                checkboxTransp.Value = SanitizeTransparency(.Value(j))
+                'Dim TransparentStr As String
+                'TransparentStr = .Value(j)
+                'If Not LCase(TransparentStr) = "True" And Not LCase(TransparentStr) = "False" Then
+                '    TransparentStr = "True"
+                'End If
+                'checkboxTransp.Value = CBool(TransparentStr)
             End If
             If (.name(j) = "IGUANATEXCURSOR") Then
                 CursorPosition = .Value(j)
@@ -1063,6 +1082,16 @@ Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
     TextBox1.SelStart = CursorPosition
     textboxSize.Enabled = False
 End Sub
+
+
+Private Function SanitizeTransparency(Str As String) As Boolean
+    On Error GoTo ErrWrongTransparency:
+    SanitizeTransparency = CBool(Str)
+    Exit Function
+ErrWrongTransparency:
+    SanitizeTransparency = True
+    Resume Next
+End Function
 
 Private Sub UserForm_Resize()
     ' Minimal size
@@ -1233,8 +1262,8 @@ Private Function PackArrayToString(vArray As Variant) As String
     PackArrayToString = Join(vArray, strDelimiter)
 End Function
 
-Private Function UnpackStringToArray(str As String) As Variant
+Private Function UnpackStringToArray(Str As String) As Variant
     Dim strDelimiter As String
     strDelimiter = "|"
-    UnpackStringToArray = Split(str, strDelimiter, , vbTextCompare)
+    UnpackStringToArray = Split(Str, strDelimiter, , vbTextCompare)
 End Function
