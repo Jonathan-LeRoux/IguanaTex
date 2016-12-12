@@ -108,7 +108,7 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
             NORMAL_PRIORITY_CLASS, 0&, sdir, start, proc)
     lastError& = GetLastError()
     If (ret& = 0) Then
-        MsgBox "Could not start process: '" & Pathname & "'. GetLastError returned " & Str(lastError&)
+        MsgBox "Could not start process: '" & Pathname & "'. GetLastError returned " & str(lastError&)
         ShellWait = 1
         Exit Function
     End If
@@ -124,7 +124,7 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
     ret& = GetExitCodeProcess(proc.hProcess, exitcode&)
     If (ret& = 0) Then
         lastError& = GetLastError()
-        MsgBox "GetExitCodeProcess returned " + Str(ret&) + ", GetLastError returned " + Str(lastError&)
+        MsgBox "GetExitCodeProcess returned " + str(ret&) + ", GetLastError returned " + str(lastError&)
     End If
     ' Tidy up if time out
     If (retWait& = 258) Then
@@ -138,6 +138,7 @@ End Function
 Public Function Execute(CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
     Dim RetVal As Long
     If debugMode Then
+        ClipBoard_SetData CommandLine
         MsgBox CommandLine, , StartupDir
         RetVal = ShellWait(CommandLine, StartupDir, 1&, WaitTime)
     Else

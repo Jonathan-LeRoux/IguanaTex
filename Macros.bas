@@ -27,14 +27,15 @@ Attribute VB_Name = "Macros"
       ByVal dwNewLong As Long) _
    As Long
  
- Private Declare PtrSafe Function GetDC Lib "user32" _
+ Private Declare PtrSafe Function GetDC Lib "User32" _
     (ByVal hwnd As Long) As Long
 
  Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" _
     (ByVal hDC As Long, ByVal nIndex As Long) As Long
 
- Private Declare PtrSafe Function ReleaseDC Lib "user32" _
+ Private Declare PtrSafe Function ReleaseDC Lib "User32" _
     (ByVal hwnd As Long, ByVal hDC As Long) As Long
+
 
 #Else
  Private Declare Function SetLastError _
@@ -58,14 +59,16 @@ Attribute VB_Name = "Macros"
       ByVal dwNewLong As Long) _
    As Long
    
- Private Declare Function GetDC Lib "user32" _
+ Private Declare Function GetDC Lib "User32" _
     (ByVal hwnd As Long) As Long
 
  Private Declare Function GetDeviceCaps Lib "gdi32" _
     (ByVal hDC As Long, ByVal nIndex As Long) As Long
 
- Private Declare Function ReleaseDC Lib "user32" _
+ Private Declare Function ReleaseDC Lib "User32" _
     (ByVal hwnd As Long, ByVal hDC As Long) As Long
+
+
 
 #End If
 
@@ -130,9 +133,6 @@ Sub NewLatexEquation()
 Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Ben-Haim"
     Load LatexForm
     
-    LatexForm.textboxSize.Visible = True
-    LatexForm.Label2.Visible = True
-    LatexForm.Label3.Visible = True
     If IsEmpty(LatexForm.textboxSize.Text) Then
         LatexForm.textboxSize.Text = "20"
     End If
@@ -161,37 +161,34 @@ Function TryEditLatexEquation() As Boolean
     ' Otherwise, do nothing and return False.
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
+    Dim oldShape As Shape
     
     If Sel.Type = ppSelectionShapes Then
         ' Attempt to deal with the case of 1 object inside a group
         If Sel.ShapeRange.Type = msoGroup Then
             If Sel.ChildShapeRange.count = 1 Then
-                With Sel.ChildShapeRange.Tags
+                Set oldShape = Sel.ChildShapeRange(1)
+                With oldShape.Tags
                     For i = 1 To .count
                         If (.name(i) = "LATEXADDIN") Then
                             Load LatexForm
-                            LatexForm.textboxSize.Visible = True
-                            LatexForm.Label2.Visible = True
-                            LatexForm.Label3.Visible = True
-                            LatexForm.CheckBoxReset.Visible = True
-                            LatexForm.CheckBoxReset.Value = False
-                            LatexForm.Label2.Caption = "Reset size:"
-    
-                            LatexForm.TextBox1.Text = .Value(i)
-                            LatexForm.ButtonRun.Caption = "Modify"
-                            LatexForm.ButtonRun.Accelerator = "M"
-                            CursorPosition = Len(LatexForm.TextBox1.Text)
                             
+                            Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
+                        
+                            LatexForm.Show
+                            TryEditLatexEquation = True
+                            Exit Function
+                        End If
+                        If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                             For j = 1 To .count
-                                If (.name(j) = "IGUANATEXSIZE") Then
-                                    LatexForm.textboxSize.Text = .Value(j)
+                                If (.name(j) = "ORIGWIDTH") Then
+                                    oldShape.Tags.Add "TEXPOINTSCALING", oldShape.Width / .Value(j)
                                 End If
-                                If (.name(j) = "IguanaTexCursor") Then
-                                    CursorPosition = .Value(j)
-                                End If
-                            Next
-                            LatexForm.TextBox1.SelStart = CursorPosition
-                            LatexForm.textboxSize.Enabled = False
+                            Next j
+                            
+                            Load LatexForm
+                            
+                            Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
                             LatexForm.Show
                             TryEditLatexEquation = True
                             Exit Function
@@ -201,32 +198,28 @@ Function TryEditLatexEquation() As Boolean
             End If
         ' Now the non-group case: only a single object can be selected
         ElseIf Sel.ShapeRange.count = 1 Then
-            With Sel.ShapeRange.Tags
+            Set oldShape = Sel.ShapeRange(1)
+            With oldShape.Tags
                 For i = 1 To .count
                     If (.name(i) = "LATEXADDIN") Then
                         Load LatexForm
-                        LatexForm.textboxSize.Visible = True
-                        LatexForm.Label2.Visible = True
-                        LatexForm.Label3.Visible = True
-                        LatexForm.CheckBoxReset.Visible = True
-                        LatexForm.CheckBoxReset.Value = False
-                        LatexForm.Label2.Caption = "Reset size:"
                         
-                        LatexForm.TextBox1.Text = .Value(i)
-                        LatexForm.ButtonRun.Caption = "Modify"
-                        LatexForm.ButtonRun.Accelerator = "M"
-                        CursorPosition = Len(LatexForm.TextBox1.Text)
+                        Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
                         
+                        LatexForm.Show
+                        TryEditLatexEquation = True
+                        Exit Function
+                    End If
+                    If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                         For j = 1 To .count
-                            If (.name(j) = "IGUANATEXSIZE") Then
-                                LatexForm.textboxSize.Text = .Value(j)
+                            If (.name(j) = "ORIGWIDTH") Then
+                                oldShape.Tags.Add "TEXPOINTSCALING", oldShape.Width / .Value(j)
                             End If
-                            If (.name(j) = "IGUANATEXCURSOR") Then
-                                CursorPosition = .Value(j)
-                            End If
-                        Next
-                        LatexForm.TextBox1.SelStart = CursorPosition
-                        LatexForm.textboxSize.Enabled = False
+                        Next j
+                        
+                        Load LatexForm
+                        
+                        Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
                         LatexForm.Show
                         TryEditLatexEquation = True
                         Exit Function
@@ -238,6 +231,118 @@ Function TryEditLatexEquation() As Boolean
     
     TryEditLatexEquation = False
 End Function
+
+Sub RegenerateSelectedDisplays()
+    Dim Sel As Selection
+    Set Sel = Application.ActiveWindow.Selection
+    Dim vSh As Shape
+    Dim vSl As Slide
+    Dim SlideIndex As Integer
+
+    Select Case Sel.Type
+        Case ppSelectionShapes
+            SlideIndex = ActiveWindow.View.Slide.SlideIndex
+            For Each vSh In Sel.ShapeRange
+                If vSh.Type = msoGroup Then
+                    Call RegenerateGroupedDisplays(vSh, SlideIndex)
+                Else
+                    Call RegenerateOneDisplay(vSh)
+                End If
+            Next vSh
+        Case ppSelectionSlides
+            For Each vSl In Sel.SlideRange
+                Call RegenerateDisplaysOnSlide(vSl)
+            Next vSl
+        Case Else
+            MsgBox "You need to select a set of shapes or slides."
+    End Select
+    
+End Sub
+
+Sub RegenerateDisplaysOnSlide(vSl As Slide)
+    vSl.Select
+    Dim vSh As Shape
+    For Each vSh In vSl.Shapes
+        If vSh.Type = msoGroup Then
+            Call RegenerateGroupedDisplays(vSh, vSl.SlideIndex)
+        Else
+            Call RegenerateOneDisplay(vSh)
+        End If
+    Next vSh
+End Sub
+
+Sub RegenerateGroupedDisplays(vGroupSh As Shape, SlideIndex As Integer)
+    Dim n As Long
+    Dim vSh As Shape
+    
+    Dim ItemToRegenerateList() As String
+    
+    ItemToRegenerateList = CollectGroupedItemList(vGroupSh)
+    
+    For n = LBound(ItemToRegenerateList) To UBound(ItemToRegenerateList)
+        Set vSh = ActivePresentation.Slides(SlideIndex).Shapes(ItemToRegenerateList(n))
+        Call RegenerateOneDisplay(vSh)
+    Next
+
+End Sub
+
+Private Function CollectGroupedItemList(vSh As Shape) As Variant
+    Dim n As Long
+    Dim i As Long
+    Dim prev_length As Long
+    Dim added_length As Long
+    Dim TmpList() As String
+    Dim SubList() As String
+    For n = 1 To vSh.GroupItems.count
+        If n = 1 Then
+            prev_length = -1
+        Else
+            prev_length = UBound(TmpList)
+        End If
+        If vSh.GroupItems(n).Type = msoGroup Then
+            SubList = CollectGroupedItemList(vSh.GroupItems(n))
+            added_length = UBound(SubList)
+            ReDim Preserve TmpList(0 To prev_length + added_length) As String
+            For j = prev_length + 1 To UBound(Tmp)
+                TmpList(j) = SubList(j - prev_ubound - 1)
+            Next j
+        Else
+            ReDim Preserve TmpList(0 To prev_length + 1) As String
+            TmpList(UBound(TmpList)) = vSh.GroupItems(n).name
+        End If
+    Next
+    CollectGroupedItemList = TmpList
+End Function
+
+Sub RegenerateOneDisplay(vSh As Shape)
+    vSh.Select
+    With vSh.Tags
+        For i = 1 To .count
+            If (.name(i) = "LATEXADDIN") Then
+                Load LatexForm
+                
+                Call LatexForm.RetrieveOldShapeInfo(vSh, .Value(i))
+                
+                Call LatexForm.ButtonRun_Click
+                Exit Sub
+            End If
+            If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
+                For j = 1 To .count
+                    If (.name(j) = "ORIGWIDTH") Then
+                        vSh.Tags.Add "TEXPOINTSCALING", vSh.Width / .Value(j)
+                    End If
+                Next j
+                
+                Load LatexForm
+                
+                Call LatexForm.RetrieveOldShapeInfo(vSh, .Value(i))
+                
+                Call LatexForm.ButtonRun_Click
+                Exit Sub
+            End If
+        Next
+    End With
+End Sub
 
 Sub Auto_Open()
     ' Runs when the add-in is loaded
@@ -266,4 +371,12 @@ End Sub
 Public Sub RibbonSetTempFolder(ByVal control)
     LoadSetTempForm
 End Sub
+
+Public Sub RibbonRegenerateSelectedDisplays(ByVal control)
+    Call RegenerateSelectedDisplays
+End Sub
+
+Public Function GetFilePrefix() As String
+    GetFilePrefix = "IguanaTex_tmp"
+End Function
 
