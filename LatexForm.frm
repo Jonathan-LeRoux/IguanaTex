@@ -85,6 +85,7 @@ Private Sub ButtonCancel_Click()
     ' LatexForm.Hide
 End Sub
 
+
 Private Sub ButtonRun_Click()
     Dim TempPath As String
     TempPath = GetTempPath()
@@ -174,8 +175,10 @@ Private Sub ButtonRun_Click()
     
     ' Insert image
     Dim newShape As Shape
-    Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, posX, posY)
+    Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, posX, posY, -1, -1)
     ' Add tags storing the original height and width, used next time to keep resizing ratio.
+    newShape.ScaleHeight 1#, msoTrue
+    newShape.ScaleWidth 1#, msoTrue
     newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
     newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
     
@@ -186,13 +189,12 @@ Private Sub ButtonRun_Click()
         newShape.ScaleHeight ScaleFactor, msoTrue
         newShape.ScaleWidth ScaleFactor, msoTrue
     Else
-        PointSize = val(textboxSize.Text)
         HeightOld = oldShape.Height
         WidthOld = oldShape.Width
         oldShape.ScaleHeight 1#, msoTrue
         oldShape.ScaleWidth 1#, msoTrue
-        tScaleHeight = HeightOld / oldShape.Height
-        tScaleWidth = WidthOld / oldShape.Width
+        tScaleHeight = HeightOld / oldShape.Height * 0.8 ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
+        tScaleWidth = WidthOld / oldShape.Width * 0.8
         With oldShape.Tags
             For i = 1 To .count
                 If (.name(i) = "ORIGINALHEIGHT") Then
@@ -201,7 +203,7 @@ Private Sub ButtonRun_Click()
                 End If
                 If (.name(i) = "ORIGINALWIDTH") Then
                     tmpWidth = val(.Value(i))
-                    tScaleHeight = WidthOld / tmpWidth
+                    tScaleWidth = WidthOld / tmpWidth
                 End If
             Next
         End With
