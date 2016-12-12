@@ -180,12 +180,17 @@ Function TryEditLatexEquation() As Boolean
                             LatexForm.TextBox1.Text = .Value(i)
                             LatexForm.ButtonRun.Caption = "Modify"
                             LatexForm.ButtonRun.Accelerator = "M"
+                            CursorPosition = Len(LatexForm.TextBox1.Text)
                             
                             For j = 1 To .count
                                 If (.name(j) = "IGUANATEXSIZE") Then
                                     LatexForm.textboxSize.Text = .Value(j)
                                 End If
+                                If (.name(j) = "IguanaTexCursor") Then
+                                    CursorPosition = .Value(j)
+                                End If
                             Next
+                            LatexForm.TextBox1.SelStart = CursorPosition
                             LatexForm.textboxSize.Enabled = False
                             LatexForm.Show
                             TryEditLatexEquation = True
@@ -210,12 +215,17 @@ Function TryEditLatexEquation() As Boolean
                         LatexForm.TextBox1.Text = .Value(i)
                         LatexForm.ButtonRun.Caption = "Modify"
                         LatexForm.ButtonRun.Accelerator = "M"
+                        CursorPosition = Len(LatexForm.TextBox1.Text)
                         
                         For j = 1 To .count
                             If (.name(j) = "IGUANATEXSIZE") Then
                                 LatexForm.textboxSize.Text = .Value(j)
                             End If
+                            If (.name(j) = "IGUANATEXCURSOR") Then
+                                CursorPosition = .Value(j)
+                            End If
                         Next
+                        LatexForm.TextBox1.SelStart = CursorPosition
                         LatexForm.textboxSize.Enabled = False
                         LatexForm.Show
                         TryEditLatexEquation = True

@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Settings"
-   ClientHeight    =   4214
+   ClientHeight    =   4711
    ClientLeft      =   14
    ClientTop       =   329
    ClientWidth     =   6286
@@ -55,6 +55,10 @@ Private Sub ButtonSetTemp_Click()
     ' Time Out Interval for Processes
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TimeOutTime", REG_DWORD, CLng(val(TextBoxTimeOut.Text))
     
+    ' LaTeX Engine
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "LaTeXEngine", REG_SZ, CStr(ComboBoxEngine.Text)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", REG_DWORD, ComboBoxEngine.ListIndex
+    
     Unload SetTempForm
 End Sub
 
@@ -64,9 +68,11 @@ Private Sub CheckBoxPDF_Click()
     If CheckBoxPDF.Value = True Then
         TextBoxGS.Enabled = True
         TextBoxIMconv.Enabled = True
+        ComboBoxEngine.Enabled = True
     Else
         TextBoxGS.Enabled = False
         TextBoxIMconv.Enabled = False
+        ComboBoxEngine.Enabled = False
     End If
 
 End Sub
@@ -81,6 +87,8 @@ Private Sub Reset_Click()
     TextBoxIMconv.Text = "C:\Program Files\ImageMagick\convert.exe"
     
     TextBoxTimeOut.Text = "60"
+    
+    ComboBoxEngine.ListIndex = 0
     
 End Sub
 
@@ -102,6 +110,14 @@ Private Sub UserForm_Initialize()
     TextBoxIMconv.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
     
     TextBoxTimeOut.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")
+    
+    ComboBoxEngine.List = Array("pdflatex", "xelatex", "lualatex")
+    'With ComboBoxEngine
+    '    .AddItem "pdflatex"
+    '    .AddItem "xelatex"
+    '    .AddItem "lualatex"
+    'End With
+    ComboBoxEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
 End Sub
 
 Private Function BoolToInt(val) As Long

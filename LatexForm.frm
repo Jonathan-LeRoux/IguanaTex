@@ -109,6 +109,7 @@ Private Sub ButtonRun_Click()
     UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
     gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
     IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
+    tex2pdf_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngine", "pdflatex")
     
     Dim TimeOutTime As Long
     TimeOutTime = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")) * 1000 ' Wait 60 seconds for the processes to complete
@@ -172,7 +173,7 @@ Private Sub ButtonRun_Click()
     
     If UsePDF = True Then
     ' pdf to png route
-        RetVal& = Execute("pdflatex -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+        RetVal& = Execute("""" & tex2pdf_command & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
             
         If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
             ' Error in Latex code
@@ -184,7 +185,7 @@ Private Sub ButtonRun_Click()
                 LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
                 LogFileViewer.Show 1
             Else
-                MsgBox "pdflatex did not return in 60 seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+                MsgBox tex2pdf_command & " did not return in 60 seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
             End If
             Exit Sub
         End If
@@ -368,6 +369,7 @@ Private Sub ButtonRun_Click()
     ' Add tags
     newShape.Tags.Add "LATEXADDIN", TextBox1.Text
     newShape.Tags.Add "IguanaTexSize", val(textboxSize.Text)
+    newShape.Tags.Add "IGUANATEXCURSOR", TextBox1.SelStart
     
     ' Copy animation settings and formatting from old image, then delete it
     If ButtonRun.Caption = "Modify" Then
@@ -584,6 +586,8 @@ Private Sub SaveSettings()
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Debug", REG_DWORD, BoolToInt(checkboxDebug.Value)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "PointSize", REG_DWORD, CLng(val(textboxSize.Text))
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "LatexCode", REG_SZ, CStr(TextBox1.Text)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "LatexCodeCursor", REG_DWORD, CLng(TextBox1.SelStart)
+    TextBox1.SetFocus
 End Sub
 
 Private Sub LoadSettings()
@@ -592,6 +596,7 @@ Private Sub LoadSettings()
     checkboxDebug.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Debug", False)
     textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "PointSize", "20")
     TextBox1.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCode", "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & Chr(13) & Chr(13) & Chr(13) & "\end{document}")
+    TextBox1.SelStart = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCodeCursor", 0)
 End Sub
 
 Private Function GetTempPath() As String
