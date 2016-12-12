@@ -162,7 +162,10 @@ Function TryEditLatexEquation() As Boolean
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     Dim oldShape As Shape
+    Dim LatexText As String
+    Dim SourceParts() As String
                             
+                                                        
     If Sel.Type = ppSelectionShapes Then
         ' First make sure we don't have any shapes with duplicate names on this slide
         Call DeDuplicateShapeNamesInSlide(ActiveWindow.View.Slide.SlideIndex)
@@ -183,20 +186,29 @@ Function TryEditLatexEquation() As Boolean
                         End If
                         If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                             ScalingFactor = 1
-                            'Debug.Print .Name(i)
+                            IsTemplate = False
                             For j = 1 To .count
                                 'Debug.Print .Name(j) & vbTab & .Value(j)
                                 If (.name(j) = "ORIGWIDTH") Then
                                     ScalingFactor = ScalingFactor * oldShape.Width / .Value(j)
                                 End If
-                                'If (.Name(j) = "RES") Then
-                                '    ScalingFactor = ScalingFactor * 1200 / .Value(j)
-                                'End If
+                                If (.name(j) = "TEXPOINT") Then
+                                    If .Value(j) = "template" Then
+                                        IsTemplate = True
+                                    End If
+                                End If
                             Next j
                             oldShape.Tags.Add "TEXPOINTSCALING", ScalingFactor
                             Load LatexForm
                             
-                            Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
+                            If IsTemplate = True Then
+                                SourceParts = Split(.Value(i), vbTab, , vbTextCompare)
+                                LatexText = "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & "$" & SourceParts(3) & "$" & Chr(13) & Chr(13) & "\end{document}"
+                                oldShape.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
+                            Else
+                                LatexText = .Value(i)
+                            End If
+                            Call LatexForm.RetrieveOldShapeInfo(oldShape, LatexText)
                             LatexForm.Show
                             TryEditLatexEquation = True
                             Exit Function
@@ -223,10 +235,16 @@ Function TryEditLatexEquation() As Boolean
                     End If
                     If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                         ScalingFactor = 1
+                        IsTemplate = False
                         For j = 1 To .count
-                            'Debug.Print .Name(j) & vbTab & .Value(j)
+                            Debug.Print .name(j) & vbTab & .Value(j)
                             If (.name(j) = "ORIGWIDTH") Then
                                 ScalingFactor = ScalingFactor * oldShape.Width / val(.Value(j))
+                            End If
+                            If (.name(j) = "TEXPOINT") Then
+                                If .Value(j) = "template" Then
+                                    IsTemplate = True
+                                End If
                             End If
                             'If (.Name(j) = "RES") Then
                             '    ScalingFactor = ScalingFactor * 1200 / val(.Value(j))
@@ -236,7 +254,14 @@ Function TryEditLatexEquation() As Boolean
                     
                         Load LatexForm
                         
-                        Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
+                        If IsTemplate = True Then
+                            SourceParts = Split(.Value(i), vbTab, , vbTextCompare)
+                            LatexText = "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & "$" & SourceParts(3) & "$" & Chr(13) & Chr(13) & "\end{document}"
+                            oldShape.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
+                        Else
+                            LatexText = .Value(i)
+                        End If
+                        Call LatexForm.RetrieveOldShapeInfo(oldShape, LatexText)
                         LatexForm.Show
                         TryEditLatexEquation = True
                         Exit Function
@@ -407,15 +432,30 @@ Sub RegenerateOneDisplay(vSh As Shape)
                 Exit Sub
             End If
             If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
+                IsTemplate = False
                 For j = 1 To .count
                     If (.name(j) = "ORIGWIDTH") Then
                         vSh.Tags.Add "TEXPOINTSCALING", vSh.Width / .Value(j)
+                    End If
+                    If (.name(j) = "TEXPOINT") Then
+                        If .Value(j) = "template" Then
+                            IsTemplate = True
+                        End If
                     End If
                 Next j
                 
                 Load LatexForm
                 
-                Call LatexForm.RetrieveOldShapeInfo(vSh, .Value(i))
+                Dim LatexText As String
+                If IsTemplate = True Then
+                    Dim SourceParts() As String
+                    SourceParts = Split(.Value(i), vbTab, , vbTextCompare)
+                    LatexText = "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & "$" & SourceParts(3) & "$" & Chr(13) & Chr(13) & "\end{document}"
+                    vSh.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
+                Else
+                    LatexText = .Value(i)
+                End If
+                Call LatexForm.RetrieveOldShapeInfo(vSh, LatexText)
                 
                 Call LatexForm.ButtonRun_Click
                 Exit Sub
