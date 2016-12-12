@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
-   Caption         =   "Settings"
-   ClientHeight    =   5369
+   Caption         =   "Default Settings and Paths"
+   ClientHeight    =   6622
    ClientLeft      =   14
    ClientTop       =   329
    ClientWidth     =   6286
@@ -101,6 +101,27 @@ Private Sub ButtonIMPath_Click()
     TextBoxIMconv.SetFocus
 End Sub
 
+
+Private Sub ButtonTeX2img_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker) 'msoFileDialogFolderPicker
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = TextBoxTeX2img.Text
+    fd.Filters.Clear
+    fd.Filters.Add "All Files", "*.*", 1
+    
+    If fd.Show = -1 Then
+        For Each vrtSelectedItem In fd.SelectedItems
+            TextBoxTeX2img.Text = vrtSelectedItem
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+    TextBoxTeX2img.SetFocus
+End Sub
+
 Private Sub ButtonSetTemp_Click()
     Dim RegPath As String
     Dim res As String
@@ -127,9 +148,10 @@ Private Sub ButtonSetTemp_Click()
     ' UTF8
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "UseUTF8", REG_DWORD, BoolToInt(CheckBoxUTF8.Value)
     
-    ' PDF2PNG
-    'SetRegistryValue HKEY_CURRENT_USER, RegPath, "UsePDF", REG_DWORD, BoolToInt(CheckBoxPDF.Value)
-        
+    ' Vector or Bitmap (EMF or PNG)
+    'SetRegistryValue HKEY_CURRENT_USER, RegPath, "EMFoutput", REG_DWORD, BoolToInt(CheckBoxEMF.Value)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "BitmapVector", REG_DWORD, ComboBoxBitmapVector.ListIndex
+     
     ' GS command
     res = TextBoxGS.Text
     If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
@@ -147,6 +169,20 @@ Private Sub ButtonSetTemp_Click()
     If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
     If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Editor", REG_SZ, CStr(res)
+    
+    ' Path to TeX2img (Vector output)
+    res = TextBoxTeX2img.Text
+    If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
+    If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "TeX2img Command", REG_SZ, CStr(res)
+    
+    ' Magic scaling factor to fine-tune the scaling of Vector displays
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "VectorScalingX", REG_SZ, TextBoxVectorScalingX.Text
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "VectorScalingY", REG_SZ, TextBoxVectorScalingY.Text
+    
+    ' Magic scaling factor to fine-tune the scaling of PNG displays
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "BitmapScalingX", REG_SZ, TextBoxBitmapScalingX.Text
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "BitmapScalingY", REG_SZ, TextBoxBitmapScalingY.Text
     
     ' Global dpi setting for latex output
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "OutputDpi", REG_DWORD, CLng(val(TextBoxDpi.Text))
@@ -171,11 +207,50 @@ Private Sub AbsPathButton_Click()
 End Sub
 
 
+Private Sub LabelDLgs_Click()
+    Link = "http://www.ghostscript.com/download/gsdnld.html"
+    Dim lSuccess As Long
+    lSuccess = ShellExecute(0, "Open", Link)
+    If (lSuccess = 0) Then
+        MsgBox "Cannot open " & Link
+    End If
+End Sub
 
-'Private Sub ComboBoxEngine_Change()
-'    SetPDFdependencies
-'End Sub
+Private Sub LabelDLImageMagick_Click()
+    Link = "http://www.imagemagick.org/script/binary-releases.php"
+    Dim lSuccess As Long
+    lSuccess = ShellExecute(0, "Open", Link)
+    If (lSuccess = 0) Then
+        MsgBox "Cannot open " & Link
+    End If
+End Sub
 
+Private Sub LabelDLTeX2img_Click()
+    Link = "http://www.math.sci.hokudai.ac.jp/~abenori/soft/bin/TeX2img_2.0.1.zip"
+    Dim lSuccess As Long
+    lSuccess = ShellExecute(0, "Open", Link)
+    If (lSuccess = 0) Then
+        MsgBox "Cannot open " & Link
+    End If
+End Sub
+
+Private Sub LabelTeX2imgGithub_Click()
+    Link = "https://github.com/abenori/TeX2img"
+    Dim lSuccess As Long
+    lSuccess = ShellExecute(0, "Open", Link)
+    If (lSuccess = 0) Then
+        MsgBox "Cannot open " & Link
+    End If
+End Sub
+
+Private Sub LabelDLtexstudio_Click()
+    Link = "http://www.texstudio.org/"
+    Dim lSuccess As Long
+    lSuccess = ShellExecute(0, "Open", Link)
+    If (lSuccess = 0) Then
+        MsgBox "Cannot open " & Link
+    End If
+End Sub
 
 Private Sub RelPathButton_Click()
     AbsPathButton.Value = False
@@ -214,13 +289,22 @@ Private Sub Reset_Click()
     
     CheckBoxUTF8.Value = True
     
-    'CheckBoxPDF.Value = False
+    'CheckBoxEMF.Value = False
+    ComboBoxBitmapVector.ListIndex = 0
     
     TextBoxGS.Text = "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe"
     
     TextBoxIMconv.Text = "C:\Program Files\ImageMagick\convert.exe"
     
+    TextBoxTeX2img.Text = "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe"
+    
     TextBoxDpi.Text = "1200"
+    
+    TextBoxVectorScalingX.Text = "1"
+    TextBoxVectorScalingY.Text = "1"
+    
+    TextBoxBitmapScalingX.Text = "1"
+    TextBoxBitmapScalingY.Text = "1"
     
     TextBoxTimeOut.Text = "60"
     
@@ -234,6 +318,10 @@ Private Sub Reset_Click()
 End Sub
 
 Private Sub UserForm_Initialize()
+    
+    Me.Top = Application.Top + 110
+    Me.Left = Application.Left + 25
+    
     Dim res As String
     RegPath = "Software\IguanaTex"
     
@@ -260,9 +348,21 @@ Private Sub UserForm_Initialize()
     
     TextBoxFontSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10")
     
+    TextBoxVectorScalingX.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "VectorScalingX", "1")
+    TextBoxVectorScalingY.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "VectorScalingY", "1")
+    
+    TextBoxBitmapScalingX.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapScalingX", "1")
+    TextBoxBitmapScalingY.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapScalingY", "1")
+    
     TextBoxExternalEditor.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "C:\Program Files (x86)\TeXstudio\texstudio.exe")
     
-    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)", "platex (PDF->PNG)")
+    TextBoxTeX2img.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeX2img Command", "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe")
+    
+    'CheckBoxEMF.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EMFoutput", False)
+    ComboBoxBitmapVector.List = Array("Bitmap", "Vector")
+    ComboBoxBitmapVector.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapVector", 0)
+    
+    LaTexEngineDisplayList = Array("latex", "pdflatex", "xelatex", "lualatex", "platex")
     UsePDFList = Array(False, True, True, True, True)
     
     ComboBoxEngine.List = LaTexEngineDisplayList

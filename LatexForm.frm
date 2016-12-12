@@ -24,6 +24,8 @@ Dim TemplateSortedListString As String
 Dim TemplateSortedList() As String
 Dim TemplateNameSortedListString As String
 
+Dim FormHeightWidthSet As Boolean
+
 Dim theAppEventHandler As New AppEventHandler
 
 Sub InitializeApp()
@@ -31,7 +33,9 @@ Sub InitializeApp()
     
     AddMenuItem "New Latex display...", "NewLatexEquation", 18 '226
     AddMenuItem "Edit Latex display...", "EditLatexEquation", 37
-    AddMenuItem "Regenerate selected displays...", "RegenerateSelectedDisplays", 19
+    AddMenuItem "Regenerate selected displays...", "RegenerateSelectedDisplaysNoChange", 19
+    AddMenuItem "Convert to EMF...", "ConvertToEMF", 153
+    AddMenuItem "Convert to PNG...", "ConvertToPNG", 931
     AddMenuItem "Settings...", "LoadSetTempForm", 548
     
 End Sub
@@ -72,7 +76,9 @@ Sub UnInitializeApp()
     
     RemoveMenuItem "New Latex display..."
     RemoveMenuItem "Edit Latex display..."
-    RemoveMenuItem "Regenerate selected displays..."
+    RemoveMenuItem "Regenerate selection..."
+    RemoveMenuItem "Convert to EMF..."
+    RemoveMenuItem "Convert to PNG..."
     RemoveMenuItem "Settings..."
 
 End Sub
@@ -185,20 +191,24 @@ Sub ButtonRun_Click()
     FilePrefix = GetFilePrefix()
     
     Dim debugMode As Boolean
-    If checkboxDebug.Value Then
-        debugMode = True
-    Else
-        debugMode = False
-    End If
+    debugMode = checkboxDebug.Value
     
     ' Read settings
     RegPath = "Software\IguanaTex"
-    Dim UsePDF As Boolean
-    gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
-    IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
     LATEXENGINEID = ComboBoxLaTexEngine.ListIndex
     tex2pdf_command = LaTexEngineList(LATEXENGINEID)
+    Dim UsePDF As Boolean
     UsePDF = UsePDFList(LATEXENGINEID)
+    
+    Dim UseEMF As Boolean
+    BitmapVector = ComboBoxBitmapVector.ListIndex
+    If BitmapVector = 0 Then
+        UseEMF = False
+    Else
+        UseEMF = True
+    End If
+    'UseEMF = CheckBoxEMF.Value
+    Dim OutputType As String
     
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
@@ -206,14 +216,18 @@ Sub ButtonRun_Click()
     TimeOutTime = val(TimeOutTimeString) * 1000
     
     Dim OutputDpiString As String
+    OutputDpiString = TextBoxLocalDPI.Text
     Dim OutputDpi As Long
-    OutputDpiString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
     OutputDpi = val(OutputDpiString)
     
     ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
     dpi = lDotsPerInch
-    highdpi_rescaling = 1 ' will be used to account for dvipng's handling of high-dpi displays
-        
+    default_screen_dpi = 96
+    Dim VectorScalingX As Single, VectorScalingY As Single, BitmapScalingX As Single, BitmapScalingY As Single
+    VectorScalingX = dpi / default_screen_dpi * val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "VectorScalingX", "1"))
+    VectorScalingY = dpi / default_screen_dpi * val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "VectorScalingY", "1"))
+    BitmapScalingX = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapScalingX", "1"))
+    BitmapScalingY = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapScalingY", "1"))
         
     ' Test if path writable
     If Not IsPathWritable(TempPath) Then
@@ -221,8 +235,10 @@ Sub ButtonRun_Click()
         Exit Sub
     End If
     
+    
     ' Write latex to a temp file
     Call WriteLaTeX2File(TempPath, FilePrefix)
+    
     
     ' Run latex
     Const ForReading = 1, ForWriting = 2, ForAppending = 3
@@ -230,159 +246,197 @@ Sub ButtonRun_Click()
     Dim LogFile As Object
     FrameProcess.Visible = True
     
-    If UsePDF = True Then
-    ' pdf to png route
-        If tex2pdf_command = "platex" Then
-            OutputExt = ".dvi"
+    If UseEMF = True Then ' Use TeX2img to generate an EMF file
+        tex2img_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeX2img Command", "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe")
+        LabelProcess.Caption = "LaTeX to EMF..."
+        FrameProcess.Repaint
+        RetVal& = Execute("""" & tex2img_command & """ --latex " + tex2pdf_command + " --preview- """ + FilePrefix + ".tex"" """ + FilePrefix + ".emf""", TempPath, debugMode, TimeOutTime)
+        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".emf")) Then
+            ' Error in Latex code
+            ' Read log file and show it to the user
+            If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
+                LogFileViewer.TextBox1.Text = LogFile.ReadAll
+                LogFile.Close
+                LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
+                LogFileViewer.Show 1
+            Else
+                MsgBox "TeX2img did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                & vbNewLine & "You should have run TeX2img once outside IguanaTex to make sure its path are set correctly." _
+                & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+            End If
+            FrameProcess.Visible = False
+            Exit Sub
+        End If
+        FinalFilename = FilePrefix & ".emf"
+        OutputType = "EMF"
+    Else
+        If UsePDF = True Then ' pdf to png route
+            gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
+            IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
+            
+            If tex2pdf_command = "platex" Then
+                OutputExt = ".dvi"
+                LabelProcess.Caption = "LaTeX to DVI..."
+            Else
+                OutputExt = ".pdf"
+                LabelProcess.Caption = "LaTeX to PDF..."
+            End If
+            FrameProcess.Repaint
+            
+            RetVal& = Execute("""" & tex2pdf_command & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+            
+            If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
+                ' Error in Latex code
+                ' Read log file and show it to the user
+                If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                    Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
+                    LogFileViewer.TextBox1.Text = LogFile.ReadAll
+                    LogFile.Close
+                    LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
+                    LogFileViewer.Show 1
+                Else
+                    MsgBox tex2pdf_command & " did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                    & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
+                    & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing"
+                End If
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
+            
+            If tex2pdf_command = "platex" Then
+                LabelProcess.Caption = "DVI to PDF..."
+                FrameProcess.Repaint
+                ' platex actually outputs a DVI file, which we need to convert to PDF (we could go the EPS route, but this blends easier with IguanaTex's existing code)
+                RetValConv& = Execute("dvipdfmx -o """ + FilePrefix + ".pdf"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+                If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
+                    ' Error in DVI to PDF conversion
+                    MsgBox "Error while using dvipdm to convert from DVI to PDF."
+                    FrameProcess.Visible = False
+                    Exit Sub
+                End If
+            End If
+            
+            LabelProcess.Caption = "PDF to PNG..."
+            FrameProcess.Repaint
+            ' Output Bounding Box to file and read back in the appropriate information
+            RetValConv& = Execute("cmd /C """ & gs_command & """ -q -dBATCH -dNOPAUSE -sDEVICE=bbox " & FilePrefix & ".pdf 2> " & FilePrefix & ".bbx", TempPath, debugMode, TimeOutTime)
+            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".bbx")) Then
+                ' Error in bounding box computation
+                MsgBox "Error while using Ghostscript to compute the bounding box. Is your path correct?"
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
+            Dim BBString As String
+            BBString = BoundingBoxString(TempPath + FilePrefix + ".bbx")
+            
+            ' Convert PDF to PNG
+            If checkboxTransp.Value = True Then
+                PdfPngDevice = "-sDEVICE=pngalpha"
+            Else
+                PdfPngDevice = "-sDEVICE=png16m"
+            End If
+            RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE " & PdfPngDevice & " -r" & OutputDpiString & " -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
+            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
+                ' Error in PDF to PNG conversion
+                MsgBox "Error while using Ghostscript to convert from PDF to PNG. Is your path correct?"
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
+            ' Unfortunately, the resulting file has a metadata DPI of OutputDpi (=1200), not the default screen one (usually 96),
+            ' so there is a discrepancy with the dvipng output, which is always 96 (independent of the screen, actually).
+            ' The only workaround I have found so far is to use Imagemagick's convert to change the DPI (but not the pixel size!)
+            ' Execute """" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode
+            RetValConv& = Execute("""" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(default_screen_dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode, TimeOutTime)
+            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
+                ' Error in PDF to PNG conversion
+                MsgBox "Error while using ImageMagick to change the PNG DPI. Is your path correct?" _
+                & vbNewLine & "The full path is needed to avoid conflict with Windows's built-in convert.exe."
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
+            
+            ' 'I considered using ImageMagick's convert, but it's extremely slow, and uses ghostscript in the backend anyway
+            'PdfPngSwitches = "-density 1200 -trim -transparent white -antialias +repage"
+            'Execute IMconv & " " & PdfPngSwitches & " """ & FilePrefix & ".pdf"" """ & FilePrefix & ".png""", TempPath, debugMode
+            
+        Else
+        ' dvi to png route
             LabelProcess.Caption = "LaTeX to DVI..."
             FrameProcess.Repaint
-        Else
-            OutputExt = ".pdf"
-            LabelProcess.Caption = "LaTeX to PDF..."
-            FrameProcess.Repaint
-        End If
-        RetVal& = Execute("""" & tex2pdf_command & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
-        
-        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
-            ' Error in Latex code
-            ' Read log file and show it to the user
-            If fs.FileExists(TempPath & FilePrefix & ".log") Then
-                Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
-                LogFileViewer.TextBox1.Text = LogFile.ReadAll
-                LogFile.Close
-                LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
-                LogFileViewer.Show 1
-            Else
-                MsgBox tex2pdf_command & " did not return in " & TimeOutTimeString & " seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
-            End If
-            FrameProcess.Visible = False
-            Exit Sub
-        End If
-        
-        If tex2pdf_command = "platex" Then
-            LabelProcess.Caption = "DVI to PDF..."
-            FrameProcess.Repaint
-            ' platex actually outputs a DVI file, which we need to convert to PDF (we could go the EPS route, but this blends easier with IguanaTex's existing code)
-            RetValConv& = Execute("dvipdfmx -o """ + FilePrefix + ".pdf"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
-            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
-                ' Error in DVI to PDF conversion
-                MsgBox "Error while using dvipdm to convert from DVI to PDF."
+            RetVal& = Execute("pdflatex -shell-escape -output-format dvi -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+            If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
+                ' Error in Latex code
+                ' Read log file and show it to the user
+                If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                    Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
+                    LogFileViewer.TextBox1.Text = LogFile.ReadAll
+                    LogFile.Close
+                    LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
+                    LogFileViewer.Show 1
+                Else
+                    MsgBox "latex did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                    & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
+                    & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing."
+                End If
                 FrameProcess.Visible = False
                 Exit Sub
             End If
-        End If
-        
-        LabelProcess.Caption = "PDF to PNG..."
-        FrameProcess.Repaint
-        ' Output Bounding Box to file and read back in the appropriate information
-        RetValConv& = Execute("cmd /C """ & gs_command & """ -q -dBATCH -dNOPAUSE -sDEVICE=bbox " & FilePrefix & ".pdf 2> " & FilePrefix & ".bbx", TempPath, debugMode, TimeOutTime)
-        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".bbx")) Then
-            ' Error in bounding box computation
-            MsgBox "Error while using Ghostscript to compute the bounding box. Is your path correct?"
-            FrameProcess.Visible = False
-            Exit Sub
-        End If
-        Dim BBString As String
-        BBString = BoundingBoxString(TempPath + FilePrefix + ".bbx")
-        
-        ' Convert PDF to PNG
-        If checkboxTransp.Value = True Then
-            PdfPngDevice = "-sDEVICE=pngalpha"
-        Else
-            PdfPngDevice = "-sDEVICE=png16m"
-        End If
-        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE " & PdfPngDevice & " -r" & OutputDpiString & " -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
-        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
-            ' Error in PDF to PNG conversion
-            MsgBox "Error while using Ghostscript to convert from PDF to PNG. Is your path correct?"
-            FrameProcess.Visible = False
-            Exit Sub
-        End If
-        ' Unfortunately, the resulting file has a metadata DPI of OutputDpi (=1200), not the default screen one (usually 96),
-        ' so there is a discrepancy with the dvipng output.
-        ' The only workaround I have found so far is to use Imagemagick's convert to change the DPI (but not the pixel size!)
-        ' Execute """" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode
-        RetValConv& = Execute("""" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode, TimeOutTime)
-        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
-            ' Error in PDF to PNG conversion
-            MsgBox "Error while using ImageMagick to change the PNG DPI. Is your path correct?" & vbNewLine & "The full path is needed to avoid conflict with Windows's built-in convert.exe."
-            FrameProcess.Visible = False
-            Exit Sub
-        End If
-        
-        ' 'I considered using ImageMagick's convert, but it's extremely slow, and uses ghostscript in the backend anyway
-        'PdfPngSwitches = "-density 1200 -trim -transparent white -antialias +repage"
-        'Execute IMconv & " " & PdfPngSwitches & " """ & FilePrefix & ".pdf"" """ & FilePrefix & ".png""", TempPath, debugMode
-        
-    Else
-    ' dvi to png route
-        LabelProcess.Caption = "LaTeX to DVI..."
-        FrameProcess.Repaint
-        RetVal& = Execute("pdflatex -shell-escape -output-format dvi -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
-        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
-            ' Error in Latex code
-            ' Read log file and show it to the user
-            If fs.FileExists(TempPath & FilePrefix & ".log") Then
-                Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
-                LogFileViewer.TextBox1.Text = LogFile.ReadAll
-                LogFile.Close
-                LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
-                LogFileViewer.Show 1
-            Else
-                MsgBox "latex did not return in " & TimeOutTimeString & " seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+            LabelProcess.Caption = "DVI to PNG..."
+            FrameProcess.Repaint
+            DviPngSwitches = "-q -D " & OutputDpiString & " -T tight"  ' monitor is 96 dpi or higher; we use OutputDpi (=1200 by default) dpi to get a crisper display, and rescale later on for new displays to match the point size
+            If checkboxTransp.Value = True Then
+                DviPngSwitches = DviPngSwitches & " -bg Transparent"
             End If
-            FrameProcess.Visible = False
-            Exit Sub
-        End If
-        LabelProcess.Caption = "DVI to PNG..."
-        FrameProcess.Repaint
-        DviPngSwitches = "-q -D " & OutputDpiString & " -T tight"  ' monitor is 96 dpi or higher; we use OutputDpi (=1200 by default) dpi to get a crisper display, and rescale later on for new displays to match the point size
-        If checkboxTransp.Value = True Then
-            DviPngSwitches = DviPngSwitches & " -bg Transparent"
-        End If
-        ' If the user created a .png by using the standalone class with convert, we use that, else we use dvipng
-        If Not fs.FileExists(TempPath & FilePrefix & ".png") Then
-            RetValConv& = Execute("dvipng " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
-            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
-                MsgBox "dvipng failed, or did not return in " & TimeOutTimeString & " seconds and may have hung." & vbNewLine & "You may want to try compiling using the PDF->PNG option."
-                FrameProcess.Visible = False
-                Exit Sub
+            ' If the user created a .png by using the standalone class with convert, we use that, else we use dvipng
+            If Not fs.FileExists(TempPath & FilePrefix & ".png") Then
+                RetValConv& = Execute("dvipng " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+                If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
+                    MsgBox "dvipng failed, or did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                    & vbNewLine & "You may want to try compiling using the PDF->PNG option." _
+                    & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font is missing."
+                    FrameProcess.Visible = False
+                    Exit Sub
+                End If
             End If
         End If
-        highdpi_rescaling = 96 / dpi
+        OutputType = "PNG"
+        FinalFilename = FilePrefix & ".png"
     End If
+    ' Latex run successful.
     
-    FinalFilename = FilePrefix & ".png"
     
+    ' Now we prepare the insertion of the image
     LabelProcess.Caption = "Insert image..."
     FrameProcess.Repaint
-    ' Latex run successful.
+    
     ' If we are in Edit mode, store parameters of old image
     Dim PosX As Single
     Dim PosY As Single
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
-    Dim oldShape As Shape
+    Dim oldshape As Shape
+    Dim oldshapeIsEMF As Boolean
+    Dim s As Shape
     IsInGroup = False
     If ButtonRun.Caption = "ReGenerate" Then
-        If Sel.ShapeRange.Type = msoGroup Then
-            Set oldShape = Sel.ChildShapeRange(1)
+        If Sel.ShapeRange.Type = msoGroup And Sel.HasChildShapeRange Then
+            ' Old image is part of a group
+            Set oldshape = Sel.ChildShapeRange(1)
             IsInGroup = True
             Dim arr() As Variant ' gather all shapes to be regrouped later on
             j = 0
-            Dim s As Shape
             For Each s In Sel.ShapeRange.GroupItems
-                If s.name <> oldShape.name Then
+                If s.name <> oldshape.name Then
                     j = j + 1
                     ReDim Preserve arr(1 To j)
                     arr(j) = s.name
                 End If
             Next
+            
             ' Store the group's animation and Zorder info in a dummy object tmpGroup
-            Dim oldShapeRange As ShapeRange
-            Set oldShapeRange = Sel.ShapeRange
             Dim oldGroup As Shape
-            Set oldGroup = oldShapeRange(1)
+            Set oldGroup = Sel.ShapeRange(1)
             Dim tmpGroup As Shape
             Set tmpGroup = ActiveWindow.Selection.SlideRange.Shapes.AddShape(msoShapeDiamond, 1, 1, 1, 1)
             MoveAnimation oldGroup, tmpGroup
@@ -390,108 +444,194 @@ Sub ButtonRun_Click()
             
             ' Tag all elements in the group with their hierarchy level and their name or group name
             Dim MaxGroupLevel As Long
-            MaxGroupLevel = TagGroupHierarchy(arr, oldShape.name)
+            MaxGroupLevel = TagGroupHierarchy(arr, oldshape.name)
             
         Else
-            Set oldShape = Sel.ShapeRange(1)
+            Set oldshape = Sel.ShapeRange(1)
         End If
-        PosX = oldShape.Left
-        PosY = oldShape.Top
+        PosX = oldshape.Left
+        PosY = oldshape.Top
+        oldshapeIsEMF = False
+        If oldshape.Tags.Item("BitmapVector") <> "" Then
+            If oldshape.Tags.Item("BitmapVector") = 1 Then
+                oldshapeIsEMF = True
+            End If
+            'oldshapeIsEMF = oldshape.Tags.Item("EMFOUTPUT")
+        'Else
+            'oldshapeIsEMF = False
+            'Call oldshape.Export(TempPath & FilePrefix & "_oldshape.png", ppShapeFormatPNG)
+            'oldshapeDPI = GetImageFileDPI(TempPath & FilePrefix & "_oldshape.png")
+        End If
     Else
         PosX = 200
         PosY = 200
     End If
     
-    
-    ' Insert image
     Dim newShape As Shape
-    'Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, PosX, PosY, -1, -1)
+    ' Insert image
     Set newShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
-    ' Resize to the true size of the png file
-    newShape.ScaleHeight 1#, msoTrue
-    newShape.ScaleWidth 1#, msoTrue
+    
+    If UseEMF Then
+        newShape.ScaleHeight 1#, msoTrue
+        newShape.ScaleWidth 1#, msoTrue
+        newShape.LockAspectRatio = msoFalse
+        newShape.ScaleHeight VectorScalingY, msoTrue
+        newShape.ScaleWidth VectorScalingX, msoTrue
+        newShape.LockAspectRatio = msoTrue
+        
+        ' Convert EMF image to object
+        Dim shr As ShapeRange
+        Set shr = newShape.Ungroup
+        Set shr = shr.Ungroup
+        ' Clean up
+        shr.Item(1).Delete
+        shr.Item(2).Delete
+        If shr(3).GroupItems.count > 2 Then
+            EMFisGroup = True
+            Set newShape = shr(3)
+            newShape.GroupItems(1).Delete
+        Else ' only a single freeform, so not a group
+            EMFisGroup = False
+            Set newShape = shr(3).GroupItems(2)
+            shr(3).GroupItems(1).Delete
+        End If
+        
+        newShape.Line.Visible = msoFalse
+        
+        If EMFisGroup Then
+            For Each s In newShape.GroupItems
+                s.Tags.Add "ORIGINALHEIGHT", s.Height
+                s.Tags.Add "ORIGINALWIDTH", s.Width
+            Next
+        End If
+
+    Else
+        ' Resize to the true size of the png file
+        newShape.ScaleHeight 1#, msoTrue
+        newShape.ScaleWidth 1#, msoTrue
+        newShape.LockAspectRatio = msoFalse
+        newShape.ScaleHeight BitmapScalingY, msoTrue
+        newShape.ScaleWidth BitmapScalingX, msoTrue
+        newShape.LockAspectRatio = msoTrue
+        newShape.Tags.Add "OUTPUTDPI", OutputDpi
+    End If
+    
+    
     ' Add tags storing the original height and width, used next time to keep resizing ratio.
     newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
     newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
-    newShape.Tags.Add "OUTPUTDPI", OutputDpi
         
     ' Scale it
-    If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value = True Then
+    Dim RelToOrigSizeFlag As MsoTriState
+    MagicScalingFactorEMF = 1 / 100 ' Magical scaling factor for EMF
+    MagicScalingFactorPNG = 1 / OutputDpi
+    If UseEMF Then
+        MagicScalingFactor = MagicScalingFactorEMF
+        RelToOrigSizeFlag = msoFalse
+    Else
+        MagicScalingFactor = MagicScalingFactorPNG
+        RelToOrigSizeFlag = msoTrue
+    End If
+    
+    If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value Then
         PointSize = val(textboxSize.Text)
-        ScaleFactor = PointSize / 10 * dpi / OutputDpi * highdpi_rescaling  ' 1/10 is for the default LaTeX point size (10 pt)
-        newShape.ScaleHeight ScaleFactor, msoTrue
-        newShape.ScaleWidth ScaleFactor, msoTrue
+        ScaleFactor = PointSize / 10 * default_screen_dpi * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
+        newShape.ScaleHeight ScaleFactor, RelToOrigSizeFlag
+        newShape.ScaleWidth ScaleFactor, RelToOrigSizeFlag
         If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
-            newShape.Rotation = oldShape.Rotation
+            newShape.Rotation = oldshape.Rotation
         End If
+        newShape.LockAspectRatio = msoTrue
     Else
         ' Handle the case of Texpoint displays
         Dim isTexpoint As Boolean
         isTexpoint = False
         Dim OldDpi As Long
-        OldDpi = 1200
-        With oldShape.Tags
-            For i = 1 To .count
-                If (.name(i) = "TEXPOINTSCALING") Then
-                    isTexpoint = True
-                    tScaleWidth = val(.Value(i)) * dpi / OutputDpi * highdpi_rescaling
-                End If
-                If (.name(i) = "OUTPUTDPI") Then
-                    OldDpi = val(.Value(i))
-                End If
-            Next
+        OldDpi = OutputDpi
+        With oldshape.Tags
+            If .Item("TEXPOINTSCALING") <> "" Then
+                isTexpoint = True
+                tScaleWidth = val(.Item("TEXPOINTSCALING")) * default_screen_dpi * MagicScalingFactor
+            End If
+            If .Item("OUTPUTDPI") <> "" Then
+                OldDpi = val(.Item("OUTPUTDPI"))
+            End If
         End With
+        'OldMagicScalingFactorPNG = highdpi_rescaling / OldDpi
         If isTexpoint Then
             newShape.LockAspectRatio = msoTrue
-            newShape.ScaleWidth tScaleWidth, msoTrue
-            newShape.LockAspectRatio = oldShape.LockAspectRatio
-            newShape.Rotation = oldShape.Rotation
-        Else ' modifying a normal
-            HeightOld = oldShape.Height
-            WidthOld = oldShape.Width
-            oldShape.ScaleHeight 1#, msoTrue
-            oldShape.ScaleWidth 1#, msoTrue
-            tScaleHeight = HeightOld / oldShape.Height * 960 / OutputDpi ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
-            tScaleWidth = WidthOld / oldShape.Width * 960 / OutputDpi
-            With oldShape.Tags
-                For i = 1 To .count
-                    If (.name(i) = "ORIGINALHEIGHT") Then
-                        tmpHeight = val(.Value(i))
-                        tScaleHeight = HeightOld / tmpHeight * OldDpi / OutputDpi
-                    End If
-                    If (.name(i) = "ORIGINALWIDTH") Then
-                        tmpWidth = val(.Value(i))
-                        tScaleWidth = WidthOld / tmpWidth * OldDpi / OutputDpi
-                    End If
-                Next
+            newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
+            newShape.LockAspectRatio = oldshape.LockAspectRatio
+            newShape.Rotation = oldshape.Rotation
+        Else ' modifying a normal display, either PNG or EMF
+            HeightOld = oldshape.Height
+            WidthOld = oldshape.Width
+            tScaleHeight = 1
+            tScaleWidth = 1
+            If oldshapeIsEMF = False Then ' this deals with displays from old versions of IguanaTex
+                oldshape.ScaleHeight 1#, msoTrue
+                oldshape.ScaleWidth 1#, msoTrue
+                tScaleHeight = HeightOld / oldshape.Height * 960 / OutputDpi ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
+                tScaleWidth = WidthOld / oldshape.Width * 960 / OutputDpi
+            End If
+            With oldshape.Tags
+                If .Item("ORIGINALHEIGHT") <> "" Then
+                    tmpHeight = val(.Item("ORIGINALHEIGHT"))
+                    tScaleHeight = HeightOld / tmpHeight * OldDpi / OutputDpi
+                End If
+                If .Item("ORIGINALWIDTH") <> "" Then
+                    tmpWidth = val(.Item("ORIGINALWIDTH"))
+                    tScaleWidth = WidthOld / tmpWidth * OldDpi / OutputDpi
+                End If
             End With
-                        
+            If UseEMF = True And oldshapeIsEMF = False Then
+                tScaleHeight = tScaleHeight * MagicScalingFactorEMF / MagicScalingFactorPNG
+                tScaleWidth = tScaleWidth * MagicScalingFactorEMF / MagicScalingFactorPNG
+            ElseIf UseEMF = False And oldshapeIsEMF = True Then
+                tScaleHeight = tScaleHeight / MagicScalingFactorEMF * MagicScalingFactorPNG
+                tScaleWidth = tScaleWidth / MagicScalingFactorEMF * MagicScalingFactorPNG
+            End If
+            
             newShape.LockAspectRatio = msoFalse
-            newShape.ScaleHeight tScaleHeight, msoTrue
-            newShape.ScaleWidth tScaleWidth, msoTrue
-            newShape.LockAspectRatio = oldShape.LockAspectRatio
-            newShape.Rotation = oldShape.Rotation
+            newShape.ScaleHeight tScaleHeight, RelToOrigSizeFlag
+            newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
+            newShape.LockAspectRatio = oldshape.LockAspectRatio
+            newShape.Rotation = oldshape.Rotation
         End If
     End If
     
     ' Add tags
-    newShape.Tags.Add "LATEXADDIN", TextBox1.Text
-    newShape.Tags.Add "IguanaTexSize", val(textboxSize.Text)
-    newShape.Tags.Add "IGUANATEXCURSOR", TextBox1.SelStart
-    newShape.Tags.Add "TRANSPARENCY", checkboxTransp.Value
-    newShape.Tags.Add "FILENAME", TextBoxFile.Text
-    newShape.Tags.Add "INPUTTYPE", BoolToInt(MultiPage1.Value)
-    newShape.Tags.Add "LATEXENGINEID", LATEXENGINEID
-    newShape.Tags.Add "TEMPFOLDER", TextBoxTempFolder.Text
+    Call AddTagsToShape(newShape)
+    If UseEMF = True And newShape.Type = msoGroup Then
+        Set s = newShape.GroupItems(1)
+        Call AddTagsToShape(s) 'only left most for now, to make things simple
+        For Each s In newShape.GroupItems
+        '    Call AddTagsToShape(s)
+            s.Tags.Add "EMFchild", True
+        Next
+    End If
     
     ' Copy animation settings and formatting from old image, then delete it
     If ButtonRun.Caption = "ReGenerate" Then
+        Dim TransferDesign As Boolean
+        TransferDesign = True
+        If UseEMF <> oldshapeIsEMF Then
+            TransferDesign = False
+        End If
         If IsInGroup Then
             ' Transfer format to new shape
-            MatchZOrder oldShape, newShape
-            oldShape.PickUp
-            newShape.Apply
-            oldShape.Delete
+            MatchZOrder oldshape, newShape
+            If TransferDesign Then
+                oldshape.PickUp
+                newShape.Apply
+            End If
+            ' Handle the case of shape within EMF group.
+            Dim DeleteLowestLayer As Boolean
+            DeleteLowestLayer = False
+            If oldshape.Tags.Item("EMFchild") <> "" Then
+                DeleteLowestLayer = True
+            End If
+            oldshape.Delete
             
             ' Get current slide, it will be used to group ranges
             Dim sld As Slide
@@ -504,7 +644,30 @@ Sub ButtonRun_Click()
             j = j + 1
             ReDim Preserve arr(1 To j)
             arr(j) = newShape.name
-            newShape.Tags.Add "LAYER", 1
+            If DeleteLowestLayer Then
+                Dim arr_remain() As Variant
+                j_remain = 0
+                For Each n In arr
+                    Set s = ActiveWindow.Selection.SlideRange.Shapes(n)
+                    ThisShapeLevel = 0
+                    For i_tag = 1 To s.Tags.count
+                        If (s.Tags.name(i_tag) = "LAYER") Then
+                            ThisShapeLevel = val(s.Tags.Value(i_tag))
+                        End If
+                    Next
+                    If ThisShapeLevel = 1 Then
+                        s.Delete
+                    Else
+                        j_remain = j_remain + 1
+                        ReDim Preserve arr_remain(1 To j_remain)
+                        arr_remain(j_remain) = s.name
+                    End If
+                Next
+                newShape.Tags.Add "LAYER", 2
+                arr = arr_remain
+            Else
+                newShape.Tags.Add "LAYER", 1
+            End If
             newShape.Tags.Add "SELECTIONNAME", newShape.name
             
             ' Hierarchically re-group elements
@@ -566,26 +729,78 @@ Sub ButtonRun_Click()
             MatchZOrder tmpGroup, newGroup
             tmpGroup.Delete
         Else
-            MoveAnimation oldShape, newShape
-            MatchZOrder oldShape, newShape
-            oldShape.PickUp
-            newShape.Apply
-            oldShape.Delete
+            MoveAnimation oldshape, newShape
+            MatchZOrder oldshape, newShape
+            If TransferDesign Then
+                If oldshapeIsEMF And oldshape.Type = msoGroup Then
+                    
+                    ' First transfer group format to temporary shape
+                    ' (we use a duplicate of the old EMF shape)
+                    Dim tmpGroupEMF As Shape
+                    Set tmpGroupEMF = oldshape.Duplicate(1)
+                    'TransferGroupFormat oldshape, tmpGroupEMF
+                    
+                    ' Transfer shape formatting
+                    ' First need to delete all but one shape in the group to unlock the format pickup
+                    Dim tmpshp As Shape
+                    Set tmpshp = oldshape.GroupItems(1)
+                    For j = oldshape.GroupItems.count To 2 Step -1
+                        ' Delete backwards because Powerpoint renumbers
+                        ' We could also always delete .GroupItems(2) ...
+                        oldshape.GroupItems(j).Delete
+                    Next
+                    tmpshp.PickUp
+                    
+                    ' Transfer shape formatting to each shape within the group
+                    For Each s In newShape.GroupItems
+                        s.Apply
+                    Next
+                    tmpshp.Delete
+                    
+                    ' Now we can transfer the group formatting from the temporary shape
+                    TransferGroupFormat tmpGroupEMF, newShape
+                    tmpGroupEMF.Delete
+                Else
+                    oldshape.PickUp
+                    newShape.Apply
+                    oldshape.Delete
+                End If
+            Else
+                oldshape.Delete
+            End If
         End If
     End If
+    
     
     ' Select the new shape
     newShape.Select
     
+    
     ' Delete temp files if not in debug mode
     If debugMode = False Then fs.DeleteFile TempPath + FilePrefix + "*.*"
+    
+    
+    
     FrameProcess.Visible = False
     Unload LatexForm
 Exit Sub
+   
+End Sub
 
-'TempFolderNotWritable:
-'    MsgBox "The temporary folder " & TempPath & " appears not to be writable."
-    
+Private Sub AddTagsToShape(vSh As Shape)
+    With vSh.Tags
+        .Add "LATEXADDIN", TextBox1.Text
+        .Add "IguanaTexSize", val(textboxSize.Text)
+        .Add "IGUANATEXCURSOR", TextBox1.SelStart
+        .Add "TRANSPARENCY", checkboxTransp.Value
+        .Add "FILENAME", TextBoxFile.Text
+        .Add "LATEXENGINEID", ComboBoxLaTexEngine.ListIndex
+        .Add "TEMPFOLDER", TextBoxTempFolder.Text
+        .Add "LATEXFORMHEIGHT", LatexForm.Height
+        .Add "LATEXFORMWIDTH", LatexForm.Width
+        .Add "LATEXFORMWRAP", TextBox1.WordWrap
+        .Add "BitmapVector", ComboBoxBitmapVector.ListIndex
+    End With
 End Sub
 
 Private Function IsInArray(arr As Variant, valueToCheck As String) As Boolean
@@ -708,8 +923,8 @@ Private Function BoundingBoxString(BBXFile As String) As String
     Set txtStream = fso.OpenTextFile(BBXFile, ForReading, False)
     Dim TextSplit As Variant
     Dim OutputDpiString As String
+    OutputDpiString = TextBoxLocalDPI.Text
     Dim OutputDpi As Long
-    OutputDpiString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
     OutputDpi = val(OutputDpiString)
     Do While Not txtStream.AtEndOfStream
     tmptext = txtStream.ReadLine
@@ -740,6 +955,11 @@ Private Sub SaveSettings()
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "LatexFormHeight", REG_DWORD, CLng(LatexForm.Height)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "LatexFormWidth", REG_DWORD, CLng(LatexForm.Width)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Multipage", REG_SZ, MultiPage1.Value
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "LatexFormWrap", REG_DWORD, BoolToInt(TextBox1.WordWrap)
+    'SetRegistryValue HKEY_CURRENT_USER, RegPath, "EMFoutput", REG_DWORD, BoolToInt(CheckBoxEMF.Value)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "BitmapVector", REG_DWORD, ComboBoxBitmapVector.ListIndex
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "OutputDpi", REG_DWORD, CLng(val(TextBoxLocalDPI.Text))
+    
     
 End Sub
 
@@ -753,16 +973,20 @@ Private Sub LoadSettings()
     MultiPage1.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Multipage", 0)
     TextBox1.Font.Size = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10"))
     TextBoxTempFolder.Text = GetTempPath()
+    TextBox1.WordWrap = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWrap", True))
+    ToggleButtonWrap.Value = TextBox1.WordWrap
     
     LaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex", "platex")
-    LaTexEngineDisplayList = Array("latex (DVI->PNG)", "pdflatex (PDF->PNG)", "xelatex (PDF->PNG)", "lualatex (PDF->PNG)", "platex (PDF->PNG)")
+    LaTexEngineDisplayList = Array("latex (DVI)", "pdflatex", "xelatex", "lualatex", "platex")
     UsePDFList = Array(False, True, True, True, True)
     ComboBoxLaTexEngine.List = LaTexEngineDisplayList
     ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
-    
+    TextBoxLocalDPI.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
+    ComboBoxBitmapVector.List = Array("Bitmap", "Vector")
+    ComboBoxBitmapVector.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapVector", 0)
+            
     TemplateSortedListString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TemplateSortedList", "0")
     TemplateSortedList = UnpackStringToArray(TemplateSortedListString)
-    'NumberOfTemplates = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "NumberOfTemplates", 1)
     TemplateNameSortedListString = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TemplateNameSortedList", "New Template")
     ComboBoxTemplate.List = UnpackStringToArray(TemplateNameSortedListString)
 End Sub
@@ -793,6 +1017,24 @@ Private Sub ButtonTexPath_Click()
 
     Set fd = Nothing
     TextBoxFile.SetFocus
+End Sub
+
+Private Sub ComboBoxBitmapVector_Change()
+    Apply_BitmapVector_Change
+End Sub
+
+Private Sub Apply_BitmapVector_Change()
+    If ComboBoxBitmapVector.ListIndex = 1 Then
+        checkboxTransp.Enabled = False
+        checkboxTransp.Value = True
+        TextBoxLocalDPI.Enabled = False
+        LabelDPI.Enabled = False
+    Else
+        checkboxTransp.Enabled = True
+        TextBoxLocalDPI.Enabled = True
+        LabelDPI.Enabled = True
+    End If
+
 End Sub
 
 Private Sub CheckBoxReset_Click()
@@ -929,8 +1171,12 @@ Private Sub CmdButtonSaveTemplate_Click()
     SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_DWORD, CLng(TextBoxTemplateCode.SelStart)
     RegStr = "TemplateLaTeXEngineID" & templateID
     SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_DWORD, ComboBoxLaTexEngine.ListIndex
+    RegStr = "TemplateBitmapVector" & templateID
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_DWORD, ComboBoxBitmapVector.ListIndex
     RegStr = "TemplateTempFolder" & templateID
     SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_SZ, CStr(TextBoxTempFolder.Text)
+    RegStr = "TemplateDPI" & templateID
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, RegStr, REG_SZ, CStr(TextBoxLocalDPI.Text)
     ' if saved template was the "New Template", prepare new spot for next new template
     If ComboBoxTemplate.ListIndex = ComboBoxTemplate.ListCount - 1 Then
         ComboBoxTemplate.AddItem "New Template"
@@ -944,6 +1190,8 @@ Private Sub CmdButtonSaveTemplate_Click()
     Call UpdateTemplateRegistry
     TextBoxTemplateCode.SetFocus
 End Sub
+
+
 
 Private Sub ComboBoxTemplate_Click()
     TextBoxTemplateName.Text = ComboBoxTemplate.Text
@@ -964,8 +1212,13 @@ Private Sub ComboBoxTemplate_Click()
         TextBoxTemplateCode.SelStart = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, 0)
         RegStr = "TemplateLaTeXEngineID" & templateID
         ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0))
+        RegStr = "TemplateBitmapVector" & templateID
+        ComboBoxBitmapVector.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapVector", False))
         RegStr = "TemplateTempFolder" & templateID
         TextBoxTempFolder.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, GetTempPath())
+        RegStr = "TemplateDPI" & templateID
+        TextBoxLocalDPI.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, RegStr, "")
+        Apply_BitmapVector_Change
     End If
     TextBoxTemplateCode.SetFocus
 End Sub
@@ -974,8 +1227,6 @@ Private Sub UpdateTemplateRegistry()
     ' update the list of saved templates names in the registry (will be used to initialize combo box content)
     TemplateSortedListString = PackArrayToString(TemplateSortedList)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TemplateSortedList", REG_SZ, CStr(TemplateSortedListString)
-    ' save the number of templates in registry
-    'SetRegistryValue HKEY_CURRENT_USER, RegPath, "NumberOfTemplates", REG_DWORD, CLng(NumberOfTemplates)
     ' save list of template names to registry
     Dim myArray() As String
     ReDim myArray(0 To ComboBoxTemplate.ListCount - 1) As String
@@ -1011,6 +1262,14 @@ Private Sub CmdButtonEditorFontUp_Click()
     End If
 End Sub
 
+Private Sub ToggleButtonWrap_Click()
+    If ToggleButtonWrap.Value = True Then
+        TextBox1.WordWrap = True
+    Else
+        TextBox1.WordWrap = False
+    End If
+End Sub
+
 Private Sub UserForm_Initialize()
     LoadSettings
     
@@ -1035,13 +1294,15 @@ Private Sub UserForm_Activate()
     MakeFormResizable
     
     RegPath = "Software\IguanaTex"
-    LatexForm.Height = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormHeight", 312)
-    LatexForm.Width = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWidth", 380)
+    If Not FormHeightWidthSet Then
+        LatexForm.Height = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormHeight", 312)
+        LatexForm.Width = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWidth", 380)
+    End If
     ResizeForm
     
 End Sub
 
-Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
+Sub RetrieveOldShapeInfo(oldshape As Shape, mainText As String)
     CheckBoxReset.Visible = True
     CheckBoxReset.Value = False
     Label2.Caption = "Reset size:"
@@ -1051,45 +1312,58 @@ Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
     TextBox1.Text = mainText
     CursorPosition = Len(TextBox1.Text)
                 
-    With oldShape.Tags
-        For j = 1 To .count
-            If (.name(j) = "IGUANATEXSIZE") Then
-                textboxSize.Text = .Value(j)
-            End If
-            If (.name(j) = "TRANSPARENCY") Then
-                checkboxTransp.Value = SanitizeTransparency(.Value(j))
-            End If
-            If (.name(j) = "TRANSPARENT") Then
-                checkboxTransp.Value = SanitizeTransparency(.Value(j))
-                'Dim TransparentStr As String
-                'TransparentStr = .Value(j)
-                'If Not LCase(TransparentStr) = "True" And Not LCase(TransparentStr) = "False" Then
-                '    TransparentStr = "True"
-                'End If
-                'checkboxTransp.Value = CBool(TransparentStr)
-            End If
-            If (.name(j) = "IGUANATEXCURSOR") Then
-                CursorPosition = .Value(j)
-            End If
-            If (.name(j) = "LATEXENGINEID") Then
-                ComboBoxLaTexEngine.ListIndex = .Value(j)
-            End If
-            If (.name(j) = "TEMPFOLDER") Then
-                TextBoxTempFolder.Text = .Value(j)
-            End If
-        Next
+    Dim FormHeightSet As Boolean
+    Dim FormWidthSet As Boolean
+    FormHeightSet = False
+    FormWidthSet = False
+     
+    With oldshape.Tags
+        If .Item("IGUANATEXSIZE") <> "" Then
+            textboxSize.Text = .Item("IGUANATEXSIZE")
+        End If
+        If .Item("OUTPUTDPI") <> "" Then
+            TextBoxLocalDPI.Text = .Item("OUTPUTDPI")
+        End If
+        If .Item("BitmapVector") <> "" Then
+            ComboBoxBitmapVector.ListIndex = .Item("BitmapVector")
+        End If
+        If .Item("TRANSPARENCY") <> "" Then
+            checkboxTransp.Value = SanitizeBoolean(.Item("TRANSPARENCY"), True)
+        ElseIf .Item("TRANSPARENT") <> "" Then
+            checkboxTransp.Value = SanitizeBoolean(.Item("TRANSPARENT"), True)
+        End If
+        If .Item("IGUANATEXCURSOR") <> "" Then
+            CursorPosition = .Item("IGUANATEXCURSOR")
+        End If
+        If .Item("LATEXENGINEID") <> "" Then
+            ComboBoxLaTexEngine.ListIndex = .Item("LATEXENGINEID")
+        End If
+        If .Item("LATEXFORMHEIGHT") <> "" Then
+            LatexForm.Height = .Item("LATEXFORMHEIGHT")
+            FormHeightSet = True
+        End If
+        If .Item("LATEXFORMWIDTH") <> "" Then
+            LatexForm.Width = .Item("LATEXFORMWIDTH")
+            FormWidthSet = True
+        End If
+        If .Item("LATEXFORMWRAP") <> "" Then
+            TextBox1.WordWrap = SanitizeBoolean(.Item("LATEXFORMWRAP"), True)
+            ToggleButtonWrap.Value = TextBox1.WordWrap
+        End If
     End With
+    Apply_BitmapVector_Change
+    FormHeightWidthSet = FormHeightSet And FormWidthSet
     TextBox1.SelStart = CursorPosition
     textboxSize.Enabled = False
 End Sub
 
 
-Private Function SanitizeTransparency(Str As String) As Boolean
-    On Error GoTo ErrWrongTransparency:
-    SanitizeTransparency = CBool(Str)
+Private Function SanitizeBoolean(Str As String, Def As Boolean) As Boolean
+    On Error GoTo ErrWrongBoolean:
+    SanitizeBoolean = CBool(Str)
     Exit Function
-ErrWrongTransparency:
-    SanitizeTransparency = True
+ErrWrongBoolean:
+    SanitizeBoolean = Def
     Resume Next
 End Function
 
@@ -1129,8 +1403,7 @@ Private Sub ResizeForm()
     'Other elements are moved as needed
     ButtonAbout.Top = MultiPage1.Top + MultiPage1.Height + bordersize
     ButtonAbout.Left = ButtonCancel.Left + ButtonCancel.Width + bordersize
-    'ButtonAbout.Left = MultiPage1.Left + TextBox1.Left + TextBox1.Width - ButtonAbout.Width
-    ButtonRun.Top = ButtonAbout.Top '+ ButtonAbout.Height / 2 + 1
+    ButtonRun.Top = ButtonAbout.Top
     ButtonCancel.Top = ButtonRun.Top
     ButtonMakeDefault.Top = ButtonAbout.Top + ButtonAbout.Height + bordersize
     ButtonMakeDefault.Left = ButtonAbout.Left
@@ -1156,35 +1429,107 @@ Private Sub ResizeForm()
     
 End Sub
 
-Private Sub MoveAnimation(oldShape As Shape, newShape As Shape)
+Private Sub MoveAnimation(oldshape As Shape, newShape As Shape)
     ' Move the animation settings of oldShape to newShape
     With ActiveWindow.Selection.SlideRange(1).TimeLine
         Dim eff As Effect
         For Each eff In .MainSequence
-            If eff.Shape.name = oldShape.name Then eff.Shape = newShape
+            If eff.Shape.name = oldshape.name Then eff.Shape = newShape
         Next
     End With
 End Sub
 
-Private Sub MatchZOrder(oldShape As Shape, newShape As Shape)
+Private Sub MatchZOrder(oldshape As Shape, newShape As Shape)
     ' Make the Z order of newShape equal to 1 higher than that of oldShape
     newShape.ZOrder msoBringToFront
-    While (newShape.ZOrderPosition > oldShape.ZOrderPosition + 1)
+    While (newShape.ZOrderPosition > oldshape.ZOrderPosition + 1)
         newShape.ZOrder msoSendBackward
     Wend
 End Sub
 
-Private Sub DeleteAnimation(oldShape As Shape)
+Private Sub DeleteAnimation(oldshape As Shape)
     ' Delete the animation settings of oldShape
     With ActiveWindow.Selection.SlideRange(1).TimeLine
         For i = .MainSequence.count To 1 Step -1
             Dim eff As Effect
             Set eff = .MainSequence(i)
-            If eff.Shape.name = oldShape.name Then eff.Delete
+            If eff.Shape.name = oldshape.name Then eff.Delete
         Next
     End With
 End Sub
 
+Private Sub TransferGroupFormat(oldshape As Shape, newShape As Shape)
+    On Error Resume Next
+    ' Transfer group formatting
+    If oldshape.Glow.Radius > 0 Then
+        newShape.Glow.Color = oldshape.Glow.Color
+        newShape.Glow.Radius = oldshape.Glow.Radius
+        newShape.Glow.Transparency = oldshape.Glow.Transparency
+    End If
+    If oldshape.Reflection.Type <> msoReflectionTypeNone Then
+        newShape.Reflection.Blur = oldshape.Reflection.Blur
+        newShape.Reflection.Offset = oldshape.Reflection.Offset
+        newShape.Reflection.Size = oldshape.Reflection.Size
+        newShape.Reflection.Transparency = oldshape.Reflection.Transparency
+        newShape.Reflection.Type = oldshape.Reflection.Type
+    End If
+    
+    If oldshape.SoftEdge.Type <> msoSoftEdgeTypeNone Then
+        newShape.SoftEdge.Radius = oldshape.SoftEdge.Radius
+    End If
+    
+    If oldshape.Shadow.Visible Then
+        newShape.Shadow.Visible = oldshape.Shadow.Visible
+        newShape.Shadow.Blur = oldshape.Shadow.Blur
+        newShape.Shadow.ForeColor = oldshape.Shadow.ForeColor
+        newShape.Shadow.OffsetX = oldshape.Shadow.OffsetX
+        newShape.Shadow.OffsetY = oldshape.Shadow.OffsetY
+        newShape.Shadow.RotateWithShape = oldshape.Shadow.RotateWithShape
+        newShape.Shadow.Size = oldshape.Shadow.Size
+        newShape.Shadow.Style = oldshape.Shadow.Style
+        newShape.Shadow.Transparency = oldshape.Shadow.Transparency
+        newShape.Shadow.Type = oldshape.Shadow.Type
+    End If
+    
+    If oldshape.ThreeD.Visible Then
+        'newShape.ThreeD.BevelBottomDepth = oldshape.ThreeD.BevelBottomDepth
+        'newShape.ThreeD.BevelBottomInset = oldshape.ThreeD.BevelBottomInset
+        'newShape.ThreeD.BevelBottomType = oldshape.ThreeD.BevelBottomType
+        'newShape.ThreeD.BevelTopDepth = oldshape.ThreeD.BevelTopDepth
+        'newShape.ThreeD.BevelTopInset = oldshape.ThreeD.BevelTopInset
+        'newShape.ThreeD.BevelTopType = oldshape.ThreeD.BevelTopType
+        'newShape.ThreeD.ContourColor = oldshape.ThreeD.ContourColor
+        'newShape.ThreeD.ContourWidth = oldshape.ThreeD.ContourWidth
+        'newShape.ThreeD.Depth = oldshape.ThreeD.Depth
+        'newShape.ThreeD.ExtrusionColor = oldshape.ThreeD.ExtrusionColor
+        'newShape.ThreeD.ExtrusionColorType = oldshape.ThreeD.ExtrusionColorType
+        newShape.ThreeD.Visible = oldshape.ThreeD.Visible
+        newShape.ThreeD.Perspective = oldshape.ThreeD.Perspective
+        newShape.ThreeD.FieldOfView = oldshape.ThreeD.FieldOfView
+        newShape.ThreeD.LightAngle = oldshape.ThreeD.LightAngle
+        'newShape.ThreeD.ProjectText = oldshape.ThreeD.ProjectText
+        'If oldshape.ThreeD.PresetExtrusionDirection <> msoPresetExtrusionDirectionMixed Then
+        '    newShape.ThreeD.SetExtrusionDirection oldshape.ThreeD.PresetExtrusionDirection
+        'End If
+        newShape.ThreeD.PresetLighting = oldshape.ThreeD.PresetLighting
+        If oldshape.ThreeD.PresetLightingDirection <> msoPresetLightingDirectionMixed Then
+            newShape.ThreeD.PresetLightingDirection = oldshape.ThreeD.PresetLightingDirection
+        End If
+        If oldshape.ThreeD.PresetLightingSoftness <> msoPresetLightingSoftnessMixed Then
+            newShape.ThreeD.PresetLightingSoftness = oldshape.ThreeD.PresetLightingSoftness
+        End If
+        If oldshape.ThreeD.PresetMaterial <> msoPresetMaterialMixed Then
+            newShape.ThreeD.PresetMaterial = oldshape.ThreeD.PresetMaterial
+        End If
+        If oldshape.ThreeD.PresetCamera <> msoPresetCameraMixed Then
+            newShape.ThreeD.SetPresetCamera oldshape.ThreeD.PresetCamera
+        End If
+        newShape.ThreeD.RotationX = oldshape.ThreeD.RotationX
+        newShape.ThreeD.RotationY = oldshape.ThreeD.RotationY
+        newShape.ThreeD.RotationZ = oldshape.ThreeD.RotationZ
+        'newShape.ThreeD.Z = oldshape.ThreeD.Z
+    End If
+End Sub
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
     ' If CloseMode = vbFormControlMenu Then
@@ -1267,3 +1612,20 @@ Private Function UnpackStringToArray(Str As String) As Variant
     strDelimiter = "|"
     UnpackStringToArray = Split(Str, strDelimiter, , vbTextCompare)
 End Function
+
+
+' Attempt at getting DPI of previous display, but I cannot find a way to retrieve
+' that info for an embedded display, as there does not seem to be a way to load
+' the display as an ImageFile Object
+' Requires Microsoft Windows Image Acquisition Library
+'Private Function GetImageFileDPI(fileNm As String) As Long
+'    Dim imgFile As Object
+'    Set imgFile = CreateObject("WIA.ImageFile")
+'    imgFile.LoadFile (fileNm)
+'    GetImageFileDPI = 96
+'    If imgFile.HorizontalResolution <> "" Then
+'        GetImageFileDPI = Round(imgFile.HorizontalResolution)
+'    End If
+'End Function
+
+

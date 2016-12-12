@@ -57,6 +57,14 @@ Private Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
 
 Public Declare PtrSafe Function TerminateProcess Lib "kernel32" _
     (ByVal hProcess As Long, ByVal uExitCode As Long) As Long
+    
+Public Declare PtrSafe Function ShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal Operation As String, _
+  ByVal Filename As String, Optional ByVal Parameters As String, _
+  Optional ByVal directory As String, _
+  Optional ByVal WindowStyle As Long = vbMinimizedFocus _
+  ) As Long
+
 #Else
 Private Declare Function WaitForSingleObject Lib "kernel32" (ByVal _
     hHandle As Long, ByVal dwMilliseconds As Long) As Long
@@ -79,6 +87,13 @@ Private Declare Function GetLastError Lib "kernel32" () As Long
 
 Public Declare Function TerminateProcess Lib "kernel32" _
     (ByVal hProcess As Long, ByVal uExitCode As Long) As Long
+    
+Public Declare Function ShellExecute Lib "shell32.dll" _
+    Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal Operation As String, _
+  ByVal Filename As String, Optional ByVal Parameters As String, _
+  Optional ByVal Directory As String, _
+  Optional ByVal WindowStyle As Long = vbMinimizedFocus _
+  ) As Long
 #End If
 
     

@@ -1,16 +1,16 @@
 Attribute VB_Name = "CopyToClipboard"
 #If VBA7 Then
-Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As Long) As Long
-Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As Long) As Long
+Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
 Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal wFlags As Long, _
-  ByVal dwBytes As Long) As Long
+  ByVal dwBytes As LongPtr) As LongPtr
 Declare PtrSafe Function CloseClipboard Lib "User32" () As Long
-Declare PtrSafe Function OpenClipboard Lib "User32" (ByVal hwnd As Long) As Long
+Declare PtrSafe Function OpenClipboard Lib "User32" (ByVal hWnd As LongPtr) As LongPtr
 Declare PtrSafe Function EmptyClipboard Lib "User32" () As Long
 Declare PtrSafe Function lstrcpy Lib "kernel32" (ByVal lpString1 As Any, _
   ByVal lpString2 As Any) As Long
 Declare PtrSafe Function SetClipboardData Lib "User32" (ByVal wFormat _
-  As Long, ByVal hMem As Long) As Long
+  As Long, ByVal hMem As LongPtr) As LongPtr
 #Else
 Declare Function GlobalUnlock Lib "kernel32" (ByVal hMem As Long) As Long
 Declare Function GlobalLock Lib "kernel32" (ByVal hMem As Long) As Long
@@ -33,8 +33,13 @@ Function ClipBoard_SetData(MyString As String)
 'PURPOSE: API function to copy text to clipboard
 'SOURCE: www.msdn.microsoft.com/en-us/library/office/ff192913.aspx
 
-Dim hGlobalMemory As Long, lpGlobalMemory As Long
-Dim hClipMemory As Long, X As Long
+#If VBA7 Then
+   Dim hGlobalMemory As LongPtr, lpGlobalMemory As LongPtr, hClipMemory As LongPtr
+#Else
+   Dim hGlobalMemory As Long, lpGlobalMemory As Long, hClipMemory As Long
+#End If
+
+Dim x As Long
 
 'Allocate moveable global memory
   hGlobalMemory = GlobalAlloc(GHND, Len(MyString) + 1)
@@ -58,7 +63,7 @@ Dim hClipMemory As Long, X As Long
   End If
 
 'Clear the Clipboard.
-  X = EmptyClipboard()
+  x = EmptyClipboard()
 
 'Copy the data to the Clipboard.
   hClipMemory = SetClipboardData(CF_TEXT, hGlobalMemory)
