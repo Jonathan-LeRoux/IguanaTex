@@ -136,8 +136,11 @@ Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Be
     If IsEmpty(LatexForm.textboxSize.Text) Then
         LatexForm.textboxSize.Text = "20"
     End If
+    LatexForm.CheckBoxReset.Visible = False
+    LatexForm.Label2.Caption = "Set size:"
        
-    LatexForm.ButtonRun.Caption = "Create"
+    LatexForm.ButtonRun.Caption = "Generate"
+    LatexForm.ButtonRun.Accelerator = "G"
     LatexForm.textboxSize.Enabled = True
     LatexForm.Show
 End Sub
@@ -167,12 +170,16 @@ Function TryEditLatexEquation() As Boolean
                     For i = 1 To .count
                         If (.name(i) = "LATEXADDIN") Then
                             Load LatexForm
-                            LatexForm.textboxSize.Visible = False
-                            LatexForm.Label2.Visible = False
-                            LatexForm.Label3.Visible = False
+                            LatexForm.textboxSize.Visible = True
+                            LatexForm.Label2.Visible = True
+                            LatexForm.Label3.Visible = True
+                            LatexForm.CheckBoxReset.Visible = True
+                            LatexForm.CheckBoxReset.Value = False
+                            LatexForm.Label2.Caption = "Reset size:"
     
                             LatexForm.TextBox1.Text = .Value(i)
                             LatexForm.ButtonRun.Caption = "Modify"
+                            LatexForm.ButtonRun.Accelerator = "M"
                             
                             For j = 1 To .count
                                 If (.name(j) = "IGUANATEXSIZE") Then
@@ -193,12 +200,16 @@ Function TryEditLatexEquation() As Boolean
                 For i = 1 To .count
                     If (.name(i) = "LATEXADDIN") Then
                         Load LatexForm
-                        LatexForm.textboxSize.Visible = False
-                        LatexForm.Label2.Visible = False
-                        LatexForm.Label3.Visible = False
+                        LatexForm.textboxSize.Visible = True
+                        LatexForm.Label2.Visible = True
+                        LatexForm.Label3.Visible = True
+                        LatexForm.CheckBoxReset.Visible = True
+                        LatexForm.CheckBoxReset.Value = False
+                        LatexForm.Label2.Caption = "Reset size:"
                         
                         LatexForm.TextBox1.Text = .Value(i)
                         LatexForm.ButtonRun.Caption = "Modify"
+                        LatexForm.ButtonRun.Accelerator = "M"
                         
                         For j = 1 To .count
                             If (.name(j) = "IGUANATEXSIZE") Then
@@ -245,3 +256,4 @@ End Sub
 Public Sub RibbonSetTempFolder(ByVal control)
     LoadSetTempForm
 End Sub
+

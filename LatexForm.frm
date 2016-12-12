@@ -22,7 +22,7 @@ Sub InitializeApp()
     
     AddMenuItem "New Latex e&quation...", "NewLatexEquation", 18 '226
     AddMenuItem "Edit Latex equation...", "EditLatexEquation", 37
-    AddMenuItem "Set Temp folder...", "LoadSetTempForm", 548
+    AddMenuItem "Settings...", "LoadSetTempForm", 548
     
 End Sub
 
@@ -62,7 +62,7 @@ Sub UnInitializeApp()
     
     RemoveMenuItem "New Latex e&quation..."
     RemoveMenuItem "Edit Latex equation..."
-    RemoveMenuItem "Set Temp folder..."
+    RemoveMenuItem "Settings..."
 
 End Sub
 
@@ -98,37 +98,181 @@ Private Sub ButtonRun_Click()
         debugMode = False
     End If
     
+    ' Read settings
+    RegPath = "Software\IguanaTex"
+    'UseUTF8 = True
+    'If GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True) Then
+    '    UseUTF8 = True
+    Dim UseUTF8 As Boolean
+    Dim UsePDF As Boolean
+    UseUTF8 = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
+    UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
+    gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
+    IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
     
+    Dim TimeOutTime As Long
+    TimeOutTime = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")) * 1000 ' Wait 60 seconds for the processes to complete
+    
+    ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
+    dpi = lDotsPerInch
+           
+        
     ' Write latex to a temp file
-    Const ForReading = 1, ForWriting = 2, ForAppending = 3
+    
     Set fs = CreateObject("Scripting.FileSystemObject")
-    Set f = fs.CreateTextFile(TempPath + FilePrefix + ".tex", True)
-    f.Write TextBox1.Text
-    f.Close
+    Dim FName As String
+    Dim FHdl As Integer
+    FName = TempPath & FilePrefix & ".tmp"
+    On Error GoTo TempFolderNotWritable
+    FHdl = FreeFile()
+    Open FName For Output Access Write As FHdl
+    Print #FHdl, "TESTWRITE"
+    Close FHdl
+    IsPathWritable = True
+    Kill FName
+    On Error GoTo 0
     
+    Const ForReading = 1, ForWriting = 2, ForAppending = 3
+    
+    If fs.FileExists(TempPath & FilePrefix & ".png") Then
+        fs.DeleteFile TempPath + FilePrefix + "*.*" 'Make sure we don't keep old files
+    End If
+    
+    If UseUTF8 = False Then
+        Set f = fs.CreateTextFile(TempPath + FilePrefix + ".tex", True)
+        f.Write TextBox1.Text
+        f.Close
+    Else
+        Dim BinaryStream As Object
+        Set BinaryStream = CreateObject("ADODB.stream")
+        BinaryStream.Type = 1
+        BinaryStream.Open
+        Dim adodbStream  As Object
+        Set adodbStream = CreateObject("ADODB.Stream")
+        With adodbStream
+            .Type = 2 'Stream type
+            .Charset = "utf-8"
+            .Open
+            .WriteText TextBox1.Text
+            '.SaveToFile TempPath & FilePrefix & ".tex", 2 'Save binary data To disk; problem: this includes a BOM
+            ' Workaround to avoid BOM in file:
+            .Position = 3 'skip BOM
+            .CopyTo BinaryStream
+            .Flush
+            .Close
+        End With
+        BinaryStream.SaveToFile TempPath & FilePrefix & ".tex", 2 'Save binary data To disk
+        BinaryStream.Flush
+        BinaryStream.Close
+    End If
+    
+    Dim LogFile As Object
+            
     ' Run latex
-    RetVal& = Execute("latex -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode)
     
-    If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
-        ' Error in Latex code
-        ' Read log file and show it to the user
-        Dim LogFile As Object
-        Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
-        LogFileViewer.TextBox1.Text = LogFile.ReadAll
-        LogFile.Close
-        LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
-        LogFileViewer.Show 1
-        Exit Sub
+    If UsePDF = True Then
+    ' pdf to png route
+        RetVal& = Execute("pdflatex -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+            
+        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
+            ' Error in Latex code
+            ' Read log file and show it to the user
+            If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
+                LogFileViewer.TextBox1.Text = LogFile.ReadAll
+                LogFile.Close
+                LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
+                LogFileViewer.Show 1
+            Else
+                MsgBox "pdflatex did not return in 60 seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+            End If
+            Exit Sub
+        End If
+        
+        ' Output Bounding Box to file and read back in the appropriate information
+        RetValConv& = Execute("cmd /C """ & gs_command & """ -q -dBATCH -dNOPAUSE -sDEVICE=bbox " & FilePrefix & ".pdf 2> " & FilePrefix & ".bbx", TempPath, debugMode, TimeOutTime)
+        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".bbx")) Then
+            ' Error in bounding box computation
+            MsgBox "Error while using Ghostscript to compute the bounding box. Is your path correct?"
+            Exit Sub
+        End If
+            
+        
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set txtStream = fso.OpenTextFile(TempPath + FilePrefix + ".bbx", ForReading, False)
+        Dim TextSplit As Variant
+        Do While Not txtStream.AtEndOfStream
+        tmptext = txtStream.ReadLine
+        TextSplit = Split(tmptext, " ")
+        If TextSplit(0) = "%%HiResBoundingBox:" Then
+            llx = val(TextSplit(1))
+            lly = val(TextSplit(2))
+            urx = val(TextSplit(3))
+            ury = val(TextSplit(4))
+            'compute size and offset
+            sx = CStr(Round((urx - llx) / 72 * 1200))
+            sy = CStr(Round((ury - lly) / 72 * 1200))
+            cx = Str(-llx)
+            cy = Str(-lly)
+        End If
+        Loop
+        txtStream.Close
+        
+        ' Convert PDF to PNG
+        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r1200 -sOutputFile=""" & FilePrefix & "_tmp.png"" -g" & sx & "x" & sy & " -c ""<</Install {" & cx & " " & cy & " translate}>> setpagedevice"" -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
+        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
+            ' Error in PDF to PNG conversion
+            MsgBox "Error while using Ghostscript to convert from PDF to PNG. Is your path correct?"
+            Exit Sub
+        End If
+        ' Unfortunately, the resulting file has a DPI of 1200, not the default screen one of 96,
+        ' so there is a discrepancy with the dvipng output.
+        ' The only workaround I have found so far is to use Imagemagick's convert to change the DPI (but not the pixel size!)
+        ' Execute """" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode
+        RetValConv& = Execute("""" & IMconv & """ -units PixelsPerInch """ & FilePrefix & "_tmp.png"" -density " & CStr(dpi) & " """ & FilePrefix & ".png""", TempPath, debugMode, TimeOutTime)
+        If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
+            ' Error in PDF to PNG conversion
+            MsgBox "Error while using ImageMagick to change the PNG DPI. Is your path correct?" & vbNewLine & "The full path is needed to avoid conflict with Windows's built-in convert.exe."
+            Exit Sub
+        End If
+        
+        ' 'I considered using ImageMagick's convert, but it's extremely slow, and uses ghostscript in the backend anyway
+        'PdfPngSwitches = "-density 1200 -trim -transparent white -antialias +repage"
+        'Execute IMconv & " " & PdfPngSwitches & " """ & FilePrefix & ".pdf"" """ & FilePrefix & ".png""", TempPath, debugMode
+        
+    Else
+    ' dvi to png route
+        RetVal& = Execute("pdflatex -shell-escape -output-format dvi -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+        If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
+            ' Error in Latex code
+            ' Read log file and show it to the user
+            If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                Set LogFile = fs.OpenTextFile(TempPath + FilePrefix + ".log", ForReading)
+                LogFileViewer.TextBox1.Text = LogFile.ReadAll
+                LogFile.Close
+                LogFileViewer.TextBox1.ScrollBars = fmScrollBarsBoth
+                LogFileViewer.Show 1
+            Else
+                MsgBox "pdflatex did not return in 60 seconds and may have hung." & vbNewLine & "Please make sure your code compiles outside IguanaTex."
+            End If
+            Exit Sub
+        End If
+        DviPngSwitches = "-q -D 1200 -T tight"  ' monitor is 96 dpi; we use 1200 dpi to get a crisper display, and rescale later on for new displays to match the point size
+        If checkboxTransp.Value = True Then
+            DviPngSwitches = DviPngSwitches & " -bg Transparent"
+        End If
+        ' If the user created a .png by using the standalone class with convert, we use that, else we use dvipng
+        If Not fs.FileExists(TempPath & FilePrefix & ".png") Then
+            RetValConv& = Execute("dvipng " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+            If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
+                MsgBox "dvipng failed, or did not return in 20 seconds and may have hung." & vbNewLine & "You may want to try compiling using the PDF->PNG option."
+                Exit Sub
+            End If
+        End If
     End If
-    
-    DviPngSwitches = "-q -D 1200 -T tight"  ' monitor is 96 dpi; we use 1200 dpi to get a crisper display, and rescale later on for new displays to match the point size
-    If checkboxTransp.Value = True Then
-        DviPngSwitches = DviPngSwitches & " -bg Transparent"
-    End If
-    
-    Execute "dvipng " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode
     
     FinalFilename = FilePrefix & ".png"
+    
     
     ' Latex run successful.
     ' If we are in Modify mode, store parameters of old image
@@ -177,19 +321,22 @@ Private Sub ButtonRun_Click()
     ' Insert image
     Dim newShape As Shape
     Set newShape = ActiveWindow.Selection.SlideRange.Shapes.AddPicture(TempPath + FinalFilename, msoFalse, msoTrue, posX, posY, -1, -1)
-    ' Add tags storing the original height and width, used next time to keep resizing ratio.
+    ' Resize to the true size of the png file
     newShape.ScaleHeight 1#, msoTrue
     newShape.ScaleWidth 1#, msoTrue
+    ' Add tags storing the original height and width, used next time to keep resizing ratio.
     newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
     newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
     
     ' Scale it
-    If ButtonRun.Caption <> "Modify" Then
+    If ButtonRun.Caption <> "Modify" Or CheckBoxReset.Value = True Then
         PointSize = val(textboxSize.Text)
-        dpi = lDotsPerInch
         ScaleFactor = PointSize / 10 * dpi / 1200  ' 1/10 is for the default LaTeX point size (10 pt)
         newShape.ScaleHeight ScaleFactor, msoTrue
         newShape.ScaleWidth ScaleFactor, msoTrue
+        If ButtonRun.Caption = "Modify" Then ' We are editing+resetting size of an old display, we keep rotation
+            newShape.Rotation = oldShape.Rotation
+        End If
     Else
         HeightOld = oldShape.Height
         WidthOld = oldShape.Width
@@ -310,14 +457,21 @@ Private Sub ButtonRun_Click()
             newShape.Apply
             oldShape.Delete
         End If
-        ' Get back to original selection state
-        newShape.Select
     End If
+    
+    ' Select the new shape
+    newShape.Select
     
     ' Delete temp files
     fs.DeleteFile TempPath + FilePrefix + "*.*"
     
     Unload LatexForm
+Exit Sub
+
+TempFolderNotWritable:
+    'Debug.Print "The temporary folder " & TempPath & " appears not to be writable."
+    MsgBox "The temporary folder " & TempPath & " appears not to be writable."
+    
 End Sub
 
 Private Function IsInArray(arr As Variant, valueToCheck As String) As Boolean
@@ -458,6 +612,18 @@ Private Function BoolToInt(val) As Long
     End If
 End Function
 
+Private Sub CheckBoxReset_Click()
+    If CheckBoxReset.Value = True Then
+        textboxSize.Enabled = True
+    Else
+        textboxSize.Enabled = False
+    End If
+End Sub
+
+Private Sub checkboxTransp_Click()
+
+End Sub
+
 Private Sub CommandButton1_Click()
     AboutBox.Show 1
 End Sub
@@ -472,18 +638,19 @@ Private Sub UserForm_Initialize()
     TextBox1.Height = LatexForm.Height - CommandButton1.Height * 5
     TextBox1.Width = LatexForm.Width - 25
     
-    ButtonRun.Top = LatexForm.Height - ButtonRun.Height * 3
-    ButtonCancel.Top = LatexForm.Height - ButtonCancel.Height * 3
-    CommandButton1.Top = LatexForm.Height - CommandButton1.Height * 4
-    CommandButton2.Top = LatexForm.Height - CommandButton2.Height * 3
+    CommandButton1.Top = TextBox1.Top + TextBox1.Height + 6
+    CommandButton2.Top = CommandButton1.Top + CommandButton1.Height + 2
+    CommandButton1.Left = TextBox1.Left + TextBox1.Width - CommandButton1.Width
+    CommandButton2.Left = CommandButton1.Left
+    ButtonRun.Top = CommandButton1.Top + CommandButton1.Height / 2 + 1
+    ButtonCancel.Top = ButtonRun.Top
     
-    checkboxDebug.Top = LatexForm.Height - checkboxDebug.Height * 3
-    checkboxTransp.Top = LatexForm.Height - checkboxTransp.Height * 4
-    checkboxTransp.Top = LatexForm.Height - checkboxTransp.Height * 4
-    Label2.Top = LatexForm.Height - Label2.Height * 7
-    textboxSize.Top = LatexForm.Height - Label2.Height * 7
-    Label3.Top = LatexForm.Height - Label2.Height * 7
-    
+    textboxSize.Top = TextBox1.Top + TextBox1.Height + 6
+    Label2.Top = TextBox1.Top + TextBox1.Height + 6 + Round(textboxSize.Height - Label2.Height) / 2
+    Label3.Top = TextBox1.Top + TextBox1.Height + 6 + Round(textboxSize.Height - Label2.Height) / 2
+    CheckBoxReset.Top = textboxSize.Top
+    checkboxTransp.Top = CheckBoxReset.Top + checkboxTransp.Height + 2
+    checkboxDebug.Top = checkboxTransp.Top + checkboxTransp.Height + 2
     
 End Sub
 
@@ -500,17 +667,21 @@ Private Sub UserForm_Resize()
     End If
     
     'Other elements are moved as needed
-    ButtonRun.Top = LatexForm.Height - ButtonRun.Height * 3
-    ButtonCancel.Top = LatexForm.Height - ButtonCancel.Height * 3
-    CommandButton1.Top = LatexForm.Height - CommandButton1.Height * 4
-    CommandButton2.Top = LatexForm.Height - CommandButton2.Height * 3
+    CommandButton1.Top = TextBox1.Top + TextBox1.Height + 6
+    CommandButton2.Top = CommandButton1.Top + CommandButton1.Height + 2
+    ButtonRun.Top = CommandButton1.Top + CommandButton1.Height / 2 + 1
+    ButtonCancel.Top = ButtonRun.Top
     
-    checkboxDebug.Top = LatexForm.Height - checkboxDebug.Height * 3
-    checkboxTransp.Top = LatexForm.Height - checkboxTransp.Height * 4
-    checkboxTransp.Top = LatexForm.Height - checkboxTransp.Height * 4
-    Label2.Top = LatexForm.Height - Label2.Height * 7
-    textboxSize.Top = LatexForm.Height - Label2.Height * 7
-    Label3.Top = LatexForm.Height - Label2.Height * 7
+    textboxSize.Top = TextBox1.Top + TextBox1.Height + 6
+    Label2.Top = TextBox1.Top + TextBox1.Height + 6 + Round(textboxSize.Height - Label2.Height) / 2
+    Label3.Top = TextBox1.Top + TextBox1.Height + 6 + Round(textboxSize.Height - Label2.Height) / 2
+    'textboxSize.Top = LatexForm.Height - Label2.Height * 7
+    'Label2.Top = LatexForm.Height - Label2.Height * 7 + Round(textboxSize.Height - Label2.Height) / 2
+    'Label3.Top = LatexForm.Height - Label2.Height * 7 + Round(textboxSize.Height - Label2.Height) / 2
+    CheckBoxReset.Top = textboxSize.Top
+    checkboxTransp.Top = CheckBoxReset.Top + checkboxTransp.Height + 2
+    checkboxDebug.Top = checkboxTransp.Top + checkboxTransp.Height + 2
+    
 End Sub
 
 Private Sub MoveAnimation(oldShape As Shape, newShape As Shape)
@@ -549,3 +720,5 @@ Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
         ' ButtonCancel_Click
     ' End If
 End Sub
+
+

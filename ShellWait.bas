@@ -54,6 +54,9 @@ Private Declare PtrSafe Function GetExitCodeProcess Lib "kernel32" _
     (ByVal hProcess As Long, lpExitCode As Long) As Long
     
 Private Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+
+Public Declare PtrSafe Function TerminateProcess Lib "kernel32" _
+    (ByVal hProcess As Long, ByVal uExitCode As Long) As Long
 #Else
 Private Declare Function WaitForSingleObject Lib "kernel32" (ByVal _
     hHandle As Long, ByVal dwMilliseconds As Long) As Long
@@ -73,10 +76,13 @@ Private Declare Function GetExitCodeProcess Lib "kernel32" _
     (ByVal hProcess As Long, lpExitCode As Long) As Long
     
 Private Declare Function GetLastError Lib "kernel32" () As Long
+
+Public Declare Function TerminateProcess Lib "kernel32" _
+    (ByVal hProcess As Long, ByVal uExitCode As Long) As Long
 #End If
 
     
-Public Function ShellWait(Pathname As String, Optional StartupDir As String, Optional WindowStyle As Long) As Long
+Public Function ShellWait(Pathname As String, Optional StartupDir As String, Optional WindowStyle As Long, Optional WaitTime As Long = -1) As Long
     Dim proc As PROCESS_INFORMATION
     Dim start As STARTUPINFO
     Dim ret As Long
@@ -108,8 +114,11 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
     End If
         
     ' Wait for the shelled application to finish:
-    ret& = WaitForSingleObject(proc.hProcess, INFINITE)
-    
+    If WaitTime > 0 Then
+        retWait& = WaitForSingleObject(proc.hProcess, WaitTime)
+    Else
+        retWait& = WaitForSingleObject(proc.hProcess, INFINITE)
+    End If
     ' Get return value
     exitcode& = 1234
     ret& = GetExitCodeProcess(proc.hProcess, exitcode&)
@@ -117,18 +126,22 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
         lastError& = GetLastError()
         MsgBox "GetExitCodeProcess returned " + Str(ret&) + ", GetLastError returned " + Str(lastError&)
     End If
+    ' Tidy up if time out
+    If (retWait& = 258) Then
+        ret& = TerminateProcess(proc.hProcess, 0)
+    End If
     ' Close handle
     ret& = CloseHandle(proc.hProcess)
     ShellWait = exitcode&
 End Function
 
-Public Function Execute(CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False) As Long
+Public Function Execute(CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
     Dim RetVal As Long
     If debugMode Then
         MsgBox CommandLine, , StartupDir
-        RetVal = ShellWait(CommandLine, StartupDir, 1&)
+        RetVal = ShellWait(CommandLine, StartupDir, 1&, WaitTime)
     Else
-        RetVal = ShellWait(CommandLine, StartupDir)
+        RetVal = ShellWait(CommandLine, StartupDir, , WaitTime)
     End If
     Execute = RetVal
 End Function

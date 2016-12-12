@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
-   Caption         =   "Set Temporary Folder"
-   ClientHeight    =   1659
-   ClientLeft      =   21
-   ClientTop       =   336
-   ClientWidth     =   6272
+   Caption         =   "Settings"
+   ClientHeight    =   4214
+   ClientLeft      =   14
+   ClientTop       =   329
+   ClientWidth     =   6286
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -26,13 +26,62 @@ Private Sub ButtonSetTemp_Click()
     Dim RegPath As String
     Dim res As String
     RegPath = "Software\IguanaTex"
+    
+    ' Temp folder
     res = TextBox1.Text
     If Right(res, 1) <> "\" Then
         res = res & "\"
     End If
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Temp Dir", REG_SZ, CStr(res)
     
+    ' UTF8
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "UseUTF8", REG_DWORD, BoolToInt(CheckBoxUTF8.Value)
+    
+    ' PDF2PNG
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "UsePDF", REG_DWORD, BoolToInt(CheckBoxPDF.Value)
+        
+    ' GS command
+    res = TextBoxGS.Text
+    If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
+    If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "GS Command", REG_SZ, CStr(res)
+    
+    ' Path to ImageMagick Convert
+    res = TextBoxIMconv.Text
+    If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
+    If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "IMconv", REG_SZ, CStr(res)
+    
+    ' Time Out Interval for Processes
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "TimeOutTime", REG_DWORD, CLng(val(TextBoxTimeOut.Text))
+    
     Unload SetTempForm
+End Sub
+
+
+Private Sub CheckBoxPDF_Click()
+
+    If CheckBoxPDF.Value = True Then
+        TextBoxGS.Enabled = True
+        TextBoxIMconv.Enabled = True
+    Else
+        TextBoxGS.Enabled = False
+        TextBoxIMconv.Enabled = False
+    End If
+
+End Sub
+
+Private Sub Reset_Click()
+    CheckBoxUTF8.Value = True
+    
+    CheckBoxPDF.Value = False
+    
+    TextBoxGS.Text = "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe"
+    
+    TextBoxIMconv.Text = "C:\Program Files\ImageMagick\convert.exe"
+    
+    TextBoxTimeOut.Text = "60"
+    
 End Sub
 
 Private Sub UserForm_Initialize()
@@ -43,4 +92,22 @@ Private Sub UserForm_Initialize()
         res = res & "\"
     End If
     TextBox1.Text = res
+    
+    CheckBoxUTF8.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
+    
+    CheckBoxPDF.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
+    
+    TextBoxGS.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
+    
+    TextBoxIMconv.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
+    
+    TextBoxTimeOut.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TimeOutTime", "60")
 End Sub
+
+Private Function BoolToInt(val) As Long
+    If val Then
+        BoolToInt = 1&
+    Else
+        BoolToInt = 0&
+    End If
+End Function
