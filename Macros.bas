@@ -27,13 +27,13 @@ Attribute VB_Name = "Macros"
       ByVal dwNewLong As Long) _
    As Long
  
- Private Declare PtrSafe Function GetDC Lib "User32" _
+ Private Declare PtrSafe Function GetDC Lib "user32" _
     (ByVal hWnd As Long) As Long
 
  Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" _
     (ByVal hDC As Long, ByVal nIndex As Long) As Long
 
- Private Declare PtrSafe Function ReleaseDC Lib "User32" _
+ Private Declare PtrSafe Function ReleaseDC Lib "user32" _
     (ByVal hWnd As Long, ByVal hDC As Long) As Long
 
 

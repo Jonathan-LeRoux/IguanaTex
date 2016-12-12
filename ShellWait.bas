@@ -32,7 +32,7 @@ Private Type PROCESS_INFORMATION
     hProcess As Long
     hThread As Long
     dwProcessID As Long
-    dwThreadID As Long
+    dwThreadId As Long
 End Type
 
 #If VBA7 Then

@@ -1714,12 +1714,12 @@ Private Sub TransferGroupFormat(oldshape As Shape, newShape As Shape)
     End If
 End Sub
 
-Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
-    ' If CloseMode = vbFormControlMenu Then
-        ' Cancel = True
-        ' ButtonCancel_Click
-    ' End If
-End Sub
+'Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+'    ' If CloseMode = vbFormControlMenu Then
+'        ' Cancel = True
+'        ' ButtonCancel_Click
+'    ' End If
+'End Sub
 
 
 Private Function isTex(file As String)
@@ -1811,4 +1811,29 @@ End Function
 '    End If
 'End Function
 
+
+' Mousewheel functions
+
+Private Sub TextBox1_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, _
+                        ByVal X As Single, ByVal Y As Single)
+    HookListBoxScroll Me, Me.TextBox1
+End Sub
+
+
+Private Sub ComboBoxLaTexEngine_MouseMove( _
+                        ByVal Button As Integer, ByVal Shift As Integer, _
+                        ByVal X As Single, ByVal Y As Single)
+         HookListBoxScroll Me, Me.ComboBoxLaTexEngine
+End Sub
+
+'Private Sub ComboBoxBitmapVector_MouseMove( _
+'                        ByVal Button As Integer, ByVal Shift As Integer, _
+'                        ByVal X As Single, ByVal Y As Single)
+'         HookListBoxScroll Me, Me.ComboBoxBitmapVector
+'End Sub
+
+
+Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
+        UnhookListBoxScroll
+End Sub
 

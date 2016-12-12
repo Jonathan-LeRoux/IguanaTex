@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LoadVectorGraphicsForm 
    Caption         =   "Load Vector Graphics File"
-   ClientHeight    =   3136
+   ClientHeight    =   3135
    ClientLeft      =   119
    ClientTop       =   448
    ClientWidth     =   6888
@@ -164,7 +164,7 @@ Public Sub InsertVectorGraphicsFile()
         End If
         tex2img_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeX2img Command", "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe")
         pdfiumdraw_command = Left$(tex2img_command, Len(tex2img_command) - Len("TeX2imgc.exe")) + "pdfiumdraw.exe"
-        RetVal& = Execute("""" & pdfiumdraw_command & """ --emf """ + path + """", StartFolder, debugMode, TimeOutTime)
+        RetVal& = Execute("""" & pdfiumdraw_command & """ --extent=50 --emf --transparent --pages=1 """ + path + """", StartFolder, debugMode, TimeOutTime)
         If (RetVal& <> 0 Or Not fs.FileExists(emfPath)) Then
             MsgBox " PDF to EMF conversion failed" _
             & vbNewLine & "Make sure to correctly set the path to Tex2imgc.exe in Main Settings." _

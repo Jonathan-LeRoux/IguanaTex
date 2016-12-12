@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   5474
+   ClientHeight    =   5475
    ClientLeft      =   42
    ClientTop       =   378
    ClientWidth     =   4711
