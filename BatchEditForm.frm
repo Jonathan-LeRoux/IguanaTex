@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   4991
+   ClientHeight    =   5474
    ClientLeft      =   42
    ClientTop       =   378
    ClientWidth     =   4711
@@ -37,6 +37,7 @@ Private Sub LoadSettings()
     TextBoxLocalDPI.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
     textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "PointSize", "20")
     checkboxTransp.Value = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Transparent", True))
+    CheckBoxResetFormat.Value = False
     
     CheckBoxModifyEngine.Value = False
     CheckBoxModifyTempFolder.Value = False
@@ -44,6 +45,7 @@ Private Sub LoadSettings()
     CheckBoxModifyLocalDPI.Value = False
     CheckBoxModifySize.Value = False
     CheckBoxModifyTransparency.Value = False
+    CheckBoxModifyResetFormat.Value = False
     CheckBoxReplace.Value = False
     Apply_CheckBoxModifyEngine
     Apply_CheckBoxModifyTempFolder
@@ -51,6 +53,7 @@ Private Sub LoadSettings()
     Apply_CheckBoxModifyLocalDPI
     Apply_CheckBoxModifySize
     Apply_CheckBoxModifyTransparency
+    Apply_CheckBoxModifyResetFormat
     Apply_CheckBoxReplace
 End Sub
 
@@ -92,6 +95,10 @@ Private Sub CheckBoxModifyTransparency_Click()
     Apply_CheckBoxModifyTransparency
 End Sub
 
+Private Sub CheckBoxModifyResetFormat_Click()
+    Apply_CheckBoxModifyResetFormat
+End Sub
+
 Private Sub CheckBoxReplace_Click()
     Apply_CheckBoxReplace
 End Sub
@@ -126,6 +133,11 @@ End Sub
 Private Sub Apply_CheckBoxModifyTransparency()
     checkboxTransp.Enabled = CheckBoxModifyTransparency.Value
 End Sub
+
+Private Sub Apply_CheckBoxModifyResetFormat()
+    CheckBoxResetFormat.Enabled = CheckBoxModifyResetFormat.Value
+End Sub
+
 
 Private Sub Apply_CheckBoxReplace()
     LabelReplace.Enabled = CheckBoxReplace.Value

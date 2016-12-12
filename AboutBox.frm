@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} AboutBox 
    Caption         =   "IguanaTex"
-   ClientHeight    =   4830
+   ClientHeight    =   5068
    ClientLeft      =   42
    ClientTop       =   329
    ClientWidth     =   8820.001

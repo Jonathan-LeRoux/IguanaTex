@@ -39,7 +39,7 @@ Function ClipBoard_SetData(MyString As String)
    Dim hGlobalMemory As Long, lpGlobalMemory As Long, hClipMemory As Long
 #End If
 
-Dim x As Long
+Dim X As Long
 
 'Allocate moveable global memory
   hGlobalMemory = GlobalAlloc(GHND, Len(MyString) + 1)
@@ -63,7 +63,7 @@ Dim x As Long
   End If
 
 'Clear the Clipboard.
-  x = EmptyClipboard()
+  X = EmptyClipboard()
 
 'Copy the data to the Clipboard.
   hClipMemory = SetClipboardData(CF_TEXT, hGlobalMemory)

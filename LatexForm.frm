@@ -33,10 +33,11 @@ Sub InitializeApp()
     
     AddMenuItem "New Latex display...", "NewLatexEquation", 18 '226
     AddMenuItem "Edit Latex display...", "EditLatexEquation", 37
-    AddMenuItem "Regenerate selected displays...", "RegenerateSelectedDisplaysNoChange", 19
-    AddMenuItem "Convert to EMF...", "ConvertToEMF", 153
-    AddMenuItem "Convert to PNG...", "ConvertToPNG", 931
+    AddMenuItem "Regenerate selection...", "RegenerateSelectedDisplaysNoChange", 19
+    AddMenuItem "Vectorize selection...", "ConvertToEMF", 153
+    AddMenuItem "Rasterize selection...", "ConvertToPNG", 931
     AddMenuItem "Settings...", "LoadSetTempForm", 548
+    AddMenuItem "Insert vector file...", "RibbonInsertVectorGraphicsFile", 23
     
 End Sub
 
@@ -77,10 +78,16 @@ Sub UnInitializeApp()
     RemoveMenuItem "New Latex display..."
     RemoveMenuItem "Edit Latex display..."
     RemoveMenuItem "Regenerate selection..."
+    RemoveMenuItem "Vectorize selection..."
+    RemoveMenuItem "Rasterize selection..."
+    RemoveMenuItem "Settings..."
+    RemoveMenuItem "Insert vector file..."
+    ' Clean up older versions
+    RemoveMenuItem "Regenerate selected displays..."
     RemoveMenuItem "Convert to EMF..."
     RemoveMenuItem "Convert to PNG..."
-    RemoveMenuItem "Settings..."
 
+    
 End Sub
 
 Sub RemoveMenuItem(itemText As String)
@@ -220,8 +227,8 @@ Sub ButtonRun_Click()
     Dim OutputDpi As Long
     OutputDpi = val(OutputDpiString)
     
-    ' Read current dpi in: this will be used when rescaling and optionally in pdf->png conversion
-    dpi = lDotsPerInch
+    ' Read current dpi in: this will be used when rescaling
+    dpi = 96 'lDotsPerInch ' I'm not convinced that this is the right thing to do, so for now I stop trying to take dpi into account
     default_screen_dpi = 96
     Dim VectorScalingX As Single, VectorScalingY As Single, BitmapScalingX As Single, BitmapScalingY As Single
     VectorScalingX = dpi / default_screen_dpi * val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "VectorScalingX", "1"))
@@ -456,11 +463,6 @@ Sub ButtonRun_Click()
             If oldshape.Tags.Item("BitmapVector") = 1 Then
                 oldshapeIsEMF = True
             End If
-            'oldshapeIsEMF = oldshape.Tags.Item("EMFOUTPUT")
-        'Else
-            'oldshapeIsEMF = False
-            'Call oldshape.Export(TempPath & FilePrefix & "_oldshape.png", ppShapeFormatPNG)
-            'oldshapeDPI = GetImageFileDPI(TempPath & FilePrefix & "_oldshape.png")
         End If
     Else
         PosX = 200
@@ -470,20 +472,17 @@ Sub ButtonRun_Click()
     ' Get scaling factors
     Dim isTexpoint As Boolean
     Dim tScaleWidth As Single, tScaleHeight As Single
-    'Dim RelToOrigSizeFlag As MsoTriState
-    MagicScalingFactorEMF = 1 / 100 ' Magical scaling factor for EMF
-    MagicScalingFactorPNG = 1 / OutputDpi
+    MagicScalingFactorEMF = 1 ' 1 / 100 ' Magical scaling factor for EMF
+    MagicScalingFactorPNG = default_screen_dpi / OutputDpi
     If UseEMF Then
         MagicScalingFactor = MagicScalingFactorEMF
-        'RelToOrigSizeFlag = msoFalse
     Else
         MagicScalingFactor = MagicScalingFactorPNG
-        'RelToOrigSizeFlag = msoTrue
     End If
     
     If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value Then
         PointSize = val(textboxSize.Text)
-        tScaleWidth = PointSize / 10 * default_screen_dpi * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
+        tScaleWidth = PointSize / 10 * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
         tScaleHeight = tScaleWidth
     Else
         ' Handle the case of Texpoint displays
@@ -493,14 +492,13 @@ Sub ButtonRun_Click()
         With oldshape.Tags
             If .Item("TEXPOINTSCALING") <> "" Then
                 isTexpoint = True
-                tScaleWidth = val(.Item("TEXPOINTSCALING")) * default_screen_dpi * MagicScalingFactor
+                tScaleWidth = val(.Item("TEXPOINTSCALING")) * MagicScalingFactor
                 tScaleHeight = tScaleWidth
             End If
             If .Item("OUTPUTDPI") <> "" Then
                 OldDpi = val(.Item("OUTPUTDPI"))
             End If
         End With
-        'OldMagicScalingFactorPNG = highdpi_rescaling / OldDpi
         If Not isTexpoint Then ' modifying a normal display, either PNG or EMF
             HeightOld = oldshape.Height
             WidthOld = oldshape.Width
@@ -550,12 +548,6 @@ Sub ButtonRun_Click()
                 s.Tags.Add "ORIGINALWIDTH", s.Width / tScaleWidth
             Next
         End If
-'        ' Alternative way of doing this:
-'        ' Re-insert EMF picture at the original size to be able to tag each object with its "pre-rescaling" size
-'        Dim unscaledShape As Shape
-'        Set unscaledShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
-'        Set unscaledShape = ConvertEMF(unscaledShape, VectorScalingX, VectorScalingY)
-
 
     Else
         ' Resize to the true size of the png file and adjust using the manual scaling factors set in Main Settings
@@ -575,43 +567,13 @@ Sub ButtonRun_Click()
             .LockAspectRatio = msoTrue
         End With
     End If
-    
-    ' Apply scaling factors
-'    newShape.LockAspectRatio = msoFalse
-'    newShape.ScaleHeight tScaleHeight, msoFalse
-'    newShape.ScaleWidth tScaleWidth, msoFalse
-'    newShape.LockAspectRatio = msoTrue
-    
+        
     If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
         newShape.Rotation = oldshape.Rotation
         If Not CheckBoxReset.Value Then
             newShape.LockAspectRatio = oldshape.LockAspectRatio ' Unlock aspect ratio if old display had it unlocked
         End If
     End If
-
-'    If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value Then
-'        newShape.ScaleHeight ScaleFactor, RelToOrigSizeFlag
-'        newShape.ScaleWidth ScaleFactor, RelToOrigSizeFlag
-'        If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
-'            newShape.Rotation = oldshape.Rotation
-'        End If
-'        newShape.LockAspectRatio = msoTrue
-'    Else
-'        newShape.LockAspectRatio = msoFalse
-'        newShape.ScaleHeight tScaleHeight, RelToOrigSizeFlag
-'        newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
-'        newShape.LockAspectRatio = oldshape.LockAspectRatio
-'        newShape.Rotation = oldshape.Rotation
-'    End If
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     ' Add tags
     Call AddTagsToShape(newShape)
@@ -628,7 +590,7 @@ Sub ButtonRun_Click()
     If ButtonRun.Caption = "ReGenerate" Then
         Dim TransferDesign As Boolean
         TransferDesign = True
-        If UseEMF <> oldshapeIsEMF Then
+        If UseEMF <> oldshapeIsEMF Or CheckBoxResetFormat.Value Then
             TransferDesign = False
         End If
         If IsInGroup Then
@@ -816,7 +778,10 @@ Private Sub AddTagsToShape(vSh As Shape)
     End With
 End Sub
 
-Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Single) As Shape
+
+
+Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Single, _
+                            Optional FileType As String = "emf", Optional ConvertLines As Boolean = True) As Shape
     With inSh
         .ScaleHeight 1#, msoTrue
         .ScaleWidth 1#, msoTrue
@@ -834,21 +799,33 @@ Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Singl
     Set sld = ActivePresentation.Slides(SlideIndex)
 
     ' Convert EMF image to object
-    Dim shr As ShapeRange
-    Set shr = inSh.Ungroup
-    Set shr = shr.Ungroup
-    ' Clean up
-    shr.Item(1).Delete
-    shr.Item(2).Delete
-    If shr(3).GroupItems.count > 2 Then
-        Set newShape = shr(3)
-    Else ' only a single freeform, so not a group
-        Set newShape = shr(3).GroupItems(2)
+    Dim Shr As ShapeRange
+    Set Shr = inSh.Ungroup
+    If FileType = "emf" Then
+        Set Shr = Shr.Ungroup
+        ' Clean up
+        Shr.Item(1).Delete
+        Shr.Item(2).Delete
+        If Shr(3).GroupItems.count > 2 Then
+            Set newShape = Shr(3)
+        Else ' only a single freeform, so not a group
+            Set newShape = Shr(3).GroupItems(2)
+        End If
+        Shr(3).GroupItems(1).Delete
+    ElseIf FileType = "eps" Then
+        Shr.GroupItems(1).Delete
+        Shr.GroupItems(1).Delete
+        Set newShape = Shr.Ungroup.Group
     End If
-    shr(3).GroupItems(1).Delete
+    
     
     If newShape.Type = msoGroup Then
     
+        Dim arr_group() As Variant
+        arr_group = GetAllShapesInGroup(newShape)
+        Call FullyUngroupShape(newShape)
+        Set newShape = sld.Shapes.Range(arr_group).Group
+        
         Dim emf_arr() As Variant ' gather all shapes to be regrouped later on
         j_emf = 0
         Dim delete_arr() As Variant ' gather all shapes to be deleted later on
@@ -858,13 +835,22 @@ Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Singl
             j_emf = j_emf + 1
             ReDim Preserve emf_arr(1 To j_emf)
             If s.Type = msoLine Then
-                emf_arr(j_emf) = LineToFreeform(s).name
-                j_delete = j_delete + 1
-                ReDim Preserve delete_arr(1 To j_delete)
-                delete_arr(j_delete) = s.name
+                If ConvertLines And (s.Height > 0 Or s.Width > 0) Then
+                    emf_arr(j_emf) = LineToFreeform(s).name
+                    j_delete = j_delete + 1
+                    ReDim Preserve delete_arr(1 To j_delete)
+                    delete_arr(j_delete) = s.name
+                Else
+                    emf_arr(j_emf) = s.name
+                End If
             Else
                 emf_arr(j_emf) = s.name
+                If s.Fill.Visible = msoTrue Then
                 s.Line.Visible = msoFalse
+                Else
+                s.Line.Visible = msoTrue
+                
+                End If
             End If
         Next
         newShape.Ungroup
@@ -886,31 +872,96 @@ Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Singl
     Set ConvertEMF = newShape
 End Function
 
+Private Sub FullyUngroupShape(newShape As Shape)
+    Dim Shr As ShapeRange
+    Dim s As Shape
+    If newShape.Type = msoGroup Then
+        Set Shr = newShape.Ungroup
+        For i = 1 To Shr.count
+            Set s = Shr.Item(i)
+            If s.Type = msoGroup Then
+                Call FullyUngroupShape(s)
+            End If
+        Next
+    End If
+End Sub
+
+Private Function GetAllShapesInGroup(newShape As Shape) As Variant
+    Dim arr() As Variant
+    Dim j As Long
+    Dim s As Shape
+    For Each s In newShape.GroupItems
+            j = j + 1
+            ReDim Preserve arr(1 To j)
+            arr(j) = s.name
+    Next
+    GetAllShapesInGroup = arr
+End Function
+
 Private Function LineToFreeform(s As Shape) As Shape
     t = s.Line.Weight
     Dim ApplyTransform As Boolean
     ApplyTransform = True
-    If s.Height = 0 Then ' Horizontal line
-        x1 = s.Left
-        y1 = s.Top - t / 2
-        x2 = x1 + s.Width
-        y2 = y1
-        x3 = x2
-        y3 = s.Top + t / 2
-        x4 = x1
-        y4 = y3
-    ElseIf s.Width = 0 Then ' Vertical line
-        x1 = s.Left - t / 2
-        y1 = s.Top
-        x2 = s.Left + t / 2
-        y2 = y1
-        x3 = x2
-        y3 = y2 + s.Height
-        x4 = x1
-        y4 = y3
-    Else ' Hopefully this will never happen, but we're dealing with a line that's neither horizontal nor vertical
-        ApplyTransform = False
+    
+    Dim bHflip As Boolean
+    Dim bVflip As Boolean
+    Dim nBegin As Long
+    Dim nEnd As Long
+    Dim aC(1 To 4, 1 To 2) As Double
+    
+    With s
+        aC(1, 1) = .Left:           aC(1, 2) = .Top
+        aC(2, 1) = .Left + .Width:  aC(2, 2) = .Top
+        aC(3, 1) = .Left:           aC(3, 2) = .Top + .Height
+        aC(4, 1) = .Left + .Width:  aC(4, 2) = .Top + .Height
+    
+        bHflip = .HorizontalFlip
+        bVflip = .VerticalFlip
+    End With
+    
+    If bHflip = bVflip Then
+        If bVflip = False Then
+            ' down to right -- South-East
+            nBegin = 1: nEnd = 4
+        Else
+            ' up to left -- North-West
+            nBegin = 4: nEnd = 1
+        End If
+    ElseIf bHflip = False Then
+        ' up to right -- North-East
+        nBegin = 3: nEnd = 2
+    Else
+        ' down to left -- South-West
+        nBegin = 2: nEnd = 3
     End If
+    xs = aC(nBegin, 1)
+    ys = aC(nBegin, 2)
+    xe = aC(nEnd, 1)
+    ye = aC(nEnd, 2)
+    
+    ' Get unit vector in orthogonal direction
+    xd = xe - xs
+    yd = ye - ys
+    
+    s_length = Sqr(xd * xd + yd * yd)
+    If s_length > 0 Then
+    n_x = -yd / s_length
+    n_y = xd / s_length
+    Else
+    n_x = 0
+    n_y = 0
+    End If
+    
+    x1 = xs + n_x * t / 2
+    y1 = ys + n_y * t / 2
+    x2 = xe + n_x * t / 2
+    y2 = ye + n_y * t / 2
+    x3 = xe - n_x * t / 2
+    y3 = ye - n_y * t / 2
+    x4 = xs - n_x * t / 2
+    y4 = ys - n_y * t / 2
+        
+    'End If
     
     
     If ApplyTransform Then
@@ -927,7 +978,7 @@ Private Function LineToFreeform(s As Shape) As Shape
         oSh.Rotation = s.Rotation
         Set LineToFreeform = oSh
     Else
-        LineToFreeform = s
+        Set LineToFreeform = s
     End If
 End Function
 
@@ -986,8 +1037,8 @@ Private Function TagGroupHierarchy(arr As Variant, TargetName As String) As Long
         Next
         
         ' Build shape range with all elements in that group, go one level down
-        tmp = TagGroupHierarchy(Arr_In, TargetName)
-        TagGroupHierarchy = tmp + 1
+        Tmp = TagGroupHierarchy(Arr_In, TargetName)
+        TagGroupHierarchy = Tmp + 1
         
         ' For all elements not in that group, tag them
         For Each n In Arr_Out
@@ -1146,6 +1197,7 @@ Private Sub ButtonTexPath_Click()
     Set fd = Nothing
     TextBoxFile.SetFocus
 End Sub
+
 
 Private Sub ComboBoxBitmapVector_Change()
     Apply_BitmapVector_Change
@@ -1433,6 +1485,8 @@ End Sub
 Sub RetrieveOldShapeInfo(oldshape As Shape, mainText As String)
     CheckBoxReset.Visible = True
     CheckBoxReset.Value = False
+    CheckBoxResetFormat.Visible = True
+    CheckBoxResetFormat.Value = False
     Label2.Caption = "Reset size:"
     ButtonRun.Caption = "ReGenerate"
     ButtonRun.Accelerator = "G"
@@ -1551,9 +1605,10 @@ Private Sub ResizeForm()
     Label2.Top = textboxSize.Top + Round(textboxSize.Height - Label2.Height) / 2
     CheckBoxReset.Top = textboxSize.Top
     Label3.Top = Label2.Top
-    checkboxTransp.Top = CheckBoxReset.Top + checkboxTransp.Height + 2
-    checkboxDebug.Top = checkboxTransp.Top + checkboxTransp.Height + 2
-    
+    checkboxTransp.Top = CheckBoxReset.Top + 21 'checkboxTransp.Height + 2
+    checkboxDebug.Top = checkboxTransp.Top + 21 ' checkboxTransp.Height + 2
+    CheckBoxResetFormat.Top = checkboxDebug.Top
+    CheckBoxResetFormat.Left = checkboxDebug.Left + checkboxDebug.Width + 10
     
 End Sub
 
@@ -1668,8 +1723,8 @@ End Sub
 
 
 Private Function isTex(file As String)
-    ext = Right$(file, Len(file) - InStrRev(file, "."))
-    If ext = "tex" Then
+    Ext = Right$(file, Len(file) - InStrRev(file, "."))
+    If Ext = "tex" Then
         isTex = True
     Else
         isTex = False

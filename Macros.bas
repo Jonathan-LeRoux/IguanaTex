@@ -511,6 +511,9 @@ Sub Apply_BatchEditSettings()
     If BatchEditForm.CheckBoxModifyTransparency.Value Then
         LatexForm.checkboxTransp.Value = BatchEditForm.checkboxTransp.Value
     End If
+    If BatchEditForm.CheckBoxModifyResetFormat.Value Then
+        LatexForm.CheckBoxResetFormat.Value = BatchEditForm.CheckBoxResetFormat.Value
+    End If
     If BatchEditForm.CheckBoxReplace.Value Then
         If BatchEditForm.TextBoxFind.Text <> "" Then
             LatexForm.TextBox1.Text = Replace(LatexForm.TextBox1.Text, BatchEditForm.TextBoxFind.Text, BatchEditForm.TextBoxReplacement.Text)
@@ -641,6 +644,12 @@ Public Sub ConvertToPNG()
     Call BatchEditForm.ButtonRun_Click
 End Sub
 
+Public Sub RibbonInsertVectorGraphicsFile()
+    Load LoadVectorGraphicsForm
+    Call LoadVectorGraphicsForm.ButtonPath_Click
+    LoadVectorGraphicsForm.Show
+End Sub
+
 
 Public Function GetFilePrefix() As String
     GetFilePrefix = "IguanaTex_tmp"
@@ -663,6 +672,4 @@ Public Function GetEditorPath() As String
     res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "texstudio.exe")
     GetEditorPath = res
 End Function
-
-
 
