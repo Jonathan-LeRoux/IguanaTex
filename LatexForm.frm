@@ -125,6 +125,9 @@ Private Sub WriteLaTeX2File(TempPath As String, FilePrefix As String)
     If fs.FileExists(TempPath & FilePrefix & ".png") Then
         fs.DeleteFile TempPath + FilePrefix + "*.*" 'Make sure we don't keep old files
     End If
+    RegPath = "Software\IguanaTex"
+    Dim UseUTF8 As Boolean
+    UseUTF8 = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
     
     If UseUTF8 = False Then
         Set f = fs.CreateTextFile(TempPath + FilePrefix + ".tex", True)
@@ -190,9 +193,7 @@ Sub ButtonRun_Click()
     
     ' Read settings
     RegPath = "Software\IguanaTex"
-    Dim UseUTF8 As Boolean
     Dim UsePDF As Boolean
-    UseUTF8 = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseUTF8", True)
     'UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
     gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
     IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
