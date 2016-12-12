@@ -17,3 +17,6 @@ Private Sub CloseAboutButton_Click()
     Unload AboutBox
 End Sub
 
+Private Sub Label1_Click()
+
+End Sub

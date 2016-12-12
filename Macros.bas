@@ -164,6 +164,8 @@ Function TryEditLatexEquation() As Boolean
     Dim oldShape As Shape
                             
     If Sel.Type = ppSelectionShapes Then
+        ' First make sure we don't have any shapes with duplicate names on this slide
+        Call DeDuplicateShapeNamesInSlide(ActiveWindow.View.Slide.SlideIndex)
         ' Attempt to deal with the case of 1 object inside a group
         If Sel.ShapeRange.Type = msoGroup Then
             If Sel.ChildShapeRange.count = 1 Then
@@ -181,7 +183,7 @@ Function TryEditLatexEquation() As Boolean
                         End If
                         If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                             ScalingFactor = 1
-                            Debug.Print .name(j)
+                            'Debug.Print .Name(i)
                             For j = 1 To .count
                                 'Debug.Print .Name(j) & vbTab & .Value(j)
                                 If (.name(j) = "ORIGWIDTH") Then
@@ -244,6 +246,49 @@ Function TryEditLatexEquation() As Boolean
     TryEditLatexEquation = False
 End Function
 
+' Make sure there aren't multiple shapes with the same name prior to processing
+Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
+    Dim vSh As Shape
+    Dim vSl As Slide
+    Set vSl = ActivePresentation.Slides(SlideIndex)
+    
+    Dim NameList() As String
+    
+    Dim dict As New Scripting.Dictionary
+    For Each vSh In vSl.Shapes
+        If vSh.Type = msoGroup Then
+            NameList = CollectGroupedItemList(vSh)
+        Else
+            ReDim NameList(0 To 0) As String
+            NameList(0) = vSh.name
+        End If
+        For n = LBound(NameList) To UBound(NameList)
+            Key = NameList(n)
+            If Not dict.Exists(Key) Then
+                dict.Item(Key) = 1
+            Else
+                dict.Item(Key) = dict.Item(Key) + 1
+            End If
+        Next n
+    Next vSh
+    
+    For Each K In dict.Keys
+        If dict.Item(K) > 1 Then
+            shpCount = 1
+            For i = 1 To dict.Item(K)
+                Set vSh = vSl.Shapes(K) ' there may be several of them, PP picks one
+                Do While dict.Exists(K & " " & shpCount)
+                    shpCount = shpCount + 1
+                Loop
+                vSh.name = K & " " & shpCount
+                dict.Add K & " " & shpCount, 1
+            Next i
+        End If
+    Next
+    
+    Set dict = Nothing
+End Sub
+
 Sub RegenerateSelectedDisplays()
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
@@ -254,13 +299,20 @@ Sub RegenerateSelectedDisplays()
     Select Case Sel.Type
         Case ppSelectionShapes
             SlideIndex = ActiveWindow.View.Slide.SlideIndex
-            For Each vSh In Sel.ShapeRange
-                If vSh.Type = msoGroup Then
-                    Call RegenerateGroupedDisplays(vSh, SlideIndex)
-                Else
+            Call DeDuplicateShapeNamesInSlide(SlideIndex)
+            If Sel.HasChildShapeRange Then ' displays within a group
+                For Each vSh In Sel.ChildShapeRange
                     Call RegenerateOneDisplay(vSh)
-                End If
-            Next vSh
+                Next vSh
+            Else
+                For Each vSh In Sel.ShapeRange
+                    If vSh.Type = msoGroup Then ' grouped displays
+                        Call RegenerateGroupedDisplays(vSh, SlideIndex)
+                    Else ' single display
+                        Call RegenerateOneDisplay(vSh)
+                    End If
+                Next vSh
+            End If
         Case ppSelectionSlides
             For Each vSl In Sel.SlideRange
                 Call RegenerateDisplaysOnSlide(vSl)
@@ -273,6 +325,7 @@ End Sub
 
 Sub RegenerateDisplaysOnSlide(vSl As Slide)
     vSl.Select
+    Call DeDuplicateShapeNamesInSlide(vSl.SlideIndex)
     Dim vSh As Shape
     For Each vSh In vSl.Shapes
         If vSh.Type = msoGroup Then
@@ -315,7 +368,7 @@ Private Function CollectGroupedItemList(vSh As Shape) As Variant
             SubList = CollectGroupedItemList(vSh.GroupItems(n))
             added_length = UBound(SubList)
             ReDim Preserve TmpList(0 To prev_length + added_length) As String
-            For j = prev_length + 1 To UBound(Tmp)
+            For j = prev_length + 1 To UBound(tmp)
                 TmpList(j) = SubList(j - prev_ubound - 1)
             Next j
         Else

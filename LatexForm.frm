@@ -194,10 +194,8 @@ Sub ButtonRun_Click()
     ' Read settings
     RegPath = "Software\IguanaTex"
     Dim UsePDF As Boolean
-    'UsePDF = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UsePDF", False)
     gs_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "GS Command", "C:\Program Files (x86)\gs\gs9.15\bin\gswin32c.exe")
     IMconv = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "IMconv", "C:\Program Files\ImageMagick\convert.exe")
-    'tex2pdf_command = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngine", "pdflatex")
     LaTeXEngineID = ComboBoxLaTexEngine.ListIndex
     tex2pdf_command = LaTexEngineList(LaTeXEngineID)
     UsePDF = UsePDFList(LaTeXEngineID)
@@ -263,7 +261,12 @@ Sub ButtonRun_Click()
         BBString = BoundingBoxString(TempPath + FilePrefix + ".bbx")
         
         ' Convert PDF to PNG
-        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r1200 -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
+        If checkboxTransp.Value = True Then
+            PdfPngDevice = "-sDEVICE=pngalpha"
+        Else
+            PdfPngDevice = "-sDEVICE=png16m"
+        End If
+        RetValConv& = Execute("""" & gs_command & """ -q -dBATCH -dNOPAUSE " & PdfPngDevice & " -r1200 -sOutputFile=""" & FilePrefix & "_tmp.png""" & BBString & " -f """ & TempPath & FilePrefix & ".pdf""", TempPath, debugMode, TimeOutTime)
         If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
             ' Error in PDF to PNG conversion
             MsgBox "Error while using Ghostscript to convert from PDF to PNG. Is your path correct?"
@@ -611,8 +614,8 @@ Private Function TagGroupHierarchy(arr As Variant, TargetName As String) As Long
         Next
         
         ' Build shape range with all elements in that group, go one level down
-        Tmp = TagGroupHierarchy(Arr_In, TargetName)
-        TagGroupHierarchy = Tmp + 1
+        tmp = TagGroupHierarchy(Arr_In, TargetName)
+        TagGroupHierarchy = tmp + 1
         
         ' For all elements not in that group, tag them
         For Each n In Arr_Out
@@ -641,6 +644,7 @@ End Function
 ' Add picture as shape taking care of not inserting it in empty placeholder
 Private Function AddDisplayShape(path As String, PosX As Single, PosY As Single) As Shape
 ' from http://www.vbaexpress.com/forum/showthread.php?47687-Addpicture-adds-the-picture-to-a-placeholder-rather-as-a-new-shape
+' modified based on http://www.vbaexpress.com/forum/showthread.php?37561-Delete-empty-placeholders
     Dim oshp As Shape
     Dim osld As Slide
     On Error Resume Next
@@ -649,16 +653,20 @@ Private Function AddDisplayShape(path As String, PosX As Single, PosY As Single)
     On Error GoTo 0
     For Each oshp In osld.Shapes
         If oshp.Type = msoPlaceholder Then
-            If oshp.PlaceholderFormat.Type = ppPlaceholderObject Then
-               If Not oshp.TextFrame.HasText Then oshp.TextFrame.TextRange = "DUMMY"
+            If oshp.PlaceholderFormat.ContainedType = msoAutoShape Then
+                If oshp.HasTextFrame Then
+                    If Not oshp.TextFrame.HasText Then oshp.TextFrame.TextRange = "DUMMY"
+                End If
             End If
         End If
     Next oshp
     Set AddDisplayShape = osld.Shapes.AddPicture(path, msoFalse, msoTrue, PosX, PosY, -1, -1)
     For Each oshp In osld.Shapes
         If oshp.Type = msoPlaceholder Then
-            If oshp.PlaceholderFormat.Type = ppPlaceholderObject Then
-                If oshp.TextFrame.TextRange = "DUMMY" Then oshp.TextFrame.DeleteText
+            If oshp.PlaceholderFormat.ContainedType = msoAutoShape Then
+                If oshp.HasTextFrame Then
+                    If oshp.TextFrame.TextRange = "DUMMY" Then oshp.TextFrame.DeleteText
+                End If
             End If
         End If
     Next oshp
@@ -1011,6 +1019,9 @@ Sub RetrieveOldShapeInfo(oldShape As Shape, mainText As String)
             If (.name(j) = "TRANSPARENCY") Then
                 checkboxTransp.Value = CBool(.Value(j))
             End If
+            If (.name(j) = "TRANSPARENT") Then
+                checkboxTransp.Value = CBool(.Value(j))
+            End If
             If (.name(j) = "IGUANATEXCURSOR") Then
                 CursorPosition = .Value(j)
             End If
@@ -1036,7 +1047,7 @@ Private Sub UserForm_Resize()
      Case Else ' Templates
         minLatexFormHeight = MultiPage1.Top + 18 + 50 + 9 * ButtonAbout.Height
     End Select
-    minLatexFormWidth = ButtonCancel.Left + ButtonCancel.Width + ButtonAbout.Width + 30
+    minLatexFormWidth = ButtonCancel.Left + ButtonCancel.Width + ButtonAbout.Width + 24
      
     If LatexForm.Height < minLatexFormHeight Then
         LatexForm.Height = minLatexFormHeight
