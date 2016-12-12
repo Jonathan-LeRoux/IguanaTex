@@ -1001,6 +1001,13 @@ End Sub
 Private Sub UserForm_Initialize()
     LoadSettings
     
+    ' With multiple monitors, the "CenterOwner" option to open the UserForm in the center of the parent window
+    ' does not seem to work, at least in Office 2010.
+    ' The following code to manually place the UserForm somehow makes the "CenterOwner" option work.
+    ' Remark: if used with the Manual placement option, it would place the window to the left, under the ribbon.
+    Me.Top = Application.Top + 110
+    Me.Left = Application.Left + 25
+    
     LatexForm.textboxSize.Visible = True
     LatexForm.Label2.Visible = True
     LatexForm.Label3.Visible = True

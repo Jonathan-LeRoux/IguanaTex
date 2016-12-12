@@ -210,6 +210,9 @@ Function TryEditLatexEquation() As Boolean
             With oldShape.Tags
                 For i = 1 To .count
                     If (.name(i) = "LATEXADDIN") Then
+                        'For j = 1 To .Count
+                        '    Debug.Print .Name(j) & vbTab & .Value(j)
+                        'Next j
                         Load LatexForm
                         
                         Call LatexForm.RetrieveOldShapeInfo(oldShape, .Value(i))
@@ -221,7 +224,7 @@ Function TryEditLatexEquation() As Boolean
                     If (.name(i) = "SOURCE") Then ' we're dealing with a Texpoint display
                         ScalingFactor = 1
                         For j = 1 To .count
-                            Debug.Print .name(j) & vbTab & .Value(j)
+                            'Debug.Print .Name(j) & vbTab & .Value(j)
                             If (.name(j) = "ORIGWIDTH") Then
                                 ScalingFactor = ScalingFactor * oldShape.Width / val(.Value(j))
                             End If
@@ -272,22 +275,34 @@ Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
         Next n
     Next vSh
     
-    For Each K In dict.Keys
-        If dict.Item(K) > 1 Then
-            shpCount = 1
-            For i = 1 To dict.Item(K)
-                Set vSh = vSl.Shapes(K) ' there may be several of them, PP picks one
-                Do While dict.Exists(K & " " & shpCount)
-                    shpCount = shpCount + 1
-                Loop
-                vSh.name = K & " " & shpCount
-                dict.Add K & " " & shpCount, 1
-            Next i
-        End If
-    Next
+    For Each vSh In vSl.Shapes
+        Set dict = RenameDuplicateShapes(vSh, dict)
+    Next vSh
+    
     
     Set dict = Nothing
 End Sub
+
+Private Function RenameDuplicateShapes(vSh As Shape, dict As Scripting.Dictionary) As Scripting.Dictionary
+    If vSh.Type = msoGroup Then
+        Dim n As Long
+        For n = 1 To vSh.GroupItems.count
+            Set dict = RenameDuplicateShapes(vSh.GroupItems(n), dict)
+        Next
+    Else
+        K = vSh.name
+        If dict.Item(K) > 1 Then
+            shpCount = 1
+            Do While dict.Exists(K & " " & shpCount)
+                shpCount = shpCount + 1
+            Loop
+            vSh.name = K & " " & shpCount
+            dict.Add K & " " & shpCount, 1
+        End If
+    End If
+    Set RenameDuplicateShapes = dict
+End Function
+
 
 Sub RegenerateSelectedDisplays()
     Dim Sel As Selection
@@ -364,11 +379,11 @@ Private Function CollectGroupedItemList(vSh As Shape) As Variant
         Else
             prev_length = UBound(TmpList)
         End If
-        If vSh.GroupItems(n).Type = msoGroup Then
+        If vSh.GroupItems(n).Type = msoGroup Then ' this case should never occur, as PPT disregards subgroups. Consider removing.
             SubList = CollectGroupedItemList(vSh.GroupItems(n))
             added_length = UBound(SubList)
             ReDim Preserve TmpList(0 To prev_length + added_length) As String
-            For j = prev_length + 1 To UBound(tmp)
+            For j = prev_length + 1 To UBound(TmpList)
                 TmpList(j) = SubList(j - prev_ubound - 1)
             Next j
         Else
