@@ -77,9 +77,13 @@ End Sub
 Sub NewLatexEquation()
 Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Ben-Haim"
     Load LatexForm
+    
+    LatexForm.textboxSize.Visible = True
+    LatexForm.Label2.Visible = True
+    LatexForm.Label3.Visible = True
+    
     LatexForm.ButtonRun.Caption = "Create"
     LatexForm.textboxSize.Enabled = True
-    LatexForm.textboxSize.Text = 20
     LatexForm.Show
 End Sub
 
@@ -108,6 +112,10 @@ Function TryEditLatexEquation() As Boolean
                     For i = 1 To .count
                         If (.name(i) = "LATEXADDIN") Then
                             Load LatexForm
+                            LatexForm.textboxSize.Visible = False
+                            LatexForm.Label2.Visible = False
+                            LatexForm.Label3.Visible = False
+    
                             LatexForm.TextBox1.Text = .Value(i)
                             LatexForm.ButtonRun.Caption = "Modify"
                             
@@ -130,6 +138,10 @@ Function TryEditLatexEquation() As Boolean
                 For i = 1 To .count
                     If (.name(i) = "LATEXADDIN") Then
                         Load LatexForm
+                        LatexForm.textboxSize.Visible = False
+                        LatexForm.Label2.Visible = False
+                        LatexForm.Label3.Visible = False
+                        
                         LatexForm.TextBox1.Text = .Value(i)
                         LatexForm.ButtonRun.Caption = "Modify"
                         

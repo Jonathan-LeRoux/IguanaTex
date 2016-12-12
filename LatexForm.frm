@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
-   ClientHeight    =   6165
+   ClientHeight    =   6167
    ClientLeft      =   42
    ClientTop       =   329
    ClientWidth     =   8540.001
@@ -432,7 +432,7 @@ Private Sub LoadSettings()
     RegPath = "Software\IguanaTex"
     checkboxTransp.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Transparent", True)
     checkboxDebug.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Debug", False)
-    textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Point Size", "20")
+    textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "PointSize", "20")
     TextBox1.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCode", "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & Chr(13) & Chr(13) & Chr(13) & "\end{document}")
 End Sub
 
@@ -540,8 +540,8 @@ End Sub
 
 
 Private Sub UserForm_QueryClose(Cancel As Integer, CloseMode As Integer)
-    If CloseMode = vbFormControlMenu Then
-        Cancel = True
-        ButtonCancel_Click
-    End If
+    ' If CloseMode = vbFormControlMenu Then
+        ' Cancel = True
+        ' ButtonCancel_Click
+    ' End If
 End Sub
