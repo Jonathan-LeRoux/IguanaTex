@@ -466,85 +466,27 @@ Sub ButtonRun_Click()
         PosX = 200
         PosY = 200
     End If
-    
-    Dim newShape As Shape
-    ' Insert image
-    Set newShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
-    
-    If UseEMF Then
-        newShape.ScaleHeight 1#, msoTrue
-        newShape.ScaleWidth 1#, msoTrue
-        newShape.LockAspectRatio = msoFalse
-        newShape.ScaleHeight VectorScalingY, msoTrue
-        newShape.ScaleWidth VectorScalingX, msoTrue
-        newShape.LockAspectRatio = msoTrue
-        
-        ' Convert EMF image to object
-        Dim shr As ShapeRange
-        Set shr = newShape.Ungroup
-        Set shr = shr.Ungroup
-        ' Clean up
-        shr.Item(1).Delete
-        shr.Item(2).Delete
-        If shr(3).GroupItems.count > 2 Then
-            EMFisGroup = True
-            Set newShape = shr(3)
-            newShape.GroupItems(1).Delete
-        Else ' only a single freeform, so not a group
-            EMFisGroup = False
-            Set newShape = shr(3).GroupItems(2)
-            shr(3).GroupItems(1).Delete
-        End If
-        
-        newShape.Line.Visible = msoFalse
-        
-        If EMFisGroup Then
-            For Each s In newShape.GroupItems
-                s.Tags.Add "ORIGINALHEIGHT", s.Height
-                s.Tags.Add "ORIGINALWIDTH", s.Width
-            Next
-        End If
-
-    Else
-        ' Resize to the true size of the png file
-        newShape.ScaleHeight 1#, msoTrue
-        newShape.ScaleWidth 1#, msoTrue
-        newShape.LockAspectRatio = msoFalse
-        newShape.ScaleHeight BitmapScalingY, msoTrue
-        newShape.ScaleWidth BitmapScalingX, msoTrue
-        newShape.LockAspectRatio = msoTrue
-        newShape.Tags.Add "OUTPUTDPI", OutputDpi
-    End If
-    
-    
-    ' Add tags storing the original height and width, used next time to keep resizing ratio.
-    newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height
-    newShape.Tags.Add "ORIGINALWIDTH", newShape.Width
-        
-    ' Scale it
-    Dim RelToOrigSizeFlag As MsoTriState
+            
+    ' Get scaling factors
+    Dim isTexpoint As Boolean
+    Dim tScaleWidth As Single, tScaleHeight As Single
+    'Dim RelToOrigSizeFlag As MsoTriState
     MagicScalingFactorEMF = 1 / 100 ' Magical scaling factor for EMF
     MagicScalingFactorPNG = 1 / OutputDpi
     If UseEMF Then
         MagicScalingFactor = MagicScalingFactorEMF
-        RelToOrigSizeFlag = msoFalse
+        'RelToOrigSizeFlag = msoFalse
     Else
         MagicScalingFactor = MagicScalingFactorPNG
-        RelToOrigSizeFlag = msoTrue
+        'RelToOrigSizeFlag = msoTrue
     End If
     
     If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value Then
         PointSize = val(textboxSize.Text)
-        ScaleFactor = PointSize / 10 * default_screen_dpi * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
-        newShape.ScaleHeight ScaleFactor, RelToOrigSizeFlag
-        newShape.ScaleWidth ScaleFactor, RelToOrigSizeFlag
-        If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
-            newShape.Rotation = oldshape.Rotation
-        End If
-        newShape.LockAspectRatio = msoTrue
+        tScaleWidth = PointSize / 10 * default_screen_dpi * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
+        tScaleHeight = tScaleWidth
     Else
         ' Handle the case of Texpoint displays
-        Dim isTexpoint As Boolean
         isTexpoint = False
         Dim OldDpi As Long
         OldDpi = OutputDpi
@@ -552,23 +494,19 @@ Sub ButtonRun_Click()
             If .Item("TEXPOINTSCALING") <> "" Then
                 isTexpoint = True
                 tScaleWidth = val(.Item("TEXPOINTSCALING")) * default_screen_dpi * MagicScalingFactor
+                tScaleHeight = tScaleWidth
             End If
             If .Item("OUTPUTDPI") <> "" Then
                 OldDpi = val(.Item("OUTPUTDPI"))
             End If
         End With
         'OldMagicScalingFactorPNG = highdpi_rescaling / OldDpi
-        If isTexpoint Then
-            newShape.LockAspectRatio = msoTrue
-            newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
-            newShape.LockAspectRatio = oldshape.LockAspectRatio
-            newShape.Rotation = oldshape.Rotation
-        Else ' modifying a normal display, either PNG or EMF
+        If Not isTexpoint Then ' modifying a normal display, either PNG or EMF
             HeightOld = oldshape.Height
             WidthOld = oldshape.Width
             tScaleHeight = 1
             tScaleWidth = 1
-            If oldshapeIsEMF = False Then ' this deals with displays from old versions of IguanaTex
+            If oldshapeIsEMF = False Then ' this deals with displays from very old versions of IguanaTex that lack proper size tags
                 oldshape.ScaleHeight 1#, msoTrue
                 oldshape.ScaleWidth 1#, msoTrue
                 tScaleHeight = HeightOld / oldshape.Height * 960 / OutputDpi ' 0.8=960/1200 is there to preserve scaling of displays created with old versions of IguanaTex
@@ -591,14 +529,89 @@ Sub ButtonRun_Click()
                 tScaleHeight = tScaleHeight / MagicScalingFactorEMF * MagicScalingFactorPNG
                 tScaleWidth = tScaleWidth / MagicScalingFactorEMF * MagicScalingFactorPNG
             End If
-            
-            newShape.LockAspectRatio = msoFalse
-            newShape.ScaleHeight tScaleHeight, RelToOrigSizeFlag
-            newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
-            newShape.LockAspectRatio = oldshape.LockAspectRatio
-            newShape.Rotation = oldshape.Rotation
         End If
     End If
+    
+    
+    ' Insert image and rescale it
+    Dim newShape As Shape
+    Set newShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
+    
+    If UseEMF Then
+        ' Rescale the EMF picture before converting into PPT object
+        Set newShape = ConvertEMF(newShape, VectorScalingX * tScaleWidth, VectorScalingY * tScaleHeight)
+        ' Tag shape and its components with their "original" sizes,
+        ' which we get by dividing their current height/width by the scaling factors applied above
+        newShape.Tags.Add "ORIGINALHEIGHT", newShape.Height / tScaleHeight
+        newShape.Tags.Add "ORIGINALWIDTH", newShape.Width / tScaleWidth
+        If newShape.Type = msoGroup Then
+            For Each s In newShape.GroupItems
+                s.Tags.Add "ORIGINALHEIGHT", s.Height / tScaleHeight
+                s.Tags.Add "ORIGINALWIDTH", s.Width / tScaleWidth
+            Next
+        End If
+'        ' Alternative way of doing this:
+'        ' Re-insert EMF picture at the original size to be able to tag each object with its "pre-rescaling" size
+'        Dim unscaledShape As Shape
+'        Set unscaledShape = AddDisplayShape(TempPath + FinalFilename, PosX, PosY)
+'        Set unscaledShape = ConvertEMF(unscaledShape, VectorScalingX, VectorScalingY)
+
+
+    Else
+        ' Resize to the true size of the png file and adjust using the manual scaling factors set in Main Settings
+        With newShape
+            .ScaleHeight 1#, msoTrue
+            .ScaleWidth 1#, msoTrue
+            .LockAspectRatio = msoFalse
+            .ScaleHeight BitmapScalingY, msoFalse
+            .ScaleWidth BitmapScalingX, msoFalse
+            .Tags.Add "OUTPUTDPI", OutputDpi ' Stores this display's resolution
+            ' Add tags storing the original height and width, used next time to keep resizing ratio.
+            .Tags.Add "ORIGINALHEIGHT", newShape.Height
+            .Tags.Add "ORIGINALWIDTH", newShape.Width
+            ' Apply scaling factors
+            .ScaleHeight tScaleHeight, msoFalse
+            .ScaleWidth tScaleWidth, msoFalse
+            .LockAspectRatio = msoTrue
+        End With
+    End If
+    
+    ' Apply scaling factors
+'    newShape.LockAspectRatio = msoFalse
+'    newShape.ScaleHeight tScaleHeight, msoFalse
+'    newShape.ScaleWidth tScaleWidth, msoFalse
+'    newShape.LockAspectRatio = msoTrue
+    
+    If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
+        newShape.Rotation = oldshape.Rotation
+        If Not CheckBoxReset.Value Then
+            newShape.LockAspectRatio = oldshape.LockAspectRatio ' Unlock aspect ratio if old display had it unlocked
+        End If
+    End If
+
+'    If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.Value Then
+'        newShape.ScaleHeight ScaleFactor, RelToOrigSizeFlag
+'        newShape.ScaleWidth ScaleFactor, RelToOrigSizeFlag
+'        If ButtonRun.Caption = "ReGenerate" Then ' We are editing+resetting size of an old display, we keep rotation
+'            newShape.Rotation = oldshape.Rotation
+'        End If
+'        newShape.LockAspectRatio = msoTrue
+'    Else
+'        newShape.LockAspectRatio = msoFalse
+'        newShape.ScaleHeight tScaleHeight, RelToOrigSizeFlag
+'        newShape.ScaleWidth tScaleWidth, RelToOrigSizeFlag
+'        newShape.LockAspectRatio = oldshape.LockAspectRatio
+'        newShape.Rotation = oldshape.Rotation
+'    End If
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
     ' Add tags
     Call AddTagsToShape(newShape)
@@ -633,13 +646,13 @@ Sub ButtonRun_Click()
             End If
             oldshape.Delete
             
+            Dim newGroup As Shape
             ' Get current slide, it will be used to group ranges
             Dim sld As Slide
             Dim SlideIndex As Long
             SlideIndex = ActiveWindow.View.Slide.SlideIndex
             Set sld = ActivePresentation.Slides(SlideIndex)
-            Dim newGroup As Shape
-            
+
             ' Group all non-modified elements from old group, plus modified element
             j = j + 1
             ReDim Preserve arr(1 To j)
@@ -802,6 +815,121 @@ Private Sub AddTagsToShape(vSh As Shape)
         .Add "BitmapVector", ComboBoxBitmapVector.ListIndex
     End With
 End Sub
+
+Private Function ConvertEMF(inSh As Shape, ScalingX As Single, ScalingY As Single) As Shape
+    With inSh
+        .ScaleHeight 1#, msoTrue
+        .ScaleWidth 1#, msoTrue
+        .LockAspectRatio = msoFalse
+        .ScaleHeight ScalingY, msoTrue
+        .ScaleWidth ScalingX, msoTrue
+        .LockAspectRatio = msoTrue
+    End With
+    
+    Dim newShape As Shape
+    ' Get current slide, it will be used to group ranges
+    Dim sld As Slide
+    Dim SlideIndex As Long
+    SlideIndex = ActiveWindow.View.Slide.SlideIndex
+    Set sld = ActivePresentation.Slides(SlideIndex)
+
+    ' Convert EMF image to object
+    Dim shr As ShapeRange
+    Set shr = inSh.Ungroup
+    Set shr = shr.Ungroup
+    ' Clean up
+    shr.Item(1).Delete
+    shr.Item(2).Delete
+    If shr(3).GroupItems.count > 2 Then
+        Set newShape = shr(3)
+    Else ' only a single freeform, so not a group
+        Set newShape = shr(3).GroupItems(2)
+    End If
+    shr(3).GroupItems(1).Delete
+    
+    If newShape.Type = msoGroup Then
+    
+        Dim emf_arr() As Variant ' gather all shapes to be regrouped later on
+        j_emf = 0
+        Dim delete_arr() As Variant ' gather all shapes to be deleted later on
+        j_delete = 0
+        Dim s As Shape
+        For Each s In newShape.GroupItems
+            j_emf = j_emf + 1
+            ReDim Preserve emf_arr(1 To j_emf)
+            If s.Type = msoLine Then
+                emf_arr(j_emf) = LineToFreeform(s).name
+                j_delete = j_delete + 1
+                ReDim Preserve delete_arr(1 To j_delete)
+                delete_arr(j_delete) = s.name
+            Else
+                emf_arr(j_emf) = s.name
+                s.Line.Visible = msoFalse
+            End If
+        Next
+        newShape.Ungroup
+        If j_delete > 0 Then
+            sld.Shapes.Range(delete_arr).Delete
+        End If
+        Set newShape = sld.Shapes.Range(emf_arr).Group
+    
+    Else
+        If newShape.Type = msoLine Then
+            newShapeName = LineToFreeform(newShape).name
+            newShape.Delete
+            Set newShape = sld.Shapes(newShapeName)
+        Else
+            newShape.Line.Visible = msoFalse
+        End If
+    End If
+    newShape.LockAspectRatio = msoTrue
+    Set ConvertEMF = newShape
+End Function
+
+Private Function LineToFreeform(s As Shape) As Shape
+    t = s.Line.Weight
+    Dim ApplyTransform As Boolean
+    ApplyTransform = True
+    If s.Height = 0 Then ' Horizontal line
+        x1 = s.Left
+        y1 = s.Top - t / 2
+        x2 = x1 + s.Width
+        y2 = y1
+        x3 = x2
+        y3 = s.Top + t / 2
+        x4 = x1
+        y4 = y3
+    ElseIf s.Width = 0 Then ' Vertical line
+        x1 = s.Left - t / 2
+        y1 = s.Top
+        x2 = s.Left + t / 2
+        y2 = y1
+        x3 = x2
+        y3 = y2 + s.Height
+        x4 = x1
+        y4 = y3
+    Else ' Hopefully this will never happen, but we're dealing with a line that's neither horizontal nor vertical
+        ApplyTransform = False
+    End If
+    
+    
+    If ApplyTransform Then
+        Dim builder As FreeformBuilder
+        Set builder = ActiveWindow.Selection.SlideRange(1).Shapes.BuildFreeform(msoEditingCorner, x1, y1)
+        builder.AddNodes msoSegmentLine, msoEditingAuto, x2, y2
+        builder.AddNodes msoSegmentLine, msoEditingAuto, x3, y3
+        builder.AddNodes msoSegmentLine, msoEditingAuto, x4, y4
+        builder.AddNodes msoSegmentLine, msoEditingAuto, x1, y1
+        Dim oSh As Shape
+        Set oSh = builder.ConvertToShape
+        oSh.Fill.ForeColor = s.Line.ForeColor
+        oSh.Line.Visible = msoFalse
+        oSh.Rotation = s.Rotation
+        Set LineToFreeform = oSh
+    Else
+        LineToFreeform = s
+    End If
+End Function
 
 Private Function IsInArray(arr As Variant, valueToCheck As String) As Boolean
     IsInArray = False
