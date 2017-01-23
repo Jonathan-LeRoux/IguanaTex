@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Default Settings and Paths"
-   ClientHeight    =   6622
-   ClientLeft      =   14
-   ClientTop       =   329
-   ClientWidth     =   6286
+   ClientHeight    =   7230
+   ClientLeft      =   15
+   ClientTop       =   330
+   ClientWidth     =   6285
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -122,6 +122,24 @@ Private Sub ButtonTeX2img_Click()
     TextBoxTeX2img.SetFocus
 End Sub
 
+Private Sub ButtonTeXExePath_Click()
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+    
+    Dim vrtSelectedItem As Variant
+    fd.AllowMultiSelect = False
+    fd.InitialFileName = TextBoxTeXExePath.Text
+    
+    If fd.Show = -1 Then
+        For Each vrtSelectedItem In fd.SelectedItems
+            TextBoxTeXExePath.Text = vrtSelectedItem
+        Next vrtSelectedItem
+    End If
+
+    Set fd = Nothing
+    TextBoxTeXExePath.SetFocus
+End Sub
+
 Private Sub ButtonSetTemp_Click()
     Dim RegPath As String
     Dim res As String
@@ -176,6 +194,13 @@ Private Sub ButtonSetTemp_Click()
     If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "TeX2img Command", REG_SZ, CStr(res)
     
+    ' Path to TeX Executables Folder
+    res = TextBoxTeXExePath.Text
+    If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
+    If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
+    If res <> "" And Right(res, 1) <> "\" Then res = res & "\"
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "TeXExePath", REG_SZ, CStr(res)
+    
     ' Magic scaling factor to fine-tune the scaling of Vector displays
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "VectorScalingX", REG_SZ, TextBoxVectorScalingX.Text
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "VectorScalingY", REG_SZ, TextBoxVectorScalingY.Text
@@ -196,6 +221,7 @@ Private Sub ButtonSetTemp_Click()
     ' LaTeX Engine
     'SetRegistryValue HKEY_CURRENT_USER, RegPath, "LaTeXEngine", REG_SZ, CStr(ComboBoxEngine.Text)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", REG_DWORD, ComboBoxEngine.ListIndex
+
     
     Unload SetTempForm
 End Sub
@@ -298,6 +324,8 @@ Private Sub Reset_Click()
     
     TextBoxTeX2img.Text = "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe"
     
+    TextBoxTeXExePath.Text = ""
+    
     TextBoxDpi.Text = "1200"
     
     TextBoxVectorScalingX.Text = "1"
@@ -316,6 +344,8 @@ Private Sub Reset_Click()
     SetAbsRelDependencies
     
 End Sub
+
+
 
 Private Sub UserForm_Initialize()
     
@@ -357,6 +387,8 @@ Private Sub UserForm_Initialize()
     TextBoxExternalEditor.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "C:\Program Files (x86)\TeXstudio\texstudio.exe")
     
     TextBoxTeX2img.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeX2img Command", "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe")
+    
+    TextBoxTeXExePath.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeXExePath", "")
     
     'CheckBoxEMF.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EMFoutput", False)
     ComboBoxBitmapVector.List = Array("Bitmap", "Vector")

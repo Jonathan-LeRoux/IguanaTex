@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ExternalEditorForm 
    Caption         =   "External Editor"
-   ClientHeight    =   2037
-   ClientLeft      =   21
-   ClientTop       =   336
-   ClientWidth     =   5684
+   ClientHeight    =   2040
+   ClientLeft      =   15
+   ClientTop       =   330
+   ClientWidth     =   5685
    OleObjectBlob   =   "ExternalEditorForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End

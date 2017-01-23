@@ -2,8 +2,8 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
    ClientHeight    =   5880
-   ClientLeft      =   14
-   ClientTop       =   329
+   ClientLeft      =   15
+   ClientTop       =   330
    ClientWidth     =   7560
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
@@ -204,6 +204,10 @@ Sub ButtonRun_Click()
     RegPath = "Software\IguanaTex"
     LATEXENGINEID = ComboBoxLaTexEngine.ListIndex
     tex2pdf_command = LaTexEngineList(LATEXENGINEID)
+    Dim TeXExePath As String
+    TeXExePath = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeXExePath", "")
+    TeXExeExt = ""
+    If TeXExePath <> "" Then TeXExeExt = ".exe"
     Dim UsePDF As Boolean
     UsePDF = UsePDFList(LATEXENGINEID)
     
@@ -291,7 +295,7 @@ Sub ButtonRun_Click()
             End If
             FrameProcess.Repaint
             
-            RetVal& = Execute("""" & tex2pdf_command & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+            RetVal& = Execute("""" & TeXExePath & tex2pdf_command & TeXExeExt & """ -shell-escape -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
             
             If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
                 ' Error in Latex code
@@ -315,7 +319,7 @@ Sub ButtonRun_Click()
                 LabelProcess.Caption = "DVI to PDF..."
                 FrameProcess.Repaint
                 ' platex actually outputs a DVI file, which we need to convert to PDF (we could go the EPS route, but this blends easier with IguanaTex's existing code)
-                RetValConv& = Execute("dvipdfmx -o """ + FilePrefix + ".pdf"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+                RetValConv& = Execute("""" & TeXExePath & "dvipdfmx" & TeXExeExt & """ -o """ + FilePrefix + ".pdf"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
                 If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
                     ' Error in DVI to PDF conversion
                     MsgBox "Error while using dvipdm to convert from DVI to PDF."
@@ -371,7 +375,7 @@ Sub ButtonRun_Click()
         ' dvi to png route
             LabelProcess.Caption = "LaTeX to DVI..."
             FrameProcess.Repaint
-            RetVal& = Execute("pdflatex -shell-escape -output-format dvi -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
+            RetVal& = Execute("""" & TeXExePath & "pdflatex" & TeXExeExt & """ -shell-escape -output-format dvi -interaction=batchmode """ + FilePrefix + ".tex""", TempPath, debugMode, TimeOutTime)
             If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
                 ' Error in Latex code
                 ' Read log file and show it to the user
@@ -397,7 +401,7 @@ Sub ButtonRun_Click()
             End If
             ' If the user created a .png by using the standalone class with convert, we use that, else we use dvipng
             If Not fs.FileExists(TempPath & FilePrefix & ".png") Then
-                RetValConv& = Execute("dvipng " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
+                RetValConv& = Execute("""" & TeXExePath & "dvipng" & TeXExeExt & """ " & DviPngSwitches & " -o """ & FilePrefix & ".png"" """ & FilePrefix & ".dvi""", TempPath, debugMode, TimeOutTime)
                 If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
                     MsgBox "dvipng failed, or did not return in " & TimeOutTimeString & " seconds and may have hung." _
                     & vbNewLine & "You may want to try compiling using the PDF->PNG option." _
@@ -1178,7 +1182,7 @@ Private Function BoolToInt(val) As Long
     End If
 End Function
 
-Private Sub ButtonTexPath_Click()
+Private Sub ButtonTeXPath_Click()
     Dim fd As FileDialog
     Set fd = Application.FileDialog(msoFileDialogFilePicker) 'msoFileDialogFolderPicker
     
