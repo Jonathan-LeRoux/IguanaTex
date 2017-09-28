@@ -420,6 +420,7 @@ Private Function LineToFreeform(s As Shape) As Shape
         Dim oSh As Shape
         Set oSh = builder.ConvertToShape
         oSh.Fill.ForeColor = s.Line.ForeColor
+        oSh.Fill.Visible = msoTrue
         oSh.Line.Visible = msoFalse
         oSh.Rotation = s.Rotation
         Set LineToFreeform = oSh

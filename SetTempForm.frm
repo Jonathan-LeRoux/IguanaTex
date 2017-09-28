@@ -252,7 +252,7 @@ Private Sub LabelDLImageMagick_Click()
 End Sub
 
 Private Sub LabelDLTeX2img_Click()
-    Link = "http://www.math.sci.hokudai.ac.jp/~abenori/soft/bin/TeX2img_2.0.1.zip"
+    Link = "http://www.math.sci.hokudai.ac.jp/~abenori/soft/bin/TeX2img_2.0.2.zip"
     Dim lSuccess As Long
     lSuccess = ShellExecute(0, "Open", Link)
     If (lSuccess = 0) Then

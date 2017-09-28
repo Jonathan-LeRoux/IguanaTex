@@ -978,6 +978,7 @@ Private Function LineToFreeform(s As Shape) As Shape
         Dim oSh As Shape
         Set oSh = builder.ConvertToShape
         oSh.Fill.ForeColor = s.Line.ForeColor
+        oSh.Fill.Visible = msoTrue
         oSh.Line.Visible = msoFalse
         oSh.Rotation = s.Rotation
         Set LineToFreeform = oSh
@@ -1154,7 +1155,7 @@ Private Sub LoadSettings()
     TextBox1.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCode", "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & Chr(13) & Chr(13) & Chr(13) & "\end{document}")
     TextBox1.SelStart = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexCodeCursor", 0)
     MultiPage1.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Multipage", 0)
-    TextBox1.Font.Size = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10"))
+    TextBox1.Font.size = val(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EditorFontSize", "10"))
     TextBoxTempFolder.Text = GetTempPath()
     TextBox1.WordWrap = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWrap", True))
     ToggleButtonWrap.Value = TextBox1.WordWrap
@@ -1423,26 +1424,26 @@ Private Sub UpdateTemplateRegistry()
 End Sub
 
 Private Sub CmdButtonTemplateFontDown_Click()
-    If TextBoxTemplateCode.Font.Size > 4 Then
-        TextBoxTemplateCode.Font.Size = TextBoxTemplateCode.Font.Size - 1
+    If TextBoxTemplateCode.Font.size > 4 Then
+        TextBoxTemplateCode.Font.size = TextBoxTemplateCode.Font.size - 1
     End If
 End Sub
 
 Private Sub CmdButtonTemplateFontUp_Click()
-    If TextBoxTemplateCode.Font.Size < 72 Then
-        TextBoxTemplateCode.Font.Size = TextBoxTemplateCode.Font.Size + 1
+    If TextBoxTemplateCode.Font.size < 72 Then
+        TextBoxTemplateCode.Font.size = TextBoxTemplateCode.Font.size + 1
     End If
 End Sub
 
 Private Sub CmdButtonEditorFontDown_Click()
-    If TextBox1.Font.Size > 4 Then
-        TextBox1.Font.Size = TextBox1.Font.Size - 1
+    If TextBox1.Font.size > 4 Then
+        TextBox1.Font.size = TextBox1.Font.size - 1
     End If
 End Sub
 
 Private Sub CmdButtonEditorFontUp_Click()
-    If TextBox1.Font.Size < 72 Then
-        TextBox1.Font.Size = TextBox1.Font.Size + 1
+    If TextBox1.Font.size < 72 Then
+        TextBox1.Font.size = TextBox1.Font.size + 1
     End If
 End Sub
 
@@ -1656,7 +1657,7 @@ Private Sub TransferGroupFormat(oldshape As Shape, newShape As Shape)
     If oldshape.Reflection.Type <> msoReflectionTypeNone Then
         newShape.Reflection.Blur = oldshape.Reflection.Blur
         newShape.Reflection.Offset = oldshape.Reflection.Offset
-        newShape.Reflection.Size = oldshape.Reflection.Size
+        newShape.Reflection.size = oldshape.Reflection.size
         newShape.Reflection.Transparency = oldshape.Reflection.Transparency
         newShape.Reflection.Type = oldshape.Reflection.Type
     End If
@@ -1672,7 +1673,7 @@ Private Sub TransferGroupFormat(oldshape As Shape, newShape As Shape)
         newShape.Shadow.OffsetX = oldshape.Shadow.OffsetX
         newShape.Shadow.OffsetY = oldshape.Shadow.OffsetY
         newShape.Shadow.RotateWithShape = oldshape.Shadow.RotateWithShape
-        newShape.Shadow.Size = oldshape.Shadow.Size
+        newShape.Shadow.size = oldshape.Shadow.size
         newShape.Shadow.Style = oldshape.Shadow.Style
         newShape.Shadow.Transparency = oldshape.Shadow.Transparency
         newShape.Shadow.Type = oldshape.Shadow.Type

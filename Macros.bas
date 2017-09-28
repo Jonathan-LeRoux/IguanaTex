@@ -145,6 +145,20 @@ Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Be
     LatexForm.Show
 End Sub
 
+Sub NewLatexEquationMatchSize(ByVal size)
+    Load LatexForm
+    
+    LatexForm.textboxSize.Text = size
+    
+    LatexForm.CheckBoxReset.Visible = False
+    LatexForm.Label2.Caption = "Set size:"
+       
+    LatexForm.ButtonRun.Caption = "Generate"
+    LatexForm.ButtonRun.Accelerator = "G"
+    LatexForm.textboxSize.Enabled = True
+    LatexForm.Show
+End Sub
+
 Sub EditLatexEquation()
     ' Check if the user currently has a single Latex equation selected.
     ' If so, display the dialog box. If not, dislpay an error message.
@@ -589,7 +603,13 @@ Sub LoadSetTempForm()
 End Sub
 
 Public Sub RibbonNewLatexEquation(ByVal control)
-    NewLatexEquation
+    Dim Sel As Selection
+    Set Sel = Application.ActiveWindow.Selection
+    If (Sel.Type = ppSelectionText) Then
+        NewLatexEquationMatchSize Sel.TextRange.Font.size
+    Else
+        NewLatexEquation
+    End If
 End Sub
 
 Public Sub RibbonEditLatexEquation(ByVal control)
