@@ -424,6 +424,8 @@ Sub ButtonRun_Click()
     ' If we are in Edit mode, store parameters of old image
     Dim PosX As Single
     Dim PosY As Single
+    Dim oldHeight As Single
+    Dim oldWidth As Single
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     Dim oldshape As Shape
@@ -462,6 +464,8 @@ Sub ButtonRun_Click()
         End If
         PosX = oldshape.Left
         PosY = oldshape.Top
+        oldHeight = oldshape.Height
+        oldWidth = oldshape.Width
         oldshapeIsEMF = False
         If oldshape.Tags.Item("BitmapVector") <> "" Then
             If oldshape.Tags.Item("BitmapVector") = 1 Then
@@ -471,6 +475,15 @@ Sub ButtonRun_Click()
     Else
         PosX = 200
         PosY = 200
+        If Sel.Type = ppSelectionShapes Then ' if something is selected on a slide, use its position for the new display
+            'If Sel.ShapeRange.Type = msoGroup And Sel.HasChildShapeRange Then
+            '    Set oldshape = Sel.ChildShapeRange(1)
+            'Else
+            '    Set oldshape = Sel.ShapeRange(1)
+            'End If
+            PosX = Sel.ShapeRange(1).Left
+            PosY = Sel.ShapeRange(1).Top
+        End If
     End If
             
     ' Get scaling factors
@@ -568,6 +581,17 @@ Sub ButtonRun_Click()
             ' Apply scaling factors
             .ScaleHeight tScaleHeight, msoFalse
             .ScaleWidth tScaleWidth, msoFalse
+            .LockAspectRatio = msoTrue
+        End With
+    End If
+    
+    If CheckBoxForcePreserveSize.Value Then
+        ' We are forcing the new shape to have the same size as the old shape
+        ' This is useful when converting between Bitmap and Vector
+        With newShape
+            .LockAspectRatio = msoFalse
+            .Height = oldHeight
+            .Width = oldWidth
             .LockAspectRatio = msoTrue
         End With
     End If
@@ -1213,21 +1237,35 @@ Private Sub Apply_BitmapVector_Change()
         checkboxTransp.Enabled = False
         checkboxTransp.Value = True
         TextBoxLocalDPI.Enabled = False
-        LabelDPI.Enabled = False
+        LabelDpi.Enabled = False
     Else
         checkboxTransp.Enabled = True
         TextBoxLocalDPI.Enabled = True
-        LabelDPI.Enabled = True
+        LabelDpi.Enabled = True
     End If
 
 End Sub
 
 Private Sub CheckBoxReset_Click()
+    Apply_CheckBoxReset
+End Sub
+
+Private Sub Apply_CheckBoxReset()
     If CheckBoxReset.Value = True Then
         textboxSize.Enabled = True
     Else
         textboxSize.Enabled = False
     End If
+End Sub
+
+Private Sub CheckBoxForcePreserveSize_Click()
+    If CheckBoxForcePreserveSize.Value = True Then
+        CheckBoxReset.Enabled = False
+        CheckBoxReset.Value = False
+    Else
+        CheckBoxReset.Enabled = True
+    End If
+    Apply_CheckBoxReset
 End Sub
 
 Private Sub ButtonAbout_Click()
@@ -1492,6 +1530,8 @@ Sub RetrieveOldShapeInfo(oldshape As Shape, mainText As String)
     CheckBoxReset.Value = False
     CheckBoxResetFormat.Visible = True
     CheckBoxResetFormat.Value = False
+    CheckBoxForcePreserveSize.Visible = True
+    CheckBoxForcePreserveSize.Value = False
     Label2.Caption = "Reset size:"
     ButtonRun.Caption = "ReGenerate"
     ButtonRun.Accelerator = "G"
@@ -1611,6 +1651,8 @@ Private Sub ResizeForm()
     CheckBoxReset.Top = textboxSize.Top
     Label3.Top = Label2.Top
     checkboxTransp.Top = CheckBoxReset.Top + 21 'checkboxTransp.Height + 2
+    CheckBoxForcePreserveSize.Top = checkboxTransp.Top
+    CheckBoxForcePreserveSize.Left = checkboxTransp.Left + 66
     checkboxDebug.Top = checkboxTransp.Top + 21 ' checkboxTransp.Height + 2
     CheckBoxResetFormat.Top = checkboxDebug.Top
     CheckBoxResetFormat.Left = checkboxDebug.Left + checkboxDebug.Width + 10

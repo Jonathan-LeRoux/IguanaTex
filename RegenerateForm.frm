@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} RegenerateForm 
    Caption         =   "Regenerating"
-   ClientHeight    =   1800
+   ClientHeight    =   1799
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   3915

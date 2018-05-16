@@ -522,6 +522,9 @@ Sub Apply_BatchEditSettings()
         LatexForm.CheckBoxReset.Value = True
         LatexForm.textboxSize.Text = BatchEditForm.textboxSize.Text
     End If
+    If BatchEditForm.CheckBoxForcePreserveSize.Value Then
+        LatexForm.CheckBoxForcePreserveSize.Value = True
+    End If
     If BatchEditForm.CheckBoxModifyTransparency.Value Then
         LatexForm.checkboxTransp.Value = BatchEditForm.checkboxTransp.Value
     End If
@@ -630,6 +633,9 @@ Public Sub RibbonConvertToEMF(ByVal control)
     BatchEditForm.CheckBoxModifyBitmapVector.Value = True
     BatchEditForm.ComboBoxBitmapVector.Enabled = True
     BatchEditForm.ComboBoxBitmapVector.ListIndex = 1
+    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.Value = True
     Call BatchEditForm.ButtonRun_Click
 End Sub
 
@@ -638,6 +644,9 @@ Public Sub RibbonConvertToPNG(ByVal control)
     BatchEditForm.CheckBoxModifyBitmapVector.Value = True
     BatchEditForm.ComboBoxBitmapVector.Enabled = True
     BatchEditForm.ComboBoxBitmapVector.ListIndex = 0
+    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.Value = True
     Call BatchEditForm.ButtonRun_Click
 End Sub
 
@@ -653,6 +662,9 @@ Public Sub ConvertToEMF()
     BatchEditForm.CheckBoxModifyBitmapVector.Value = True
     BatchEditForm.ComboBoxBitmapVector.Enabled = True
     BatchEditForm.ComboBoxBitmapVector.ListIndex = 1
+    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.Value = True
     Call BatchEditForm.ButtonRun_Click
 End Sub
 
@@ -661,6 +673,9 @@ Public Sub ConvertToPNG()
     BatchEditForm.CheckBoxModifyBitmapVector.Value = True
     BatchEditForm.ComboBoxBitmapVector.Enabled = True
     BatchEditForm.ComboBoxBitmapVector.ListIndex = 0
+    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.Value = True
     Call BatchEditForm.ButtonRun_Click
 End Sub
 

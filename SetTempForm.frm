@@ -243,7 +243,7 @@ Private Sub LabelDLgs_Click()
 End Sub
 
 Private Sub LabelDLImageMagick_Click()
-    Link = "http://www.imagemagick.org/script/binary-releases.php"
+    Link = "http://www.imagemagick.org/script/download.php#windows"
     Dim lSuccess As Long
     lSuccess = ShellExecute(0, "Open", Link)
     If (lSuccess = 0) Then

@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   5475
+   ClientHeight    =   5955
    ClientLeft      =   45
    ClientTop       =   375
    ClientWidth     =   4710
@@ -44,6 +44,7 @@ Private Sub LoadSettings()
     CheckBoxModifyBitmapVector.Value = False
     CheckBoxModifyLocalDPI.Value = False
     CheckBoxModifySize.Value = False
+    CheckBoxModifyPreserveSize.Value = False
     CheckBoxModifyTransparency.Value = False
     CheckBoxModifyResetFormat.Value = False
     CheckBoxReplace.Value = False
@@ -52,6 +53,7 @@ Private Sub LoadSettings()
     Apply_CheckBoxModifyBitmapVector
     Apply_CheckBoxModifyLocalDPI
     Apply_CheckBoxModifySize
+    Apply_CheckBoxModifyPreserveSize
     Apply_CheckBoxModifyTransparency
     Apply_CheckBoxModifyResetFormat
     Apply_CheckBoxReplace
@@ -91,6 +93,10 @@ Private Sub CheckBoxModifySize_Click()
     Apply_CheckBoxModifySize
 End Sub
 
+Private Sub CheckBoxModifyPreserveSize_Click()
+    Apply_CheckBoxModifyPreserveSize
+End Sub
+
 Private Sub CheckBoxModifyTransparency_Click()
     Apply_CheckBoxModifyTransparency
 End Sub
@@ -121,13 +127,17 @@ End Sub
 Private Sub Apply_CheckBoxModifyLocalDPI()
     LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
     TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
-    LabelDPI.Enabled = CheckBoxModifyLocalDPI.Value
+    LabelDpi.Enabled = CheckBoxModifyLocalDPI.Value
 End Sub
 
 Private Sub Apply_CheckBoxModifySize()
     LabelSize.Enabled = CheckBoxModifySize.Value
     textboxSize.Enabled = CheckBoxModifySize.Value
     LabelPTS.Enabled = CheckBoxModifySize.Value
+End Sub
+
+Private Sub Apply_CheckBoxModifyPreserveSize()
+    CheckBoxForcePreserveSize.Enabled = CheckBoxModifyPreserveSize.Value
 End Sub
 
 Private Sub Apply_CheckBoxModifyTransparency()
@@ -137,7 +147,6 @@ End Sub
 Private Sub Apply_CheckBoxModifyResetFormat()
     CheckBoxResetFormat.Enabled = CheckBoxModifyResetFormat.Value
 End Sub
-
 
 Private Sub Apply_CheckBoxReplace()
     LabelReplace.Enabled = CheckBoxReplace.Value
@@ -155,10 +164,25 @@ Private Sub Apply_BitmapVector_Change()
     If ComboBoxBitmapVector.ListIndex = 1 Then
         CheckBoxModifyLocalDPI.Value = False
         CheckBoxModifyTransparency.Value = False
+        CheckBoxModifyLocalDPI.Enabled = False
+        CheckBoxModifyTransparency.Enabled = False
         checkboxTransp.Value = True
+    Else
+        CheckBoxModifyLocalDPI.Enabled = True
+        CheckBoxModifyTransparency.Enabled = False
     End If
     Apply_CheckBoxModifyLocalDPI
     Apply_CheckBoxModifyTransparency
+End Sub
+
+Private Sub CheckBoxForcePreserveSize_Click()
+    If CheckBoxForcePreserveSize.Value = True Then
+        CheckBoxModifySize.Enabled = False
+        CheckBoxModifySize.Value = False
+    Else
+        CheckBoxModifySize.Enabled = True
+    End If
+    Apply_CheckBoxModifySize
 End Sub
 
 
