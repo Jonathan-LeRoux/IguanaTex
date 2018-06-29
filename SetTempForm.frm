@@ -2,9 +2,9 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Default Settings and Paths"
    ClientHeight    =   7230
-   ClientLeft      =   15
-   ClientTop       =   330
-   ClientWidth     =   6285
+   ClientLeft      =   14
+   ClientTop       =   329
+   ClientWidth     =   6286
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -252,7 +252,7 @@ Private Sub LabelDLImageMagick_Click()
 End Sub
 
 Private Sub LabelDLTeX2img_Click()
-    Link = "http://www.math.sci.hokudai.ac.jp/~abenori/soft/bin/TeX2img_2.0.2.zip"
+    Link = "https://www.ms.u-tokyo.ac.jp/~abenori/soft/bin/TeX2img_2.1.0.zip"
     Dim lSuccess As Long
     lSuccess = ShellExecute(0, "Open", Link)
     If (lSuccess = 0) Then
