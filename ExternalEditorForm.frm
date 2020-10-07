@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ExternalEditorForm 
    Caption         =   "External Editor"
-   ClientHeight    =   2040
-   ClientLeft      =   15
+   ClientHeight    =   2640
+   ClientLeft      =   18
    ClientTop       =   330
-   ClientWidth     =   5685
+   ClientWidth     =   5682
    OleObjectBlob   =   "ExternalEditorForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -44,7 +44,7 @@ Private Sub CmdButtonReload_Click()
     Set objStream = CreateObject("ADODB.Stream")
     objStream.Charset = "utf-8"
     objStream.Open
-    objStream.LoadFromFile (TempPath & GetFilePrefix() & ".tex")
+    objStream.LoadFromFile (TempPath & "ext_" & GetFilePrefix() & ".tex")
     LatexForm.TextBox1.Text = objStream.ReadText()
 
     Unload ExternalEditorForm
@@ -52,4 +52,9 @@ Private Sub CmdButtonReload_Click()
     If SelStartPos < Len(LatexForm.TextBox1.Text) Then
         LatexForm.TextBox1.SelStart = SelStartPos
     End If
+End Sub
+
+Private Sub CmdButtonGenerate_Click()
+    Call CmdButtonReload_Click
+    Call LatexForm.ButtonRun_Click
 End Sub

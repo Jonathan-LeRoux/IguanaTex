@@ -2,9 +2,9 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Default Settings and Paths"
    ClientHeight    =   7230
-   ClientLeft      =   14
-   ClientTop       =   329
-   ClientWidth     =   6286
+   ClientLeft      =   18
+   ClientTop       =   330
+   ClientWidth     =   6282
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -187,6 +187,9 @@ Private Sub ButtonSetTemp_Click()
     If Left(res, 1) = """" Then res = Mid(res, 2, Len(res) - 1)
     If Right(res, 1) = """" Then res = Left(res, Len(res) - 1)
     SetRegistryValue HKEY_CURRENT_USER, RegPath, "Editor", REG_SZ, CStr(res)
+    ' Use External Editor by default
+    SetRegistryValue HKEY_CURRENT_USER, RegPath, "UseExternalEditor", REG_DWORD, BoolToInt(CheckBoxExternalEditor.Value)
+    
     
     ' Path to TeX2img (Vector output)
     res = TextBoxTeX2img.Text
@@ -315,6 +318,8 @@ Private Sub Reset_Click()
     
     CheckBoxUTF8.Value = True
     
+    CheckBoxExternalEditor.Value = False
+    
     'CheckBoxEMF.Value = False
     ComboBoxBitmapVector.ListIndex = 0
     
@@ -385,6 +390,7 @@ Private Sub UserForm_Initialize()
     TextBoxBitmapScalingY.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapScalingY", "1")
     
     TextBoxExternalEditor.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "C:\Program Files (x86)\TeXstudio\texstudio.exe")
+    CheckBoxExternalEditor.Value = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
     
     TextBoxTeX2img.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "TeX2img Command", "%USERPROFILE%\Downloads\TeX2img\TeX2imgc.exe")
     

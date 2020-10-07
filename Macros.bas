@@ -215,6 +215,9 @@ Function TryProcessShape(oldshape As Shape) As Boolean
     Dim LatexText As String
     Dim SourceParts() As String
     Dim TeXSource As String
+    Dim UseExternalEditor As Boolean
+    RegPath = "Software\IguanaTex"
+    UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
  
     TryProcessShape = False
     With oldshape.Tags
@@ -226,7 +229,12 @@ Function TryProcessShape(oldshape As Shape) As Boolean
             
             Call LatexForm.RetrieveOldShapeInfo(oldshape, .Item("LATEXADDIN"))
             
-            LatexForm.Show
+            If UseExternalEditor Then
+                LatexForm.Show vbModeless
+                Call LatexForm.CmdButtonExternalEditor_Click
+            Else
+                LatexForm.Show vbModal
+            End If
             TryProcessShape = True
             Exit Function
         ElseIf .Item("SOURCE") <> "" Then ' we're dealing with a Texpoint display
@@ -260,7 +268,12 @@ Function TryProcessShape(oldshape As Shape) As Boolean
                 LatexText = .Item("SOURCE")
             End If
             Call LatexForm.RetrieveOldShapeInfo(oldshape, LatexText)
-            LatexForm.Show
+            If UseExternalEditor Then
+                LatexForm.Show vbModeless
+                Call LatexForm.CmdButtonExternalEditor_Click
+            Else
+                LatexForm.Show vbModal
+            End If
             TryProcessShape = True
             Exit Function
         End If
@@ -505,7 +518,7 @@ Sub RegenerateOneDisplay(vSh As Shape)
     End If
 End Sub
 
-Sub Apply_BatchEditSettings()
+Private Sub Apply_BatchEditSettings()
     If BatchEditForm.CheckBoxModifyEngine.Value Then
         LatexForm.ComboBoxLaTexEngine.ListIndex = BatchEditForm.ComboBoxLaTexEngine.ListIndex
     End If
@@ -589,14 +602,14 @@ Function CountDisplaysInSlide(vSl As Slide) As Integer
     CountDisplaysInSlide = DisplayCount
 End Function
 
-Sub Auto_Open()
+Private Sub Auto_Open()
     ' Runs when the add-in is loaded
     LatexForm.InitializeApp
     Load LatexForm
     Unload LatexForm
 End Sub
 
-Sub Auto_Close()
+Private Sub Auto_Close()
     LatexForm.UnInitializeApp
 End Sub
 

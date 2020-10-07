@@ -2,9 +2,9 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LogFileViewer 
    Caption         =   "Error in Latex Code"
    ClientHeight    =   6975
-   ClientLeft      =   45
+   ClientLeft      =   42
    ClientTop       =   330
-   ClientWidth     =   8850.001
+   ClientWidth     =   8856.001
    OleObjectBlob   =   "LogFileViewer.frx":0000
    StartUpPosition =   1  'CenterOwner
 End

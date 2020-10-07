@@ -2,7 +2,7 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
    ClientHeight    =   5880
-   ClientLeft      =   15
+   ClientLeft      =   18
    ClientTop       =   330
    ClientWidth     =   7560
    OleObjectBlob   =   "LatexForm.frx":0000
@@ -25,6 +25,7 @@ Dim TemplateSortedList() As String
 Dim TemplateNameSortedListString As String
 
 Dim FormHeightWidthSet As Boolean
+Dim DoneWithActivation As Boolean
 
 Dim theAppEventHandler As New AppEventHandler
 
@@ -199,6 +200,11 @@ Sub ButtonRun_Click()
     
     Dim debugMode As Boolean
     debugMode = checkboxDebug.Value
+    
+    ' Check if an external editor is being used as default, if so, do not delete temp files to avoid issues with external editor
+    Dim UseExternalEditor As Boolean
+    RegPath = "Software\IguanaTex"
+    UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
     
     ' Read settings
     RegPath = "Software\IguanaTex"
@@ -780,7 +786,7 @@ Sub ButtonRun_Click()
     
     
     ' Delete temp files if not in debug mode
-    If debugMode = False Then fs.DeleteFile TempPath + FilePrefix + "*.*"
+    If (Not debugMode) And (Not UseExternalEditor) Then fs.DeleteFile TempPath + FilePrefix + "*.*"
     
     
     
@@ -1237,11 +1243,11 @@ Private Sub Apply_BitmapVector_Change()
         checkboxTransp.Enabled = False
         checkboxTransp.Value = True
         TextBoxLocalDPI.Enabled = False
-        LabelDpi.Enabled = False
+        LabelDPI.Enabled = False
     Else
         checkboxTransp.Enabled = True
         TextBoxLocalDPI.Enabled = True
-        LabelDpi.Enabled = True
+        LabelDPI.Enabled = True
     End If
 
 End Sub
@@ -1285,7 +1291,7 @@ Private Sub ButtonMakeDefault_Click()
     End Select
 End Sub
 
-Private Sub CmdButtonExternalEditor_Click()
+Sub CmdButtonExternalEditor_Click()
         
     ' Put the temporary path in the right format
     If Right(TextBoxTempFolder.Text, 1) <> "\" Then
@@ -1308,7 +1314,7 @@ Private Sub CmdButtonExternalEditor_Click()
     End If
     
     Dim FilePrefix As String
-    FilePrefix = GetFilePrefix()
+    FilePrefix = "ext_" & GetFilePrefix()
     
     ' Test if path writable
     If Not IsPathWritable(TempPath) Then
@@ -1316,6 +1322,9 @@ Private Sub CmdButtonExternalEditor_Click()
         Exit Sub
     End If
     
+    If Not DoneWithActivation Then
+        UserForm_Activate
+    End If
     ' Write latex to a temp file
     Call WriteLaTeX2File(TempPath, FilePrefix)
     
@@ -1513,6 +1522,7 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Private Sub UserForm_Activate()
+    DoneWithActivation = False
     'Execute macro to enable resizeability
     MakeFormResizable
     
@@ -1522,7 +1532,7 @@ Private Sub UserForm_Activate()
         LatexForm.Width = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWidth", 380)
     End If
     ResizeForm
-    
+    DoneWithActivation = True
 End Sub
 
 Sub RetrieveOldShapeInfo(oldshape As Shape, mainText As String)

@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LoadVectorGraphicsForm
    ClientHeight    =   3135
    ClientLeft      =   120
    ClientTop       =   450
-   ClientWidth     =   6885
+   ClientWidth     =   6888
    OleObjectBlob   =   "LoadVectorGraphicsForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
