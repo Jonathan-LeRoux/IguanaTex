@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LoadVectorGraphicsForm 
    Caption         =   "Load Vector Graphics File"
-   ClientHeight    =   3135
+   ClientHeight    =   3138
    ClientLeft      =   120
    ClientTop       =   450
    ClientWidth     =   6888

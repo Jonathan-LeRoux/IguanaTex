@@ -142,6 +142,16 @@ Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Be
     LatexForm.ButtonRun.Caption = "Generate"
     LatexForm.ButtonRun.Accelerator = "G"
     LatexForm.textboxSize.Enabled = True
+    
+    'Dim UseExternalEditor As Boolean
+    'RegPath = "Software\IguanaTex"
+    'UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
+    'If UseExternalEditor Then
+    '    LatexForm.Show vbModeless
+    '    Call LatexForm.CmdButtonExternalEditor_Click
+    'Else
+    '    LatexForm.Show vbModal
+    'End If
     LatexForm.Show
 End Sub
 
@@ -156,7 +166,17 @@ Sub NewLatexEquationMatchSize(ByVal size)
     LatexForm.ButtonRun.Caption = "Generate"
     LatexForm.ButtonRun.Accelerator = "G"
     LatexForm.textboxSize.Enabled = True
-    LatexForm.Show
+    
+    Dim UseExternalEditor As Boolean
+    RegPath = "Software\IguanaTex"
+    UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
+    If UseExternalEditor Then
+        LatexForm.Show vbModeless
+        Call LatexForm.CmdButtonExternalEditor_Click
+    Else
+        LatexForm.Show vbModal
+    End If
+    'LatexForm.Show
 End Sub
 
 Sub EditLatexEquation()

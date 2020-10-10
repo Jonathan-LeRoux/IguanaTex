@@ -22,8 +22,7 @@ Private Sub CmdButtonCancel_Click()
     Unload ExternalEditorForm
 End Sub
 
-Private Sub CmdButtonReload_Click()
-    SelStartPos = LatexForm.TextBox1.SelStart
+Private Sub LoadTextIntoLatexForm()
     TempPath = LatexForm.TextBoxTempFolder.Text
     
     If Left(TempPath, 1) = "." Then
@@ -47,7 +46,16 @@ Private Sub CmdButtonReload_Click()
     objStream.LoadFromFile (TempPath & "ext_" & GetFilePrefix() & ".tex")
     LatexForm.TextBox1.Text = objStream.ReadText()
 
+End Sub
+
+Private Sub CmdButtonReload_Click()
+    SelStartPos = LatexForm.TextBox1.SelStart
+
+    Call LoadTextIntoLatexForm
+
     Unload ExternalEditorForm
+    LatexForm.Hide
+    LatexForm.Show vbModal
     LatexForm.TextBox1.SetFocus
     If SelStartPos < Len(LatexForm.TextBox1.Text) Then
         LatexForm.TextBox1.SelStart = SelStartPos
@@ -55,6 +63,15 @@ Private Sub CmdButtonReload_Click()
 End Sub
 
 Private Sub CmdButtonGenerate_Click()
-    Call CmdButtonReload_Click
+    SelStartPos = LatexForm.TextBox1.SelStart
+
+    Call LoadTextIntoLatexForm
+
+    Unload ExternalEditorForm
+    LatexForm.TextBox1.SetFocus
+    If SelStartPos < Len(LatexForm.TextBox1.Text) Then
+        LatexForm.TextBox1.SelStart = SelStartPos
+    End If
+    
     Call LatexForm.ButtonRun_Click
 End Sub

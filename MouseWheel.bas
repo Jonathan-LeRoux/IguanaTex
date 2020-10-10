@@ -165,10 +165,16 @@ Private Function MouseProc( _
                         ByRef lParam As MOUSEHOOKSTRUCT) As Long
 #End If
     Dim idx As Long
+    Dim tPT As POINTAPI
     On Error GoTo errH
     If (nCode = HC_ACTION) Then
+    GetCursorPos tPT
         #If Win64 Then
-            If WindowFromPoint(lParam.Pt.XY) = mListBoxHwnd Then
+            ' I moved to ignoring the point returned in lParam because it may be in the wrong coordinates depending on DPI
+            ' GetCursorPos gives consistent coordinates regradless.
+            ' This may create some racing issues, but it seems to be working fine as far as I can tell...
+            'If WindowFromPoint(lParam.Pt.XY) = mListBoxHwnd Then
+            If WindowFromPoint(tPT.XY) = mListBoxHwnd Then
                 If wParam = WM_MOUSEWHEEL Then
                     MouseProc = True
 '                        If lParam.hWnd > 0 Then
@@ -193,12 +199,14 @@ Private Function MouseProc( _
                         If lParam.hWnd > 0 Then idx = -3 Else idx = 3
                         idx = idx + mCtl.CurLine
                         If idx < 0 Then idx = 0
-                        If idx > mCtl.LineCount + 1 Then idx = mCtl.LineCount + 1
+                        If idx > mCtl.LineCount - 1 Then idx = mCtl.LineCount - 1
                         mCtl.CurLine = idx
                     Else
                         If lParam.hWnd > 0 Then idx = -1 Else idx = 1
                         idx = idx + mCtl.ListIndex
-                        If idx >= 0 Then mCtl.ListIndex = idx
+                        If idx < 0 Then idx = 0
+                        If idx > mCtl.ListCount - 1 Then idx = mCtl.ListCount - 1
+                        mCtl.ListIndex = idx
                     End If
                 Exit Function
                 End If
@@ -206,7 +214,7 @@ Private Function MouseProc( _
                 UnhookListBoxScroll
             End If
         #Else
-            If WindowFromPoint(lParam.Pt.X, lParam.Pt.Y) = mListBoxHwnd Then
+            If WindowFromPoint(tPT.X, tPT.Y) = mListBoxHwnd Then
                 If wParam = WM_MOUSEWHEEL Then
                     MouseProc = True
 '                        If lParam.hWnd > 0 Then
@@ -243,6 +251,7 @@ Private Function MouseProc( _
                             mLngMouseHook, nCode, wParam, ByVal lParam)
     Exit Function
 errH:
+    Debug.Print "error"
     UnhookListBoxScroll
 End Function
 '#Else

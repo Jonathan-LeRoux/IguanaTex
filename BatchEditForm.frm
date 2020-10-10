@@ -1,7 +1,7 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   5955
+   ClientHeight    =   5952
    ClientLeft      =   48
    ClientTop       =   378
    ClientWidth     =   4710
@@ -127,7 +127,7 @@ End Sub
 Private Sub Apply_CheckBoxModifyLocalDPI()
     LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
     TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
-    LabelDPI.Enabled = CheckBoxModifyLocalDPI.Value
+    LabelDpi.Enabled = CheckBoxModifyLocalDPI.Value
 End Sub
 
 Private Sub Apply_CheckBoxModifySize()

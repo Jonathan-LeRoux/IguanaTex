@@ -780,6 +780,13 @@ Sub ButtonRun_Click()
         End If
     End If
     
+    ' Add Alternative Text
+    newShape.AlternativeText = TextBox1.Text
+    If UseEMF = True Then
+        newShape.Title = "IguanaTex Vector Display"
+    Else
+        newShape.Title = "IguanaTex Bitmap Display"
+    End If
     
     ' Select the new shape
     newShape.Select
@@ -1243,11 +1250,11 @@ Private Sub Apply_BitmapVector_Change()
         checkboxTransp.Enabled = False
         checkboxTransp.Value = True
         TextBoxLocalDPI.Enabled = False
-        LabelDPI.Enabled = False
+        LabelDpi.Enabled = False
     Else
         checkboxTransp.Enabled = True
         TextBoxLocalDPI.Enabled = True
-        LabelDPI.Enabled = True
+        LabelDpi.Enabled = True
     End If
 
 End Sub
@@ -1521,18 +1528,38 @@ Private Sub UserForm_Initialize()
     
 End Sub
 
+Private Function isFormModeless() As Boolean
+
+    On Error GoTo EH
+
+    Me.Show vbModeless
+    isFormModeless = True
+
+    Exit Function
+
+EH:
+    isFormModeless = False
+
+End Function
+
+
 Private Sub UserForm_Activate()
     DoneWithActivation = False
-    'Execute macro to enable resizeability
-    MakeFormResizable
     
-    RegPath = "Software\IguanaTex"
-    If Not FormHeightWidthSet Then
-        LatexForm.Height = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormHeight", 312)
-        LatexForm.Width = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWidth", 380)
+    ' We have to be careful of the case where the edit window gets activated in vbModeless mode
+    If Not isFormModeless Then
+        'Execute macro to enable resizeability
+        MakeFormResizable
+        
+        RegPath = "Software\IguanaTex"
+        If Not FormHeightWidthSet Then
+            LatexForm.Height = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormHeight", 312)
+            LatexForm.Width = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LatexFormWidth", 380)
+        End If
+        ResizeForm
+        DoneWithActivation = True
     End If
-    ResizeForm
-    DoneWithActivation = True
+
 End Sub
 
 Sub RetrieveOldShapeInfo(oldshape As Shape, mainText As String)
@@ -1873,20 +1900,39 @@ End Function
 
 Private Sub TextBox1_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, _
                         ByVal X As Single, ByVal Y As Single)
-    HookListBoxScroll Me, Me.TextBox1
+    If Not Me Is Nothing Then
+        HookListBoxScroll Me, Me.TextBox1
+    End If
 End Sub
 
-
-Private Sub ComboBoxLaTexEngine_MouseMove( _
-                        ByVal Button As Integer, ByVal Shift As Integer, _
+Private Sub TextBoxTemplateCode_MouseMove(ByVal Button As Integer, ByVal Shift As Integer, _
                         ByVal X As Single, ByVal Y As Single)
-         HookListBoxScroll Me, Me.ComboBoxLaTexEngine
+    If Not Me Is Nothing Then
+        HookListBoxScroll Me, Me.TextBoxTemplateCode
+    End If
 End Sub
 
+
+
+' v1.58: I'm removing this because the support is not great, and I don't think scrolling is very useful
+' for this combobox. The issue is that the combobox is within a frame, and once it gets the hook, we cannot
+' unhook until we leave the whole frame, not just the combobox.
+'Private Sub ComboBoxLaTexEngine_MouseMove( _
+'                        ByVal Button As Integer, ByVal Shift As Integer, _
+'                        ByVal X As Single, ByVal Y As Single)
+'    If Not Me Is Nothing Then
+'         HookListBoxScroll Me, Me.ComboBoxLaTexEngine
+'    End If
+'End Sub
+
+' It seems difficult to get good mouse whell support simultaneously for the Bitmap/Vector combobox
+' and the LatexEngine combobox, because they are in the same frame, and whoever gets the hook first holds to it.
 'Private Sub ComboBoxBitmapVector_MouseMove( _
 '                        ByVal Button As Integer, ByVal Shift As Integer, _
 '                        ByVal X As Single, ByVal Y As Single)
+'    If Not Me Is Nothing Then
 '         HookListBoxScroll Me, Me.ComboBoxBitmapVector
+'    End If
 'End Sub
 
 
