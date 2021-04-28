@@ -2,33 +2,80 @@ Attribute VB_Name = "RegistryAccess"
 ' Portions taken from:
 ' http://www.kbalertz.com/kb_145679.aspx
    
-   Option Explicit
+Option Explicit
 
-   Public Const REG_SZ As Long = 1
-   Public Const REG_DWORD As Long = 4
+Public Const REG_SZ As Long = 1
+Public Const REG_DWORD As Long = 4
 
-   Public Const HKEY_CLASSES_ROOT = &H80000000
-   Public Const HKEY_CURRENT_USER = &H80000001
-   Public Const HKEY_LOCAL_MACHINE = &H80000002
-   Public Const HKEY_USERS = &H80000003
+Public Const HKEY_CLASSES_ROOT = &H80000000
+Public Const HKEY_CURRENT_USER = &H80000001
+Public Const HKEY_LOCAL_MACHINE = &H80000002
+Public Const HKEY_USERS = &H80000003
 
-   Public Const ERROR_NONE = 0
-   Public Const ERROR_BADDB = 1
-   Public Const ERROR_BADKEY = 2
-   Public Const ERROR_CANTOPEN = 3
-   Public Const ERROR_CANTREAD = 4
-   Public Const ERROR_CANTWRITE = 5
-   Public Const ERROR_OUTOFMEMORY = 6
-   Public Const ERROR_ARENA_TRASHED = 7
-   Public Const ERROR_ACCESS_DENIED = 8
-   Public Const ERROR_INVALID_PARAMETERS = 87
-   Public Const ERROR_NO_MORE_ITEMS = 259
+Public Const ERROR_NONE = 0
+Public Const ERROR_BADDB = 1
+Public Const ERROR_BADKEY = 2
+Public Const ERROR_CANTOPEN = 3
+Public Const ERROR_CANTREAD = 4
+Public Const ERROR_CANTWRITE = 5
+Public Const ERROR_OUTOFMEMORY = 6
+Public Const ERROR_ARENA_TRASHED = 7
+Public Const ERROR_ACCESS_DENIED = 8
+Public Const ERROR_INVALID_PARAMETERS = 87
+Public Const ERROR_NO_MORE_ITEMS = 259
 
-   Public Const KEY_QUERY_VALUE = &H1
-   Public Const KEY_SET_VALUE = &H2
-   Public Const KEY_ALL_ACCESS = &H3F
+Public Const KEY_QUERY_VALUE = &H1
+Public Const KEY_SET_VALUE = &H2
+Public Const KEY_ALL_ACCESS = &H3F
 
-   Public Const REG_OPTION_NON_VOLATILE = 0
+Public Const REG_OPTION_NON_VOLATILE = 0
+
+#If Mac Then
+    Public Function GetRegistryValue(Hive, Keyname, Valuename, defaultValue)
+        If Hive <> HKEY_CURRENT_USER Then
+            MsgBox "GetRegistryValue with Hive other than HKEY_CURRENT_USER is not implemented. return defaultValue."
+            GetRegistryValue = defaultValue
+            Exit Function
+        End If
+        
+        Dim Str As String
+        
+        Str = GetSetting("IguanaTex", Keyname, Valuename, "")
+        If Str = "" Then
+            GetRegistryValue = defaultValue
+        Else
+            Dim sp() As String
+            sp = Split(Str, ":", 2)
+            If UBound(sp) + 1 < 2 Then
+                GetRegistryValue = defaultValue
+            ElseIf sp(0) = "sz" Then
+                GetRegistryValue = sp(1)
+            ElseIf sp(0) = "dword" Then
+                GetRegistryValue = CLng(sp(1))
+            Else
+                GetRegistryValue = defaultValue
+            End If
+        End If
+    End Function
+    
+    
+    Public Sub SetRegistryValue(Hive, ByRef Keyname As String, ByRef Valuename As String, _
+    Valuetype As Long, value As Variant)
+        If Hive <> HKEY_CURRENT_USER Then
+            MsgBox "SetRegistryValue with Hive other than HKEY_CURRENT_USER is not implemented."
+            Exit Sub
+        End If
+    
+        If Valuetype = REG_SZ Then
+            SaveSetting "IguanaTex", Keyname, Valuename, "sz:" & value
+        ElseIf Valuetype = REG_DWORD Then
+            SaveSetting "IguanaTex", Keyname, Valuename, "dword:" & CStr(value)
+        Else
+            MsgBox "Error saving registry key."
+        End If
+    End Sub
+
+#Else
 
    #If VBA7 Then
    Declare PtrSafe Function RegCloseKey Lib "advapi32.dll" _
@@ -124,7 +171,7 @@ Attribute VB_Name = "RegistryAccess"
 
        ' Determine the size and type of data to be read
        lrc = RegQueryValueExNULL(lhKey, szValueName, 0&, lType, 0&, cch)
-       If lrc <> ERROR_NONE Then Error 5
+       If lrc <> ERROR_NONE Then Err.Raise 5
 
        Select Case lType
            ' For strings
@@ -166,7 +213,7 @@ Private Sub CreateNewKey(sNewKeyName As String, lPredefinedKey As Long)
     RegCloseKey (hNewKey)
 End Sub
 
-Public Function GetRegistryValue(Hive, Keyname, Valuename, DefaultValue)
+Public Function GetRegistryValue(Hive As Long, Keyname As String, Valuename As String, defaultValue As Variant) As Variant
        Dim lRetVal As Long         'result of the API functions
        Dim hKey As Long         'handle of opened key
        Dim vValue As Variant      'setting of queried value
@@ -178,19 +225,19 @@ Public Function GetRegistryValue(Hive, Keyname, Valuename, DefaultValue)
        If (lRetVal = 0) Then
            GetRegistryValue = vValue
        Else
-           GetRegistryValue = DefaultValue
+           GetRegistryValue = defaultValue
        End If
 End Function
 
-Public Sub SetRegistryValue(Hive, ByRef Keyname As String, ByRef Valuename As String, _
-Valuetype As Long, Value As Variant)
+Public Sub SetRegistryValue(Hive As Long, ByRef Keyname As String, ByRef Valuename As String, _
+Valuetype As Long, value As Variant)
     Dim lRetVal As Long         'result of the SetValueEx function
     Dim hKey As Long         'handle of open key
     
     'open the specified key
     lRetVal = RegOpenKeyEx(Hive, Keyname, 0, KEY_SET_VALUE, hKey)
     If (lRetVal = 0) Then
-        lRetVal = SetValueEx(hKey, Valuename, Valuetype, Value)
+        lRetVal = SetValueEx(hKey, Valuename, Valuetype, value)
         RegCloseKey (hKey)
     Else
         RegCloseKey (hKey)
@@ -200,7 +247,7 @@ Valuetype As Long, Value As Variant)
         MyPredefKey = Hive
         CreateNewKey MyKeyname, MyPredefKey
         lRetVal = RegOpenKeyEx(Hive, Keyname, 0, KEY_SET_VALUE, hKey)
-        lRetVal = SetValueEx(hKey, Valuename, Valuetype, Value)
+        lRetVal = SetValueEx(hKey, Valuename, Valuetype, value)
         RegCloseKey (hKey)
     
     End If
@@ -209,3 +256,7 @@ Valuetype As Long, Value As Variant)
         MsgBox "Error saving registry key."
     End If
 End Sub
+
+#End If
+
+

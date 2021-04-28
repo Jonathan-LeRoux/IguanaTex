@@ -7,6 +7,8 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = False
 Attribute VB_Exposed = False
+Option Explicit
+'@MemberAttribute VB_VarHelpID, -1
 Public WithEvents App As Application
 Attribute App.VB_VarHelpID = -1
 

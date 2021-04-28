@@ -1,37 +1,42 @@
 Attribute VB_Name = "ExportVBA"
+Option Explicit
 ' Modified from https://gist.github.com/steve-jansen/7589478 to work in PowerPoint
 '
 ' PowerPoint macro to export all VBA source code in this project to text files for proper source control versioning
 ' Requires enabling the PowerPoint setting in Options/Trust Center/Trust Center Settings/Macro Settings/Trust access to the VBA project object model
 Public Sub ExportVisualBasicCode()
-    Const Module = 1
-    Const ClassModule = 2
-    Const Form = 3
-    Const Document = 100
-    Const Padding = 24
+    Const Module As Long = 1
+    Const ClassModule As Long = 2
+    Const form As Long = 3
+    Const Document As Long = 100
+    Const Padding As Long = 24
     
     Dim VBComponent As Object
     Dim count As Integer
     Dim path As String
     Dim directory As String
     Dim extension As String
-    Dim fso As New FileSystemObject
+    #If Mac Then
+        Dim fs As New MacFileSystemObject
+    #Else
+        Dim fs As New FileSystemObject
+    #End If
     
-    Dim myPath As String
-    myPath = ActivePresentation.FullName
-    directory = Left(myPath, InStrRev(myPath, ".") - 1) & "_VBA"
+    Dim MyPath As String
+    MyPath = ActivePresentation.FullName
+    directory = Left$(MyPath, InStrRev(MyPath, ".") - 1) & "_VBA"
     count = 0
     
-    If Not fso.FolderExists(directory) Then
-        Call fso.CreateFolder(directory)
+    If Not fs.FolderExists(directory) Then
+        fs.CreateFolder directory
     End If
-    Set fso = Nothing
+    Set fs = Nothing
     
     For Each VBComponent In ActivePresentation.VBProject.VBComponents
         Select Case VBComponent.Type
             Case ClassModule, Document
                 extension = ".cls"
-            Case Form
+            Case form
                 extension = ".frm"
             Case Module
                 extension = ".bas"
@@ -43,14 +48,14 @@ Public Sub ExportVisualBasicCode()
         On Error Resume Next
         Err.Clear
         
-        path = directory & "\" & VBComponent.name & extension
-        Call VBComponent.Export(path)
+        path = directory & PathSep & VBComponent.Name & extension
+        VBComponent.Export path
         
         If Err.Number <> 0 Then
-            Call MsgBox("Failed to export " & VBComponent.name & " to " & path, vbCritical)
+            MsgBox "Failed to export " & VBComponent.Name & " to " & path, vbCritical
         Else
             count = count + 1
-            Debug.Print "Exported " & Left$(VBComponent.name & ":" & Space(Padding), Padding) & path
+            Debug.Print "Exported " & Left$(VBComponent.Name & ":" & Space(Padding), Padding) & path
         End If
 
         On Error GoTo 0

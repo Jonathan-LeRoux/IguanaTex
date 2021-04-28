@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   5952
+   ClientHeight    =   5964
    ClientLeft      =   48
    ClientTop       =   378
-   ClientWidth     =   4710
+   ClientWidth     =   4950
    OleObjectBlob   =   "BatchEditForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -13,41 +13,41 @@ Attribute VB_GlobalNameSpace = False
 Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
-Dim RegPath As String
-Dim LaTexEngineDisplayList As Variant
-
+Option Explicit
 
 Private Sub UserForm_Initialize()
     LoadSettings
     Me.Top = Application.Top + 110
     Me.Left = Application.Left + 25
-    
+    Me.Height = 322
+    Me.Width = 256
+    #If Mac Then
+        ResizeUserForm Me
+    #End If
 End Sub
 
 Private Sub LoadSettings()
-    RegPath = "Software\IguanaTex"
-    LaTexEngineDisplayList = Array("latex (DVI)", "pdflatex", "xelatex", "lualatex", "platex")
-    ComboBoxLaTexEngine.List = LaTexEngineDisplayList
-    ComboBoxLaTexEngine.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "LaTeXEngineID", 0)
+    ComboBoxLaTexEngine.List = GetLaTexEngineDisplayList()
+    ComboBoxLaTexEngine.ListIndex = GetITSetting("LaTeXEngineID", 0)
     TextBoxTempFolder.Text = GetTempPath()
-    'CheckBoxEMF.Value = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "EMFoutput", False))
-    ComboBoxBitmapVector.List = Array("Bitmap", "Vector")
-    ComboBoxBitmapVector.ListIndex = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "BitmapVector", 0)
+    'CheckBoxEMF.Value = CBool(GetITSetting("EMFoutput", False))
+    ComboBoxBitmapVector.List = GetBitmapVectorList()
+    ComboBoxBitmapVector.ListIndex = GetITSetting("BitmapVector", 0)
     
-    TextBoxLocalDPI.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "OutputDpi", "1200")
-    textboxSize.Text = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "PointSize", "20")
-    checkboxTransp.Value = CBool(GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Transparent", True))
-    CheckBoxResetFormat.Value = False
+    TextBoxLocalDPI.Text = GetITSetting("OutputDpi", "1200")
+    textboxSize.Text = GetITSetting("PointSize", "20")
+    checkboxTransp.value = CBool(GetITSetting("Transparent", True))
+    CheckBoxResetFormat.value = False
     
-    CheckBoxModifyEngine.Value = False
-    CheckBoxModifyTempFolder.Value = False
-    CheckBoxModifyBitmapVector.Value = False
-    CheckBoxModifyLocalDPI.Value = False
-    CheckBoxModifySize.Value = False
-    CheckBoxModifyPreserveSize.Value = False
-    CheckBoxModifyTransparency.Value = False
-    CheckBoxModifyResetFormat.Value = False
-    CheckBoxReplace.Value = False
+    CheckBoxModifyEngine.value = False
+    CheckBoxModifyTempFolder.value = False
+    CheckBoxModifyBitmapVector.value = False
+    CheckBoxModifyLocalDPI.value = False
+    CheckBoxModifySize.value = False
+    CheckBoxModifyPreserveSize.value = False
+    CheckBoxModifyTransparency.value = False
+    CheckBoxModifyResetFormat.value = False
+    CheckBoxReplace.value = False
     Apply_CheckBoxModifyEngine
     Apply_CheckBoxModifyTempFolder
     Apply_CheckBoxModifyBitmapVector
@@ -59,10 +59,12 @@ Private Sub LoadSettings()
     Apply_CheckBoxReplace
 End Sub
 
-Sub ButtonRun_Click()
+Public Sub ButtonRun_Click()
     BatchEditForm.Hide
-    
-    Call RegenerateSelectedDisplays
+    Dim Sel As Selection
+    Set Sel = Application.ActiveWindow.Selection
+
+    RegenerateSelectedDisplays Sel
     
     Unload BatchEditForm
 End Sub
@@ -110,49 +112,49 @@ Private Sub CheckBoxReplace_Click()
 End Sub
 
 Private Sub Apply_CheckBoxModifyEngine()
-    LabelEngine.Enabled = CheckBoxModifyEngine.Value
-    ComboBoxLaTexEngine.Enabled = CheckBoxModifyEngine.Value
+    LabelEngine.Enabled = CheckBoxModifyEngine.value
+    ComboBoxLaTexEngine.Enabled = CheckBoxModifyEngine.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyTempFolder()
-    LabelTempFolder.Enabled = CheckBoxModifyTempFolder.Value
-    TextBoxTempFolder.Enabled = CheckBoxModifyTempFolder.Value
+    LabelTempFolder.Enabled = CheckBoxModifyTempFolder.value
+    TextBoxTempFolder.Enabled = CheckBoxModifyTempFolder.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyBitmapVector()
-    LabelOutput.Enabled = CheckBoxModifyBitmapVector.Value
-    ComboBoxBitmapVector.Enabled = CheckBoxModifyBitmapVector.Value
+    LabelOutput.Enabled = CheckBoxModifyBitmapVector.value
+    ComboBoxBitmapVector.Enabled = CheckBoxModifyBitmapVector.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyLocalDPI()
-    LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
-    TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.Value
-    LabelDpi.Enabled = CheckBoxModifyLocalDPI.Value
+    LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
+    TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
+    LabelDpi.Enabled = CheckBoxModifyLocalDPI.value
 End Sub
 
 Private Sub Apply_CheckBoxModifySize()
-    LabelSize.Enabled = CheckBoxModifySize.Value
-    textboxSize.Enabled = CheckBoxModifySize.Value
-    LabelPTS.Enabled = CheckBoxModifySize.Value
+    LabelSize.Enabled = CheckBoxModifySize.value
+    textboxSize.Enabled = CheckBoxModifySize.value
+    LabelPTS.Enabled = CheckBoxModifySize.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyPreserveSize()
-    CheckBoxForcePreserveSize.Enabled = CheckBoxModifyPreserveSize.Value
+    CheckBoxForcePreserveSize.Enabled = CheckBoxModifyPreserveSize.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyTransparency()
-    checkboxTransp.Enabled = CheckBoxModifyTransparency.Value
+    checkboxTransp.Enabled = CheckBoxModifyTransparency.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyResetFormat()
-    CheckBoxResetFormat.Enabled = CheckBoxModifyResetFormat.Value
+    CheckBoxResetFormat.Enabled = CheckBoxModifyResetFormat.value
 End Sub
 
 Private Sub Apply_CheckBoxReplace()
-    LabelReplace.Enabled = CheckBoxReplace.Value
-    TextBoxFind.Enabled = CheckBoxReplace.Value
-    LabelWith.Enabled = CheckBoxReplace.Value
-    TextBoxReplacement.Enabled = CheckBoxReplace.Value
+    LabelReplace.Enabled = CheckBoxReplace.value
+    TextBoxFind.Enabled = CheckBoxReplace.value
+    LabelWith.Enabled = CheckBoxReplace.value
+    TextBoxReplacement.Enabled = CheckBoxReplace.value
 End Sub
 
 
@@ -162,11 +164,11 @@ End Sub
 
 Private Sub Apply_BitmapVector_Change()
     If ComboBoxBitmapVector.ListIndex = 1 Then
-        CheckBoxModifyLocalDPI.Value = False
-        CheckBoxModifyTransparency.Value = False
+        CheckBoxModifyLocalDPI.value = False
+        CheckBoxModifyTransparency.value = False
         CheckBoxModifyLocalDPI.Enabled = False
         CheckBoxModifyTransparency.Enabled = False
-        checkboxTransp.Value = True
+        checkboxTransp.value = True
     Else
         CheckBoxModifyLocalDPI.Enabled = True
         CheckBoxModifyTransparency.Enabled = False
@@ -176,14 +178,12 @@ Private Sub Apply_BitmapVector_Change()
 End Sub
 
 Private Sub CheckBoxForcePreserveSize_Click()
-    If CheckBoxForcePreserveSize.Value = True Then
+    If CheckBoxForcePreserveSize.value = True Then
         CheckBoxModifySize.Enabled = False
-        CheckBoxModifySize.Value = False
+        CheckBoxModifySize.value = False
     Else
         CheckBoxModifySize.Enabled = True
     End If
     Apply_CheckBoxModifySize
 End Sub
-
-
 

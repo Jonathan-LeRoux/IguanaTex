@@ -1,9 +1,22 @@
 Attribute VB_Name = "ShellWait"
+Option Explicit
+
+#If Mac Then
+Public Function Execute(ByVal CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
+    Dim TeXExePath As String
+    TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
+    Execute = CLng(AppleScriptTask("IguanaTex.scpt", "MacExecute", _
+        "export PATH=" & ShellEscape(TeXExePath) & """:$PATH""" & " && " & _
+        "cd " & ShellEscape(StartupDir) & " && " & _
+        CommandLine))
+End Function
+
+#Else
 ' Portions of code below taken from:
 ' http://www.mvps.org/access/api/api0004.htm
 ' Courtesy of Terry Kreft
 
-Private Const STARTF_USESHOWWINDOW& = &H1
+Private Const STARTF_USESHOWWINDOW As Long = &H1
 Private Const NORMAL_PRIORITY_CLASS = &H20&
 Private Const INFINITE = -1&
 
@@ -60,7 +73,7 @@ Public Declare PtrSafe Function TerminateProcess Lib "kernel32" _
     
 Public Declare PtrSafe Function ShellExecute Lib "shell32.dll" _
     Alias "ShellExecuteA" (ByVal hWnd As Long, ByVal Operation As String, _
-  ByVal Filename As String, Optional ByVal Parameters As String, _
+  ByVal FileName As String, Optional ByVal Parameters As String, _
   Optional ByVal directory As String, _
   Optional ByVal WindowStyle As Long = vbMinimizedFocus _
   ) As Long
@@ -97,11 +110,13 @@ Public Declare Function ShellExecute Lib "shell32.dll" _
 #End If
 
     
-Public Function ShellWait(Pathname As String, Optional StartupDir As String, Optional WindowStyle As Long, Optional WaitTime As Long = -1) As Long
+Public Function ShellWait(pathname As String, Optional StartupDir As String, Optional WindowStyle As Long, Optional WaitTime As Long = -1) As Long
     Dim proc As PROCESS_INFORMATION
     Dim start As STARTUPINFO
     Dim ret As Long
     Dim exitcode As Long
+    Dim lastError As Long
+    Dim retWait As Long
     
     ' Initialize the STARTUPINFO structure:
     With start
@@ -113,17 +128,17 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
     End With
     Dim sdir As String
     If IsMissing(StartupDir) Then
-        sdir = ""
+        sdir = vbNullString
     Else
         sdir = StartupDir
     End If
 
     ' Start the shelled application:
-    ret& = CreateProcessA(0&, Pathname, 0&, 0&, 1&, _
+    ret& = CreateProcessA(0&, pathname, 0&, 0&, 1&, _
             NORMAL_PRIORITY_CLASS, 0&, sdir, start, proc)
     lastError& = GetLastError()
     If (ret& = 0) Then
-        MsgBox "Could not start process: '" & Pathname & "'. GetLastError returned " & Str(lastError&)
+        MsgBox "Could not start process: '" & pathname & "'. GetLastError returned " & Str$(lastError&)
         ShellWait = 1
         Exit Function
     End If
@@ -139,7 +154,7 @@ Public Function ShellWait(Pathname As String, Optional StartupDir As String, Opt
     ret& = GetExitCodeProcess(proc.hProcess, exitcode&)
     If (ret& = 0) Then
         lastError& = GetLastError()
-        MsgBox "GetExitCodeProcess returned " + Str(ret&) + ", GetLastError returned " + Str(lastError&)
+        MsgBox "GetExitCodeProcess returned " + Str$(ret&) + ", GetLastError returned " + Str$(lastError&)
     End If
     ' Tidy up if time out
     If (retWait& = 258) Then
@@ -153,11 +168,15 @@ End Function
 Public Function Execute(CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
     Dim RetVal As Long
     If debugMode Then
-        ClipBoard_SetData CommandLine
-        MsgBox CommandLine, , StartupDir
+        ' Clipboard CommandLine
+        ' MsgBox CommandLine, , StartupDir
+        ShowError vbNullString, CommandLine, "Debug mode", "Next command:", "Continue"
         RetVal = ShellWait(CommandLine, StartupDir, 1&, WaitTime)
     Else
         RetVal = ShellWait(CommandLine, StartupDir, , WaitTime)
     End If
     Execute = RetVal
 End Function
+#End If ' Mac
+
+

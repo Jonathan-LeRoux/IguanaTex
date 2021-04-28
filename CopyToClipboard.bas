@@ -1,4 +1,6 @@
 Attribute VB_Name = "CopyToClipboard"
+Option Explicit
+
 #If VBA7 Then
 Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
 Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
@@ -29,7 +31,7 @@ Public Const GHND = &H42
 Public Const CF_TEXT = 1
 Public Const MAXSIZE = 4096
 
-Function ClipBoard_SetData(MyString As String)
+Sub ClipBoard_SetData(MyString As String)
 'PURPOSE: API function to copy text to clipboard
 'SOURCE: www.msdn.microsoft.com/en-us/library/office/ff192913.aspx
 
@@ -39,7 +41,7 @@ Function ClipBoard_SetData(MyString As String)
    Dim hGlobalMemory As Long, lpGlobalMemory As Long, hClipMemory As Long
 #End If
 
-Dim X As Long
+Dim x As Long
 
 'Allocate moveable global memory
   hGlobalMemory = GlobalAlloc(GHND, Len(MyString) + 1)
@@ -59,11 +61,11 @@ Dim X As Long
 'Open the Clipboard to copy data to.
   If OpenClipboard(0&) = 0 Then
     MsgBox "Could not open the Clipboard. Copy aborted."
-    Exit Function
+    Exit Sub
   End If
 
 'Clear the Clipboard.
-  X = EmptyClipboard()
+  x = EmptyClipboard()
 
 'Copy the data to the Clipboard.
   hClipMemory = SetClipboardData(CF_TEXT, hGlobalMemory)
@@ -73,5 +75,42 @@ OutOfHere2:
     MsgBox "Could not close Clipboard."
   End If
 
+End Sub
+
+
+Function Clipboard(Optional StoreText As String) As String
+
+#If Mac Then
+    ' In old forums (e.g., https://answers.microsoft.com/en-us/msoffice/forum/msoffice_excel-mso_mac-mso_mac2011/read-clipboard-contents-in-vba-excel-for-mac-not/4485ab02-dced-4bf2-853d-fc667f5782a8),
+    ' people complain this doesn't work properly, but it seems to be working in my version of PowerPoint (Office365).
+    'Dim myData As DataObject
+    'Set myData = New DataObject
+    'myData.SetText StoreText
+    'myData.PutInClipboard
+    AppleScriptTask "IguanaTex.scpt", "MacSetClipboard", StoreText
+#Else
+    'PURPOSE: Read/Write to Clipboard
+    'Source: ExcelHero.com (Daniel Ferry)
+    ' https://stackoverflow.com/questions/14219455/excel-vba-code-to-copy-a-specific-string-to-clipboard/60896244#60896244
+    
+    Dim x As Variant
+    
+    'Store as variant for 64-bit VBA support
+      x = StoreText
+    
+    'Create HTMLFile Object
+    With CreateObject("htmlfile")
+      With .parentWindow.clipboardData
+        Select Case True
+          Case Len(StoreText)
+            'Write to the clipboard
+              .setData "text", x
+          Case Else
+            'Read from the clipboard (no variable passed through)
+              Clipboard = .GetData("text")
+        End Select
+      End With
+    End With
+#End If
 End Function
 

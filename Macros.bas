@@ -1,137 +1,16 @@
 Attribute VB_Name = "Macros"
-'Written: August 02, 2010
-'Author:  Leith Ross
-'Summary: Makes the UserForm resizable by dragging one of the sides. Place a call
-'         to the macro MakeFormResizable in the UserForm's Activate event.
-'Source: http://www.mrexcel.com/forum/excel-questions/485489-resize-userform.html
-
-#If VBA7 Then
- Private Declare PtrSafe Function SetLastError _
-   Lib "kernel32.dll" _
-     (ByVal dwErrCode As Long) _
-   As Long
-   
- Public Declare PtrSafe Function GetActiveWindow _
-   Lib "user32.dll" () As Long
-
- Private Declare PtrSafe Function GetWindowLong _
-   Lib "user32.dll" Alias "GetWindowLongA" _
-     (ByVal hWnd As Long, _
-      ByVal nIndex As Long) _
-   As Long
-               
- Private Declare PtrSafe Function SetWindowLong _
-   Lib "user32.dll" Alias "SetWindowLongA" _
-     (ByVal hWnd As Long, _
-      ByVal nIndex As Long, _
-      ByVal dwNewLong As Long) _
-   As Long
- 
- Private Declare PtrSafe Function GetDC Lib "user32" _
-    (ByVal hWnd As Long) As Long
-
- Private Declare PtrSafe Function GetDeviceCaps Lib "gdi32" _
-    (ByVal hDC As Long, ByVal nIndex As Long) As Long
-
- Private Declare PtrSafe Function ReleaseDC Lib "user32" _
-    (ByVal hWnd As Long, ByVal hDC As Long) As Long
-
-
-#Else
- Private Declare Function SetLastError _
-   Lib "kernel32.dll" _
-     (ByVal dwErrCode As Long) _
-   As Long
-   
- Public Declare Function GetActiveWindow _
-   Lib "user32.dll" () As Long
-
- Private Declare Function GetWindowLong _
-   Lib "user32.dll" Alias "GetWindowLongA" _
-     (ByVal hwnd As Long, _
-      ByVal nIndex As Long) _
-   As Long
-               
- Private Declare Function SetWindowLong _
-   Lib "user32.dll" Alias "SetWindowLongA" _
-     (ByVal hwnd As Long, _
-      ByVal nIndex As Long, _
-      ByVal dwNewLong As Long) _
-   As Long
-   
- Private Declare Function GetDC Lib "User32" _
-    (ByVal hwnd As Long) As Long
-
- Private Declare Function GetDeviceCaps Lib "gdi32" _
-    (ByVal hDC As Long, ByVal nIndex As Long) As Long
-
- Private Declare Function ReleaseDC Lib "User32" _
-    (ByVal hwnd As Long, ByVal hDC As Long) As Long
-
-
-
-#End If
+Option Explicit
 
 Public RegenerateContinue As Boolean
 
-Private Const LOGPIXELSX = 88  'Pixels/inch in X
-
-'A point is defined as 1/72 inches
-Private Const POINTS_PER_INCH As Long = 72
-
-'The size of a pixel, in points
-Public Function PointsPerPixel() As Double
-
- Dim hDC As Long
- Dim lDotsPerInch As Long
-
- hDC = GetDC(0)
- lDotsPerInch = GetDeviceCaps(hDC, LOGPIXELSX)
- PointsPerPixel = POINTS_PER_INCH / lDotsPerInch
- ReleaseDC 0, hDC
-
-End Function
-
-'The size of a pixel, in points
-Public Function lDotsPerInch() As Long
-
- Dim hDC As Long
-'  Dim lDotsPerInch As Long
-
- hDC = GetDC(0)
- lDotsPerInch = GetDeviceCaps(hDC, LOGPIXELSX)
- ReleaseDC 0, hDC
-
-End Function
-
-Public Sub MakeFormResizable()
-
-  Dim lStyle As Long
-  Dim hWnd As Long
-  Dim RetVal
-  
-  Const WS_THICKFRAME = &H40000
-  Const GWL_STYLE As Long = (-16)
-  
-    hWnd = GetActiveWindow
-  
-    'Get the basic window style
-     lStyle = GetWindowLong(hWnd, GWL_STYLE) Or WS_THICKFRAME
-     
-    'Set the basic window styles
-     RetVal = SetWindowLong(hWnd, GWL_STYLE, lStyle)
-    
-    'Clear any previous API error codes
-     SetLastError 0
-    
-    'Did the style change?
-     If RetVal = 0 Then MsgBox "Unable to make UserForm Resizable."
-     
-End Sub
-
 Sub NewLatexEquation()
-Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Ben-Haim"
     Load LatexForm
+    
+    Dim Sel As Selection
+    Set Sel = Application.ActiveWindow.Selection
+    If (Sel.Type = ppSelectionText) Then
+        LatexForm.textboxSize.Text = Sel.TextRange.Font.Size
+    End If
     
     If IsEmpty(LatexForm.textboxSize.Text) Then
         LatexForm.textboxSize.Text = "20"
@@ -140,43 +19,31 @@ Attribute NewLatexEquation.VB_Description = "Macro created 24.5.2007 by Zvika Be
     LatexForm.Label2.Caption = "Set size:"
        
     LatexForm.ButtonRun.Caption = "Generate"
-    LatexForm.ButtonRun.Accelerator = "G"
+    #If Mac Then
+        LatexForm.ButtonRun.Accelerator = vbNullString
+    #Else
+        LatexForm.ButtonRun.Accelerator = "G"
+    #End If
     LatexForm.textboxSize.Enabled = True
     
-    'Dim UseExternalEditor As Boolean
-    'RegPath = "Software\IguanaTex"
-    'UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
-    'If UseExternalEditor Then
-    '    LatexForm.Show vbModeless
-    '    Call LatexForm.CmdButtonExternalEditor_Click
-    'Else
-    '    LatexForm.Show vbModal
-    'End If
-    LatexForm.Show
+    ShowLatexForm
 End Sub
 
-Sub NewLatexEquationMatchSize(ByVal size)
-    Load LatexForm
-    
-    LatexForm.textboxSize.Text = size
-    
-    LatexForm.CheckBoxReset.Visible = False
-    LatexForm.Label2.Caption = "Set size:"
-       
-    LatexForm.ButtonRun.Caption = "Generate"
-    LatexForm.ButtonRun.Accelerator = "G"
-    LatexForm.textboxSize.Enabled = True
-    
+Private Sub ShowLatexForm()
     Dim UseExternalEditor As Boolean
-    RegPath = "Software\IguanaTex"
-    UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
+    UseExternalEditor = GetITSetting("UseExternalEditor", False)
     If UseExternalEditor Then
-        LatexForm.Show vbModeless
-        Call LatexForm.CmdButtonExternalEditor_Click
+        Dim TempFolder As String
+        Dim LatexCode As String
+        TempFolder = LatexForm.TextBoxTempFolder.Text
+        LatexCode = LatexForm.TextWindow1.Text
+        Load ExternalEditorForm
+        ExternalEditorForm.LaunchExternalEditor TempFolder, LatexCode
+'        LatexForm.Show vbModeless
+'        LatexForm.CmdButtonExternalEditor_Click
     Else
         LatexForm.Show vbModal
     End If
-    'LatexForm.Show
 End Sub
 
 Sub EditLatexEquation()
@@ -185,7 +52,7 @@ Sub EditLatexEquation()
     ' Called when the user clicks the "Edit Latex Equation" menu item.
     
     If Not TryEditLatexEquation() Then
-        MsgBox "You must select a single IguanaTex++ equation to modify it."
+        MsgBox "You must select a single IguanaTex display to modify it."
     End If
 End Sub
 
@@ -194,17 +61,13 @@ Function TryEditLatexEquation() As Boolean
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     Dim oldshape As Shape
-    Dim LatexText As String
-    Dim SourceParts() As String
-    Dim TeXSource As String
-                                                       
                                                         
     If Sel.Type = ppSelectionShapes Then
         ' First make sure we don't have any shapes with duplicate names on this slide
-        Call DeDuplicateShapeNamesInSlide(ActiveWindow.View.Slide.SlideIndex)
+        DeDuplicateShapeNamesInSlide ActiveWindow.View.Slide.SlideIndex
         If Sel.ShapeRange.count = 1 Then ' if not 1, then multiple objects are selected
-            ' Group case: either 1 object within a group, or 1 group corresponding to an EMF display
             If Sel.ShapeRange.Type = msoGroup Then
+                ' Group case: either 1 object within a group, or 1 group corresponding to an EMF display
                 If Sel.HasChildShapeRange = False Then ' Maybe an EMF display
                     Set oldshape = Sel.ShapeRange(1)
                     TryEditLatexEquation = TryProcessShape(oldshape)
@@ -215,10 +78,10 @@ Function TryEditLatexEquation() As Boolean
                     TryEditLatexEquation = TryProcessShape(oldshape)
                     Exit Function
                 End If
-            ' Non-group case: only a single object can be selected
             Else
+                ' Non-group case: only a single object can be selected
                 Set oldshape = Sel.ShapeRange(1)
-                If oldshape.Tags.Item("EMFchild") <> "" Then
+                If oldshape.Tags.Item("EMFchild") <> vbNullString Then
                     TryEditLatexEquation = False ' we should not have an EMF child object by itself
                 Else
                     TryEditLatexEquation = TryProcessShape(oldshape)
@@ -231,91 +94,68 @@ Function TryEditLatexEquation() As Boolean
     TryEditLatexEquation = False
 End Function
 
-Function TryProcessShape(oldshape As Shape) As Boolean
+Private Function TryProcessShape(oldshape As Shape) As Boolean
     Dim LatexText As String
-    Dim SourceParts() As String
-    Dim TeXSource As String
-    Dim UseExternalEditor As Boolean
-    RegPath = "Software\IguanaTex"
-    UseExternalEditor = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "UseExternalEditor", False)
- 
+    Dim j As Long
+    
     TryProcessShape = False
     With oldshape.Tags
-        If .Item("LATEXADDIN") <> "" Then ' we're dealing with an IguanaTex display
+        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
             For j = 1 To .count
-                Debug.Print .name(j) & vbTab & .Value(j)
+                Debug.Print .Name(j) & vbTab & .value(j)
             Next j
             Load LatexForm
             
-            Call LatexForm.RetrieveOldShapeInfo(oldshape, .Item("LATEXADDIN"))
-            
-            If UseExternalEditor Then
-                LatexForm.Show vbModeless
-                Call LatexForm.CmdButtonExternalEditor_Click
-            Else
-                LatexForm.Show vbModal
-            End If
+            LatexText = .Item("LATEXADDIN")
+            LatexForm.RetrieveOldShapeInfo oldshape, LatexText
+            ShowLatexForm
             TryProcessShape = True
             Exit Function
-        ElseIf .Item("SOURCE") <> "" Then ' we're dealing with a Texpoint display
+        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
             For j = 1 To .count
-                Debug.Print .name(j) & vbTab & .Value(j)
+                Debug.Print .Name(j) & vbTab & .value(j)
             Next j
-            ScalingFactor = 1
-            IsTemplate = False
-            If .Item("ORIGWIDTH") <> "" Then
-                ScalingFactor = ScalingFactor * oldshape.Width / val(.Item("ORIGWIDTH"))
-            End If
-            If .Item("TEXPOINT") = "template" Then
-                IsTemplate = True
-            End If
-            oldshape.Tags.Add "TEXPOINTSCALING", ScalingFactor
-        
             Load LatexForm
             
-            If IsTemplate = True Then
-                SourceParts = Split(.Item("SOURCE"), vbTab, , vbTextCompare)
-                If UBound(SourceParts) > 2 Then
-                    TeXSource = SourceParts(3)
-                Else
-                    SourceParts = Split(.Item("SOURCE"), "equation", , vbTextCompare)
-                    SourceParts = Split(SourceParts(1), "template TP", , vbTextCompare)
-                    TeXSource = SourceParts(0)
-                End If
-                LatexText = "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & "$" & TeXSource & "$" & Chr(13) & Chr(13) & "\end{document}"
-                oldshape.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
-            Else
-                LatexText = .Item("SOURCE")
-            End If
-            Call LatexForm.RetrieveOldShapeInfo(oldshape, LatexText)
-            If UseExternalEditor Then
-                LatexForm.Show vbModeless
-                Call LatexForm.CmdButtonExternalEditor_Click
-            Else
-                LatexForm.Show vbModal
-            End If
+            LatexText = GetLatexTextFromTexPointShape(oldshape)
+            LatexForm.RetrieveOldShapeInfo oldshape, LatexText
+            ShowLatexForm
             TryProcessShape = True
             Exit Function
         End If
     End With
+    If TryProcessShape = False Then
+        'maybe a LatexIt display
+        LatexText = GetLatexTextFromLatexItShape(oldshape)
+        If LatexText <> vbNullString Then
+            ' LatexIt display
+            oldshape.Tags.Add "BitmapVector", 0
+            LatexForm.RetrieveOldShapeInfo oldshape, LatexText
+            ShowLatexForm
+            TryProcessShape = True
+            Exit Function
+        End If
+    End If
 End Function
 
 
 ' Make sure there aren't multiple shapes with the same name prior to processing
-Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
+Private Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
     Dim vSh As Shape
     Dim vSl As Slide
     Set vSl = ActivePresentation.Slides(SlideIndex)
     
     Dim NameList() As String
     
-    Dim dict As New Scripting.Dictionary
+    Dim dict As New Dictionary
+    Dim n As Variant
+    Dim Key As String
     For Each vSh In vSl.Shapes
         If vSh.Type = msoGroup Then
             NameList = CollectGroupedItemList(vSh, True)
         Else
             ReDim NameList(0 To 0) As String
-            NameList(0) = vSh.name
+            NameList(0) = vSh.Name
         End If
         For n = LBound(NameList) To UBound(NameList)
             Key = NameList(n)
@@ -335,20 +175,22 @@ Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
     Set dict = Nothing
 End Sub
 
-Private Function RenameDuplicateShapes(vSh As Shape, dict As Scripting.Dictionary) As Scripting.Dictionary
+Private Function RenameDuplicateShapes(vSh As Shape, dict As Dictionary) As Dictionary
     If vSh.Type = msoGroup Then
         Dim n As Long
         For n = 1 To vSh.GroupItems.count
             Set dict = RenameDuplicateShapes(vSh.GroupItems(n), dict)
         Next
     Else
-        K = vSh.name
+        Dim K As String
+        Dim shpCount As Long
+        K = vSh.Name
         If dict.Item(K) > 1 Then
             shpCount = 1
             Do While dict.Exists(K & " " & shpCount)
                 shpCount = shpCount + 1
             Loop
-            vSh.name = K & " " & shpCount
+            vSh.Name = K & " " & shpCount
             dict.Add K & " " & shpCount, 1
         End If
     End If
@@ -356,19 +198,19 @@ Private Function RenameDuplicateShapes(vSh As Shape, dict As Scripting.Dictionar
 End Function
 
 
-Public Sub RegenerateSelectedDisplays()
-    Dim Sel As Selection
-    Set Sel = Application.ActiveWindow.Selection
+Public Sub RegenerateSelectedDisplays(Sel As Selection)
     Dim vSh As Shape
     Dim vSl As Slide
     Dim SlideIndex As Integer
+    Dim DisplayCount As Long
 
     RegenerateContinue = True
     
     Select Case Sel.Type
         Case ppSelectionShapes
+            ' Regenerate 1 or more shapes on a single slide
             SlideIndex = ActiveWindow.View.Slide.SlideIndex
-            Call DeDuplicateShapeNamesInSlide(SlideIndex)
+            DeDuplicateShapeNamesInSlide SlideIndex
             DisplayCount = CountDisplaysInSelection(Sel)
             If DisplayCount > 0 Then
                 RegenerateForm.LabelSlideNumber.Caption = 1
@@ -378,14 +220,14 @@ Public Sub RegenerateSelectedDisplays()
                 RegenerateForm.Show False
                 If Sel.HasChildShapeRange Then ' displays within a group
                     For Each vSh In Sel.ChildShapeRange
-                        Call RegenerateOneDisplay(vSh)
+                        RegenerateOneDisplay vSh
                     Next vSh
                 Else
                     For Each vSh In Sel.ShapeRange
                         If vSh.Type = msoGroup And Not IsShapeDisplay(vSh) Then ' grouped displays
-                            Call RegenerateGroupedDisplays(vSh, SlideIndex)
+                            RegenerateGroupedDisplays vSh, SlideIndex
                         Else ' single display
-                            Call RegenerateOneDisplay(vSh)
+                            RegenerateOneDisplay vSh
                         End If
                     Next vSh
                 End If
@@ -393,6 +235,7 @@ Public Sub RegenerateSelectedDisplays()
                 MsgBox "No displays to be regenerated."
             End If
         Case ppSelectionSlides
+            ' Regenerate all shapes on 1 or more slides
             RegenerateForm.LabelSlideNumber.Caption = 0
             RegenerateForm.LabelTotalSlideNumber.Caption = Sel.SlideRange.count
             RegenerateForm.LabelShapeNumber.Caption = 0
@@ -404,7 +247,7 @@ Public Sub RegenerateSelectedDisplays()
                 RegenerateForm.LabelTotalShapeNumberOnSlide.Caption = DisplayCount
                 DoEvents
                 If DisplayCount > 0 Then
-                    Call RegenerateDisplaysOnSlide(vSl)
+                    RegenerateDisplaysOnSlide vSl
                 End If
             Next vSl
         Case Else
@@ -423,13 +266,13 @@ End Sub
 
 Sub RegenerateDisplaysOnSlide(vSl As Slide)
     vSl.Select
-    Call DeDuplicateShapeNamesInSlide(vSl.SlideIndex)
+    DeDuplicateShapeNamesInSlide vSl.SlideIndex
     Dim vSh As Shape
     For Each vSh In vSl.Shapes
         If vSh.Type = msoGroup And Not IsShapeDisplay(vSh) Then
-            Call RegenerateGroupedDisplays(vSh, vSl.SlideIndex)
+            RegenerateGroupedDisplays vSh, vSl.SlideIndex
         Else
-            Call RegenerateOneDisplay(vSh)
+            RegenerateOneDisplay vSh
         End If
     Next vSh
 End Sub
@@ -444,25 +287,20 @@ Sub RegenerateGroupedDisplays(vGroupSh As Shape, SlideIndex As Integer)
     
     For n = LBound(ItemToRegenerateList) To UBound(ItemToRegenerateList)
         Set vSh = ActivePresentation.Slides(SlideIndex).Shapes(ItemToRegenerateList(n))
-        Call RegenerateOneDisplay(vSh)
+        RegenerateOneDisplay vSh
     Next
 
 End Sub
 
 Private Function CollectGroupedItemList(vSh As Shape, AllDisplays As Boolean) As Variant
     Dim n As Long
-    Dim i As Long
+    Dim j As Long
     Dim prev_length As Long
     Dim added_length As Long
     Dim TmpList() As String
     Dim SubList() As String
     prev_length = -1
     For n = 1 To vSh.GroupItems.count
-'        If n = 1 Then
-'            prev_length = -1
-'        Else
-'            prev_length = UBound(TmpList)
-'        End If
         If vSh.GroupItems(n).Type = msoGroup Then ' this case should never occur, as PPT disregards subgroups. Consider removing.
             SubList = CollectGroupedItemList(vSh.GroupItems(n), AllDisplays)
             added_length = UBound(SubList)
@@ -470,103 +308,252 @@ Private Function CollectGroupedItemList(vSh As Shape, AllDisplays As Boolean) As
             For j = prev_length + 1 To UBound(TmpList)
                 TmpList(j) = SubList(j - prev_length - 1)
             Next j
+            prev_length = UBound(TmpList)
         Else
             If AllDisplays Or IsShapeDisplay(vSh.GroupItems(n)) Then
-            ReDim Preserve TmpList(0 To prev_length + 1) As String
-            TmpList(UBound(TmpList)) = vSh.GroupItems(n).name
+                ReDim Preserve TmpList(0 To prev_length + 1) As String
+                TmpList(UBound(TmpList)) = vSh.GroupItems(n).Name
+                prev_length = UBound(TmpList)
             End If
         End If
-        prev_length = UBound(TmpList)
     Next
     CollectGroupedItemList = TmpList
 End Function
 
 Sub RegenerateOneDisplay(vSh As Shape)
+    Dim LatexText As String
+    Dim DoneProcessingShape As Boolean
+    DoneProcessingShape = False
     If RegenerateContinue Then
     vSh.Select
     With vSh.Tags
-        If .Item("LATEXADDIN") <> "" Then ' we're dealing with an IguanaTex display
+        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
+            DoneProcessingShape = True
             RegenerateForm.LabelShapeNumber.Caption = RegenerateForm.LabelShapeNumber.Caption + 1
             DoEvents
             Load LatexForm
             
-            Call LatexForm.RetrieveOldShapeInfo(vSh, .Item("LATEXADDIN"))
+            LatexText = .Item("LATEXADDIN")
+            LatexForm.RetrieveOldShapeInfo vSh, LatexText
 
             Apply_BatchEditSettings
 
-            Call LatexForm.ButtonRun_Click
+            LatexForm.ButtonRun_Click
             Exit Sub
-        ElseIf .Item("SOURCE") <> "" Then ' we're dealing with a Texpoint display
+        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
+            DoneProcessingShape = True
             RegenerateForm.LabelShapeNumber.Caption = RegenerateForm.LabelShapeNumber.Caption + 1
             DoEvents
-            IsTemplate = False
-            If .Item("ORIGWIDTH") <> "" Then
-                vSh.Tags.Add "TEXPOINTSCALING", vSh.Width / val(.Item("ORIGWIDTH"))
-            End If
-            If .Item("TEXPOINT") = "template" Then
-                IsTemplate = True
-            End If
             Load LatexForm
             
-            Dim LatexText As String
-            If IsTemplate = True Then
-                Dim TeXSource As String
-                Dim SourceParts() As String
-                SourceParts = Split(.Item("SOURCE"), vbTab, , vbTextCompare)
-                If UBound(SourceParts) > 2 Then
-                    TeXSource = SourceParts(3)
-                Else
-                    SourceParts = Split(.Item("SOURCE"), "equation", , vbTextCompare)
-                    SourceParts = Split(SourceParts(1), "template TP", , vbTextCompare)
-                    TeXSource = SourceParts(0)
-                End If
-                LatexText = "\documentclass{article}" & Chr(13) & "\usepackage{amsmath}" & Chr(13) & "\pagestyle{empty}" & Chr(13) & "\begin{document}" & Chr(13) & Chr(13) & "$" & TeXSource & "$" & Chr(13) & Chr(13) & "\end{document}"
-                vSh.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
-            Else
-                LatexText = .Item("SOURCE")
-            End If
-            Call LatexForm.RetrieveOldShapeInfo(vSh, LatexText)
+            LatexText = GetLatexTextFromTexPointShape(vSh)
+            LatexForm.RetrieveOldShapeInfo vSh, LatexText
             
             Apply_BatchEditSettings
             
-            Call LatexForm.ButtonRun_Click
+            LatexForm.ButtonRun_Click
             Exit Sub
         End If
     End With
+    If DoneProcessingShape = False Then
+        'maybe a LatexIt display
+        LatexText = GetLatexTextFromLatexItShape(vSh)
+        If LatexText <> vbNullString Then
+            ' LatexIt display
+            DoneProcessingShape = True
+            vSh.Tags.Add "BitmapVector", 0
+            LatexForm.RetrieveOldShapeInfo vSh, LatexText
+            
+            Apply_BatchEditSettings
+            
+            LatexForm.ButtonRun_Click
+            Exit Sub
+        End If
+    End If
     Else
         Debug.Print "Pressed Cancel"
     End If
 End Sub
 
+
+Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
+    Dim LatexText As String
+    LatexText = vbNullString
+    
+    Dim TempPath As String
+    TempPath = CleanPath(LatexForm.TextBoxTempFolder.Text)
+    If Not IsPathWritable(TempPath) Then
+        MsgBox "The temporary folder is not writable, so we cannot test whether this display is a LatexIt display."
+    End If
+    Dim FilePrefix As String
+    FilePrefix = DefaultFilePrefix
+    Dim TimeOutTimeString As String
+    Dim TimeOutTime As Long
+    TimeOutTimeString = GetITSetting("TimeOutTime", "20") ' Wait N seconds for the processes to complete
+    TimeOutTime = val(TimeOutTimeString) * 1000
+    Dim debugMode As Boolean
+    debugMode = False
+    Dim RetVal As Long
+    Dim latexit_metadata_command As String
+    latexit_metadata_command = GetITSetting("LaTeXiT", DEFAULT_LATEXIT_METADATA_COMMAND)
+    Dim picPath As String
+    
+    #If Mac Then
+        ' On Windows, we check if the LaTeXiT metadata extractor exists, but unfortunately, if we do this on Mac,
+        ' the Mac Sandbox asks us for permission to grant access to the executable, so we don't bother.
+        ' Shape needs to be a picture, if so we save it as PDF
+        picPath = TempPath & FilePrefix & ".pdf"
+        If vSh.Type = msoPicture Then
+            'vSh.Export picPath, msoPictureTypePDF
+            Dim NewPres As Presentation
+            Set NewPres = Presentations.Add(msoFalse)
+            Dim NewSlide As Slide
+            Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
+            Dim NewShape As Shape
+            vSh.Copy
+            NewPres.Slides(1).Shapes.Paste
+            ' This briefly displays a saving progress dialog, but I haven't found a way to disable that
+            NewPres.SaveAs picPath, ppSaveAsPDF
+            'Application.DisplayAlerts = True
+            NewPres.Close
+            Set NewPres = Nothing
+        End If
+        Dim fs As New MacFileSystemObject
+    #Else
+        ' no need to go through all this trouble if the user does not have the LaTeXiT metadata extractor...
+        Dim fs As New FileSystemObject
+        If fs.FileExists(latexit_metadata_command) Then
+            ' Shape needs to be a picture, if so we save it as EMF
+            picPath = vbNullString
+            If vSh.Type = msoPicture Then
+                ' Unfortunately, saving as EMF corrupts the EMF file and loses the LaTeXiT info
+                'vSh.Export picPath, ppShapeFormatEMF
+                ' So, we need to use a more complicated route...
+                Dim NewPres As Presentation
+                Set NewPres = Presentations.Add(msoFalse)
+                Dim NewSlide As Slide
+                Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
+                Dim NewShape As Shape
+                vSh.Copy
+                NewPres.Slides(1).Shapes.Paste
+                Dim FilePrefixLatexit As String
+                FilePrefixLatexit = TempPath & FilePrefix & "_latexit"
+                NewPres.SaveAs (FilePrefixLatexit & ".pptx")
+                NewPres.Close
+                Set NewPres = Nothing
+                fs.CopyFile FilePrefixLatexit & ".pptx", FilePrefixLatexit & ".zip", True
+                fs.DeleteFile FilePrefixLatexit & ".pptx"
+                Dim Image1EMF As String
+                Image1EMF = "ppt\media\image1.emf"
+                RetVal& = Execute("unzip -o " & FilePrefixLatexit & ".zip" & " " & Image1EMF _
+                                    & " -d " & FilePrefixLatexit, TempPath, debugMode, TimeOutTime)
+                If fs.FileExists(FilePrefixLatexit & ".zip") Then
+                    fs.DeleteFile FilePrefixLatexit & ".zip"
+                End If
+                If fs.FileExists(FilePrefixLatexit & "\" & Image1EMF) Then
+                    fs.CopyFile FilePrefixLatexit & "\" & Image1EMF, FilePrefixLatexit & ".emf"
+                    picPath = FilePrefixLatexit & ".emf"
+                End If
+                If fs.FolderExists(FilePrefixLatexit) Then
+                    fs.DeleteFolder FilePrefixLatexit
+                End If
+            End If
+        End If
+    #End If
+    
+    ' Run LatexIt metadata extractor
+    If fs.FileExists(picPath) Then
+        Dim RunCommand As String
+        RunCommand = ShellEscape(latexit_metadata_command) & " " & picPath
+        RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+        If (RetVal& <> 0) Then
+            Dim ErrorMessage As String
+            ErrorMessage = "LatexIt Metadata extraction did not run properly, please make sure it runs on the command line."
+            ShowError ErrorMessage, RunCommand
+        Else
+            If fs.FileExists(picPath & ".tex") Then
+                LatexText = ReadAll(picPath & ".tex")
+                If Len(LatexText) > 16 Then
+                    vSh.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
+                End If
+                fs.DeleteFile picPath & ".tex"
+            End If
+            If fs.FileExists(picPath) Then fs.DeleteFile picPath
+        End If
+    End If
+    GetLatexTextFromLatexItShape = LatexText
+End Function
+
+Private Function GetLatexTextFromTexPointShape(vSh As Shape) As String
+    Dim LatexText As String
+    Dim SourceParts() As String
+    Dim TeXSource As String
+    Dim ScalingFactor As Single
+    Dim IsTemplate As Boolean
+    
+    With vSh.Tags
+        ScalingFactor = 1
+        IsTemplate = False
+        If .Item("ORIGWIDTH") <> vbNullString Then
+            ScalingFactor = ScalingFactor * vSh.Width / val(.Item("ORIGWIDTH"))
+        End If
+        If .Item("TEXPOINT") = "template" Then
+            IsTemplate = True
+        End If
+        vSh.Tags.Add "TEXPOINTSCALING", ScalingFactor
+        
+        If IsTemplate = True Then
+            SourceParts = Split(.Item("SOURCE"), vbTab, , vbTextCompare)
+            If UBound(SourceParts) > 2 Then
+                TeXSource = SourceParts(3)
+            Else
+                SourceParts = Split(.Item("SOURCE"), "equation", , vbTextCompare)
+                SourceParts = Split(SourceParts(1), "template TP", , vbTextCompare)
+                TeXSource = SourceParts(0)
+            End If
+            LatexText = DEFAULT_LATEX_CODE_PRE & "$" & TeXSource & "$" & DEFAULT_LATEX_CODE_POST
+            vSh.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
+        Else
+            LatexText = .Item("SOURCE")
+        End If
+        Dim j As Long
+        For j = 1 To .count
+            Debug.Print .Name(j) & vbTab & .value(j)
+        Next j
+    End With
+
+    GetLatexTextFromTexPointShape = LatexText
+End Function
+
 Private Sub Apply_BatchEditSettings()
-    If BatchEditForm.CheckBoxModifyEngine.Value Then
+    If BatchEditForm.CheckBoxModifyEngine.value Then
         LatexForm.ComboBoxLaTexEngine.ListIndex = BatchEditForm.ComboBoxLaTexEngine.ListIndex
     End If
-    If BatchEditForm.CheckBoxModifyTempFolder.Value Then
+    If BatchEditForm.CheckBoxModifyTempFolder.value Then
         LatexForm.TextBoxTempFolder.Text = BatchEditForm.TextBoxTempFolder.Text
     End If
-    If BatchEditForm.CheckBoxModifyBitmapVector.Value Then
+    If BatchEditForm.CheckBoxModifyBitmapVector.value Then
         LatexForm.ComboBoxBitmapVector.ListIndex = BatchEditForm.ComboBoxBitmapVector.ListIndex
     End If
-    If BatchEditForm.CheckBoxModifyLocalDPI.Value Then
+    If BatchEditForm.CheckBoxModifyLocalDPI.value Then
         LatexForm.TextBoxLocalDPI.Text = BatchEditForm.TextBoxLocalDPI.Text
     End If
-    If BatchEditForm.CheckBoxModifySize.Value Then
-        LatexForm.CheckBoxReset.Value = True
+    If BatchEditForm.CheckBoxModifySize.value Then
+        LatexForm.CheckBoxReset.value = True
         LatexForm.textboxSize.Text = BatchEditForm.textboxSize.Text
     End If
-    If BatchEditForm.CheckBoxForcePreserveSize.Value Then
-        LatexForm.CheckBoxForcePreserveSize.Value = True
+    If BatchEditForm.CheckBoxForcePreserveSize.value Then
+        LatexForm.CheckBoxForcePreserveSize.value = True
     End If
-    If BatchEditForm.CheckBoxModifyTransparency.Value Then
-        LatexForm.checkboxTransp.Value = BatchEditForm.checkboxTransp.Value
+    If BatchEditForm.CheckBoxModifyTransparency.value Then
+        LatexForm.checkboxTransp.value = BatchEditForm.checkboxTransp.value
     End If
-    If BatchEditForm.CheckBoxModifyResetFormat.Value Then
-        LatexForm.CheckBoxResetFormat.Value = BatchEditForm.CheckBoxResetFormat.Value
+    If BatchEditForm.CheckBoxModifyResetFormat.value Then
+        LatexForm.CheckBoxResetFormat.value = BatchEditForm.CheckBoxResetFormat.value
     End If
-    If BatchEditForm.CheckBoxReplace.Value Then
-        If BatchEditForm.TextBoxFind.Text <> "" Then
-            LatexForm.TextBox1.Text = Replace(LatexForm.TextBox1.Text, BatchEditForm.TextBoxFind.Text, BatchEditForm.TextBoxReplacement.Text)
+    If BatchEditForm.CheckBoxReplace.value Then
+        If BatchEditForm.TextBoxFind.Text <> vbNullString Then
+            LatexForm.TextWindow1.Text = Replace(LatexForm.TextWindow1.Text, BatchEditForm.TextBoxFind.Text, BatchEditForm.TextBoxReplacement.Text)
         End If
     End If
 End Sub
@@ -574,15 +561,18 @@ End Sub
 Function IsShapeDisplay(vSh As Shape) As Boolean
     IsShapeDisplay = False
     With vSh.Tags
-        If .Item("LATEXADDIN") <> "" Then ' we're dealing with an IguanaTex display
+        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
             IsShapeDisplay = True
-        ElseIf .Item("SOURCE") <> "" Then ' we're dealing with a Texpoint display
+        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
+            IsShapeDisplay = True
+        ElseIf GetLatexTextFromLatexItShape(vSh) <> vbNullString Then ' we're dealing with a LatexIt display
             IsShapeDisplay = True
         End If
     End With
 End Function
 
 Function CountDisplaysInShape(vSh As Shape) As Integer
+    Dim DisplayCount As Long
     DisplayCount = 0
     If vSh.Type = msoGroup Then ' grouped displays
         Dim s As Shape
@@ -599,6 +589,7 @@ End Function
 
 Function CountDisplaysInSelection(Sel As Selection) As Integer
     Dim vSh As Shape
+    Dim DisplayCount As Long
     
     DisplayCount = 0
     If Sel.HasChildShapeRange Then ' displays within a group
@@ -615,6 +606,7 @@ End Function
 
 Function CountDisplaysInSlide(vSl As Slide) As Integer
     Dim vSh As Shape
+    Dim DisplayCount As Long
     DisplayCount = 0
     For Each vSh In vSl.Shapes
         DisplayCount = DisplayCount + CountDisplaysInShape(vSh)
@@ -633,111 +625,60 @@ Private Sub Auto_Close()
     LatexForm.UnInitializeApp
 End Sub
 
-Sub LoadSetTempForm()
+Public Sub RegenerateSelection()
+    Load BatchEditForm
+    BatchEditForm.Show
+End Sub
+
+Public Sub ConvertToVector()
+    Load BatchEditForm
+    BatchEditForm.CheckBoxModifyBitmapVector.value = True
+    BatchEditForm.ComboBoxBitmapVector.Enabled = True
+    BatchEditForm.ComboBoxBitmapVector.ListIndex = 1
+    BatchEditForm.CheckBoxModifyPreserveSize.value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.value = True
+    BatchEditForm.ButtonRun_Click
+End Sub
+
+Public Sub ConvertToBitmap()
+    Load BatchEditForm
+    BatchEditForm.CheckBoxModifyBitmapVector.value = True
+    BatchEditForm.ComboBoxBitmapVector.Enabled = True
+    BatchEditForm.ComboBoxBitmapVector.ListIndex = 0
+    BatchEditForm.CheckBoxModifyPreserveSize.value = True
+    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
+    BatchEditForm.CheckBoxForcePreserveSize.value = True
+    BatchEditForm.ButtonRun_Click
+End Sub
+
+Public Sub LoadSettingsForm()
     Load SetTempForm
     SetTempForm.Show
 End Sub
 
-Public Sub RibbonNewLatexEquation(ByVal control)
-    Dim Sel As Selection
-    Set Sel = Application.ActiveWindow.Selection
-    If (Sel.Type = ppSelectionText) Then
-        NewLatexEquationMatchSize Sel.TextRange.Font.size
-    Else
-        NewLatexEquation
-    End If
-End Sub
-
-Public Sub RibbonEditLatexEquation(ByVal control)
-    EditLatexEquation
-End Sub
-
-Public Sub RibbonSetTempFolder(ByVal control)
-    LoadSetTempForm
-End Sub
-
-Public Sub RibbonRegenerateSelectedDisplays(ByVal control)
-    Load BatchEditForm
-    BatchEditForm.Show
-End Sub
-
-Public Sub RibbonConvertToEMF(ByVal control)
-    Load BatchEditForm
-    BatchEditForm.CheckBoxModifyBitmapVector.Value = True
-    BatchEditForm.ComboBoxBitmapVector.Enabled = True
-    BatchEditForm.ComboBoxBitmapVector.ListIndex = 1
-    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
-    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
-    BatchEditForm.CheckBoxForcePreserveSize.Value = True
-    Call BatchEditForm.ButtonRun_Click
-End Sub
-
-Public Sub RibbonConvertToPNG(ByVal control)
-    Load BatchEditForm
-    BatchEditForm.CheckBoxModifyBitmapVector.Value = True
-    BatchEditForm.ComboBoxBitmapVector.Enabled = True
-    BatchEditForm.ComboBoxBitmapVector.ListIndex = 0
-    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
-    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
-    BatchEditForm.CheckBoxForcePreserveSize.Value = True
-    Call BatchEditForm.ButtonRun_Click
-End Sub
-
-
-' Same Subs, but to be called from add-in menu in older versions of PowerPoint
-Public Sub RegenerateSelectedDisplaysNoChange()
-    Load BatchEditForm
-    BatchEditForm.Show
-End Sub
-
-Public Sub ConvertToEMF()
-    Load BatchEditForm
-    BatchEditForm.CheckBoxModifyBitmapVector.Value = True
-    BatchEditForm.ComboBoxBitmapVector.Enabled = True
-    BatchEditForm.ComboBoxBitmapVector.ListIndex = 1
-    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
-    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
-    BatchEditForm.CheckBoxForcePreserveSize.Value = True
-    Call BatchEditForm.ButtonRun_Click
-End Sub
-
-Public Sub ConvertToPNG()
-    Load BatchEditForm
-    BatchEditForm.CheckBoxModifyBitmapVector.Value = True
-    BatchEditForm.ComboBoxBitmapVector.Enabled = True
-    BatchEditForm.ComboBoxBitmapVector.ListIndex = 0
-    BatchEditForm.CheckBoxModifyPreserveSize.Value = True
-    BatchEditForm.CheckBoxForcePreserveSize.Enabled = True
-    BatchEditForm.CheckBoxForcePreserveSize.Value = True
-    Call BatchEditForm.ButtonRun_Click
-End Sub
-
-Public Sub RibbonInsertVectorGraphicsFile()
+Public Sub InsertVectorGraphicsFile()
     Load LoadVectorGraphicsForm
-    Call LoadVectorGraphicsForm.ButtonPath_Click
+    LoadVectorGraphicsForm.ButtonPath_Click
     LoadVectorGraphicsForm.Show
 End Sub
 
-
-Public Function GetFilePrefix() As String
-    GetFilePrefix = "IguanaTex_tmp"
-End Function
-
-Public Function GetTempPath() As String
-    Dim res As String
-    RegPath = "Software\IguanaTex"
-    res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Temp Dir", "c:\temp\")
-    If Right(res, 1) <> "\" Then
-        res = res & "\"
-    End If
-    GetTempPath = res
-End Function
-
-
-Public Function GetEditorPath() As String
-    Dim res As String
-    RegPath = "Software\IguanaTex"
-    res = GetRegistryValue(HKEY_CURRENT_USER, RegPath, "Editor", "texstudio.exe")
-    GetEditorPath = res
-End Function
+Public Sub TestError()
+    Dim ErrorMessage As String
+    ErrorMessage = "latex did not return in 60 seconds and may have hung." _
+            & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
+            & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing."
+    Dim LastCommand As String
+    
+    Dim TeXExePath As String, TeXExeExt As String
+    TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
+    TeXExeExt = vbNullString
+    Dim FilePrefix As String
+    FilePrefix = DefaultFilePrefix
+    
+    LastCommand = ShellEscape(TeXExePath & "pdflatex" & TeXExeExt) & " -shell-escape -output-format dvi -interaction=batchmode " _
+                                 & FilePrefix & ".tex"
+    ShowError ErrorMessage, LastCommand
+                            
+End Sub
 

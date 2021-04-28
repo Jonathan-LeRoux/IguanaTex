@@ -3,14 +3,18 @@ Attribute VB_Name = "MouseWheel"
 '
 'Enables mouse wheel scrolling in controls
 Option Explicit
+Option Private Module
 
+#If Mac Then
+
+#Else
 #If Win64 Then
     Private Type POINTAPI
        XY As LongLong
     End Type
 #Else
     Private Type POINTAPI
-           X As Long
+           x As Long
            Y As Long
     End Type
 #End If
@@ -99,8 +103,7 @@ Private Const GWL_HINSTANCE As Long = (-6)
 'Private Const VK_UP As Long = &H26
 'Private Const VK_DOWN As Long = &H28
 'Private Const WM_LBUTTONDOWN As Long = &H201
-Dim n As Long
-Private mCtl As MSForms.control
+Private mCtl As MSForms.Control
 Private mbHook As Boolean
 #If VBA7 Then
     Private mLngMouseHook As LongPtr
@@ -110,7 +113,7 @@ Private mbHook As Boolean
     Private mListBoxHwnd As Long
 #End If
      
-Sub HookListBoxScroll(frm As Object, ctl As MSForms.control)
+Sub HookListBoxScroll(frm As Object, ctl As MSForms.Control)
     Dim tPT As POINTAPI
     #If VBA7 Then
         Dim lngAppInst As LongPtr
@@ -123,7 +126,7 @@ Sub HookListBoxScroll(frm As Object, ctl As MSForms.control)
     #If Win64 Then
         hwndUnderCursor = WindowFromPoint(tPT.XY)
     #Else
-        hwndUnderCursor = WindowFromPoint(tPT.X, tPT.Y)
+        hwndUnderCursor = WindowFromPoint(tPT.x, tPT.Y)
     #End If
     If Not frm.ActiveControl Is ctl Then
            ctl.SetFocus
@@ -214,7 +217,7 @@ Private Function MouseProc( _
                 UnhookListBoxScroll
             End If
         #Else
-            If WindowFromPoint(tPT.X, tPT.Y) = mListBoxHwnd Then
+            If WindowFromPoint(tPT.x, tPT.Y) = mListBoxHwnd Then
                 If wParam = WM_MOUSEWHEEL Then
                     MouseProc = True
 '                        If lParam.hWnd > 0 Then
@@ -301,3 +304,4 @@ End Function
 '    End Function
 '#End If
 
+#End If
