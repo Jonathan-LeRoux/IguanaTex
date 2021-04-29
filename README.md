@@ -48,8 +48,10 @@ This repository hosts the source code in a form that can be easily tracked, shar
   * Download from [this link](https://www.ms.u-tokyo.ac.jp/~abenori/soft/index.html#TEX2IMG) (more details on TeX2img on their [Github repo](https://github.com/abenori/TeX2img))
   * After unpacking TeX2img somewhere on your machine, run TeX2img.exe once to let it automatically set the various paths to latex/ghostscript, then set the **full** path to TeX2imgc.exe (note the "c"!) in the "Main Settings" window.
 6. (Optional) **Install LaTeXiT-metadata**:
-  * Needed to convert displays generated with LaTeXiT on Mac into IguanaTex displays
-  * Stay tuned for the release (code is ready, just need to figure out how best to release it)
+  * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
+  * Download [`LaTeXiT-metadata-Win.zip`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.59/LaTeXiT-metadata-Win.zip) from the Releases page, unzip, and set the path to `LaTeXiT-metadata.exe` in the "Main Settings" window.
+  * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
+  * Source code to be released soon.
 
 **Other settings**:
 * If you have a non-standard LaTeX installation, you can specify the folder in which the executables are included.
@@ -82,5 +84,8 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
   * If you cannot find them, open a terminal and use "locate \<filename\>".
 
 6. (Optional) **Install LaTeXiT-metadata**:
-  * Needed to convert displays generated with LaTeXiT into IguanaTex displays
-  * Stay tuned for the release (code is ready, just need to figure out how best to release it)
+  * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
+  * Download [`LaTeXiT-metadata-macos`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.59/LaTeXiT-metadata-macos) from the Releases page, and set the path to it in the "Main Settings" window.
+  * The executable was compiled on Mac OS 10.13 but should work on all versions. Please let me know if you have any issue.
+  * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
+  * Source code to be released soon.
