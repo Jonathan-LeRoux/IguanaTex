@@ -35,7 +35,7 @@ This repository hosts the source code in a form that can be easily tracked, shar
 
 ### Windows 
 
-1. **Download the .ppam add-in** file from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex), or from the [IguanaTex Download page](http://www.jonathanleroux.org/software/iguanatex/download.html).
+1. **Download the .ppam add-in** file from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases), or from the [IguanaTex Download page](http://www.jonathanleroux.org/software/iguanatex/download.html).
 2. **Load the add-in**: in "File" > "Options" > "Add-Ins" > "Manage:", choose "PowerPoint Add-Ins" then "Go...", then click  "Add New", select the .ppam file in the folder where you downloaded it, then "Close" (if you downloaded the .pptm source and saved it as .ppam, it will be in the default Add-In folder).
 3. **Create and set a temporary file folder**: IguanaTex needs access to a folder with read/write permissions to store temporary files.
   * The default is "C:\Temp\". If you have write permissions under "C:\", create the folder "C:\Temp\". You're all set.
@@ -59,7 +59,7 @@ This repository hosts the source code in a form that can be easily tracked, shar
 
 ### Mac
 
-1. **Download the "prebuilt files for Mac" zip** from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/Releases)  
+1. **Download the "prebuilt files for Mac" zip** from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases)  
 There are 3 files to install:
 * `IguanaTex.scpt`: AppleScript file for handling file and folder access
 * `libIguanaTexHelper.dylib`: library for creating native text views; source code included in the git repo, under "IguanaTexHelper/"
