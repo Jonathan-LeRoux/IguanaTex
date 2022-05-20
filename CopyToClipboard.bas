@@ -36,9 +36,13 @@ Sub ClipBoard_SetData(MyString As String)
 'SOURCE: www.msdn.microsoft.com/en-us/library/office/ff192913.aspx
 
 #If VBA7 Then
-   Dim hGlobalMemory As LongPtr, lpGlobalMemory As LongPtr, hClipMemory As LongPtr
+   Dim hGlobalMemory As LongPtr
+   Dim lpGlobalMemory As LongPtr
+   Dim hClipMemory As LongPtr
 #Else
-   Dim hGlobalMemory As Long, lpGlobalMemory As Long, hClipMemory As Long
+   Dim hGlobalMemory As Long
+   Dim lpGlobalMemory As Long
+   Dim hClipMemory As Long
 #End If
 
 Dim x As Long

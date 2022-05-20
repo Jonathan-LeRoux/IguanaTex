@@ -4,7 +4,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ErrorForm
    ClientHeight    =   1848
    ClientLeft      =   156
    ClientTop       =   612
-   ClientWidth     =   10062
+   ClientWidth     =   10068
    OleObjectBlob   =   "ErrorForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -71,14 +71,15 @@ Private Sub UserForm_Activate()
     
     #If Mac Then
         ResizeUserForm Me
+        MacEnableAccelerators Me
     #End If
 End Sub
 
-Private Sub CloseErrorButton_Click()
+Sub CloseErrorButton_Click()
     Me.Hide
 End Sub
 
-Private Sub CopyCommandButton_Click()
+Sub CopyCommandButton_Click()
     Clipboard Me.LabelCommand.Caption
 End Sub
 

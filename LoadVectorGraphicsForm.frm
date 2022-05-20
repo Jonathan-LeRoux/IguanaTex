@@ -2,9 +2,9 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LoadVectorGraphicsForm 
    Caption         =   "Load Vector Graphics File"
    ClientHeight    =   3408
-   ClientLeft      =   90
-   ClientTop       =   318
-   ClientWidth     =   7026
+   ClientLeft      =   96
+   ClientTop       =   324
+   ClientWidth     =   7020
    OleObjectBlob   =   "LoadVectorGraphicsForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -20,7 +20,7 @@ Private Sub ComboBoxVectorOutputType_Change()
 End Sub
 
 Private Sub SetVectorTypeDependencies()
-    If ComboBoxVectorOutputType.ListIndex = 0 Then
+    If ComboBoxVectorOutputType.ListIndex = 0 Or ComboBoxVectorOutputType.ListIndex = 1 Then
         CheckBoxCleanUp.value = False
         CheckBoxCleanUp.Enabled = False
         CheckBoxConvertLines.value = False
@@ -33,7 +33,7 @@ Private Sub SetVectorTypeDependencies()
     End If
 End Sub
 
-Private Sub CommandButtonSave_Click()
+Sub CommandButtonSave_Click()
     SetITSetting "LoadVectorFileConvertLines", REG_DWORD, BoolToInt(CheckBoxConvertLines.value)
     SetITSetting "LoadVectorFileScaling", REG_SZ, textboxScalor.Text
     SetITSetting "LoadVectorFileCalibrationX", REG_SZ, TextBoxCalibrationX.Text
@@ -56,13 +56,19 @@ Private Sub UserForm_Initialize()
     CheckBoxConvertLines.value = GetITSetting("LoadVectorFileConvertLines", False)
     TextBoxCalibrationX.Text = GetITSetting("LoadVectorFileCalibrationX", "1")
     TextBoxCalibrationY.Text = GetITSetting("LoadVectorFileCalibrationY", "1")
-    ComboBoxVectorOutputType.List = Array("SVG via dvisvgm", "EMF via pdfiumdraw")
+    ComboBoxVectorOutputType.List = Array("SVG via PDF w/ dvisvgm", "EMF w/ pdfiumdraw")
     ComboBoxVectorOutputType.ListIndex = GetITSetting("LoadVectorFileOutputTypeIdx", 0)
     CheckBoxCleanUp.value = GetITSetting("LoadVectorFileCleanUp", True)
     SetVectorTypeDependencies
 End Sub
 
-Private Sub ButtonCancel_Click()
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableAccelerators Me
+    #End If
+End Sub
+
+Sub ButtonCancel_Click()
     Unload LoadVectorGraphicsForm
 End Sub
 
@@ -78,9 +84,9 @@ End Function
 
 Sub ButtonPath_Click()
     #If Mac Then
-        TextBoxFile.Text = MacChooseFileOfType("pdf,ps,eps,svg")
+        TextBoxFile.Text = MacChooseFileOfType("pdf,dvi,xdv,ps,eps,svg")
     #Else
-        TextBoxFile.Text = BrowseFilePath(TextBoxFile.Text, "Vector graphics files", "*.pdf;*.ps;*.eps;*.emf;*.svg", "&Select file")
+        TextBoxFile.Text = BrowseFilePath(TextBoxFile.Text, "Vector graphics files", "*.pdf;*.dvi;*.xdv;*.ps;*.eps;*.emf;*.svg", "&Select file")
     #End If
     TextBoxFile.SetFocus
 End Sub
@@ -101,7 +107,7 @@ Private Sub TextBoxFile_Change()
     End If
 End Sub
 
-Private Sub ButtonLoadFile_Click()
+Sub ButtonLoadFile_Click()
     DoInsertVectorGraphicsFile
     Unload LoadVectorGraphicsForm
 End Sub
@@ -159,8 +165,7 @@ Private Sub DoInsertVectorGraphicsFile()
     TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
     TeXExeExt = vbNullString
     Dim VectorOutputTypeList As Variant
-    VectorOutputTypeList = GetVectorOutputTypeList()
-    ' Note that even though we let the user pick between the 2 EMF options, we're only using the pdfiumdraw one
+    VectorOutputTypeList = Array("dvisvgm", "pdfiumdraw")
     Dim VectorOutputType As String
     VectorOutputType = VectorOutputTypeList(ComboBoxVectorOutputType.ListIndex)
     
@@ -212,21 +217,23 @@ Private Sub DoInsertVectorGraphicsFile()
             If TeXExePath <> vbNullString Then TeXExeExt = ".exe"
             Dim DeleteTmpPDF As Boolean
             DeleteTmpPDF = False
-            ' If .ps/.eps file, convert to .pdf first, using ps2pdf
+            ' If .dvi/.xdv/.ps/.eps file, convert to .pdf first, using ps2pdf/eps2pdf/dvipdfmx
             If Ext = "ps" Or Ext = "eps" Then
                 psPath = path
                 pdfPath = path + "_tmp.pdf"
                 If fs.FileExists(pdfPath) Then fs.DeleteFile pdfPath
                 Dim pspdf_command As String
                 If Ext = "ps" Then
-                    pspdf_command = "psd2pdf"
-                Else
+                    pspdf_command = "ps2pdf"
+                ElseIf Ext = "eps" Then
                     pspdf_command = "epspdf"
+                Else
+                    pspdf_command = "dvipdfmx"
                 End If
                 RunCommand = ShellEscape(TeXExePath & pspdf_command & TeXExeExt) & " " + ShellEscape(psPath) + " " + ShellEscape(pdfPath)
                 RetVal& = Execute(RunCommand, StartFolder, debugMode, TimeOutTime)
                 If (RetVal& <> 0 Or Not fs.FileExists(pdfPath)) Then
-                    ErrorMessage = "PS/EPS to PDF conversion failed" _
+                    ErrorMessage = "DVI/XDV/PS/EPS to PDF conversion failed" _
                         & vbNewLine & "Make sure " & pspdf_command & " is installed (it comes with, e.g., Tex Live, MikTeX or Ghostscript) and can be run from anywhere via the command line"
                     ShowError ErrorMessage, RunCommand
                     Exit Sub

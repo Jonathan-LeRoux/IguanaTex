@@ -3,8 +3,8 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm
    Caption         =   "Batch edit"
    ClientHeight    =   5964
    ClientLeft      =   48
-   ClientTop       =   378
-   ClientWidth     =   4950
+   ClientTop       =   384
+   ClientWidth     =   4956
    OleObjectBlob   =   "BatchEditForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -23,6 +23,12 @@ Private Sub UserForm_Initialize()
     Me.Width = 256
     #If Mac Then
         ResizeUserForm Me
+    #End If
+End Sub
+
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableAccelerators Me
     #End If
 End Sub
 
@@ -69,7 +75,7 @@ Public Sub ButtonRun_Click()
     Unload BatchEditForm
 End Sub
 
-Private Sub ButtonCancel_Click()
+Public Sub ButtonCancel_Click()
     Unload BatchEditForm
 End Sub
 
@@ -129,7 +135,7 @@ End Sub
 Private Sub Apply_CheckBoxModifyLocalDPI()
     LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
     TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
-    LabelDpi.Enabled = CheckBoxModifyLocalDPI.value
+    LabelDPI.Enabled = CheckBoxModifyLocalDPI.value
 End Sub
 
 Private Sub Apply_CheckBoxModifySize()

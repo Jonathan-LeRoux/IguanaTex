@@ -26,12 +26,12 @@ Private Const UNUSED As LongLong = 0
 Public mHandle As LongLong
 
 ' properties
-Public Property Get Size() As Currency
+Public Property Get Size() As Double
     Size = CCur(TWGetFontSize(mHandle, UNUSED, UNUSED, UNUSED))
 End Property
 
-Public Property Let Size(value As Currency)
-    TWSetFontSize mHandle, CDbl(value), UNUSED, UNUSED
+Public Property Let Size(value As Double)
+    TWSetFontSize mHandle, val(value), UNUSED, UNUSED
 End Property
 
 ' methods

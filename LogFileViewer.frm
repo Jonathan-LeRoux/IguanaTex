@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LogFileViewer 
    Caption         =   "Error in Latex Code"
-   ClientHeight    =   6966
-   ClientLeft      =   42
-   ClientTop       =   330
-   ClientWidth     =   8850.001
+   ClientHeight    =   6960
+   ClientLeft      =   48
+   ClientTop       =   336
+   ClientWidth     =   8844.001
    OleObjectBlob   =   "LogFileViewer.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -24,7 +24,13 @@ Private Sub UserForm_Initialize()
     #End If
 End Sub
 
-Private Sub CloseLogButton_Click()
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableAccelerators Me
+    #End If
+End Sub
+
+Sub CloseLogButton_Click()
     Dim SelStartPos As Long
     SelStartPos = LatexForm.TextWindow1.SelStart
     Dim TempPath As String
@@ -40,7 +46,7 @@ Private Sub CloseLogButton_Click()
     End If
 End Sub
 
-Private Sub CmdButtonExternalEditor_Click()
+Sub CmdButtonExternalEditor_Click()
     Dim TempPath As String
     TempPath = CleanPath(LatexForm.TextBoxTempFolder.Text)
     If Not IsPathWritable(TempPath) Then Exit Sub

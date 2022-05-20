@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
-   ClientHeight    =   4062
-   ClientLeft      =   -258
+   ClientHeight    =   4872
+   ClientLeft      =   -264
    ClientTop       =   -948
-   ClientWidth     =   5058
+   ClientWidth     =   5064
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -16,8 +16,11 @@ Attribute VB_Exposed = False
 Option Explicit
         
 Private LaTexEngineList As Variant
-Private LatexmkOptionsList As Variant
+Private LaTexDVIOptionsList As Variant
+Private LatexmkPDFOptionsList As Variant
+Private LatexmkDVIOptionsList As Variant
 Private UsePDFList As Variant
+Private UseDVIList As Variant
 
 'Dim NumberOfTemplates As Long
 Private TemplateSortedListString As String
@@ -114,7 +117,7 @@ Sub RemoveMenuItem(ByVal itemText As String)
 
 End Sub
 
-Private Sub ButtonCancel_Click()
+Sub ButtonCancel_Click()
     Unload LatexForm
 End Sub
 
@@ -136,8 +139,10 @@ Sub ButtonRun_Click()
     ' Read settings
     Dim LATEXENGINEID As Integer
     LATEXENGINEID = ComboBoxLaTexEngine.ListIndex
-    Dim tex2pdf_command As String
-    tex2pdf_command = LaTexEngineList(LATEXENGINEID)
+    Dim latex_command As String
+    latex_command = LaTexEngineList(LATEXENGINEID)
+    Dim latex_dvi_options As String
+    latex_dvi_options = LaTexDVIOptionsList(LATEXENGINEID)
     Dim gs_command As String
     gs_command = GetITSetting("GS Command", DEFAULT_GS_COMMAND)
     Dim IMconv As String
@@ -150,16 +155,21 @@ Sub ButtonRun_Click()
     UseLatexmk = GetITSetting("UseLatexmk", False)
     Dim latexmk_command As String
     latexmk_command = "latexmk"
-    Dim latexmk_options As String
-    latexmk_options = LatexmkOptionsList(LATEXENGINEID)
+    Dim latexmk_pdf_options As String
+    latexmk_pdf_options = LatexmkPDFOptionsList(LATEXENGINEID)
+    Dim latexmk_dvi_options As String
+    latexmk_dvi_options = LatexmkDVIOptionsList(LATEXENGINEID)
+    
     Dim TeXExePath As String, TeXExeExt As String
     TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
     TeXExeExt = vbNullString
-    #If Mac Then
-        ' no need to do anything for TeXExeExt on Mac
-    #Else
-        If TeXExePath <> vbNullString Then TeXExeExt = ".exe"
-    #End If
+    ' This does not seem to be necessary, at least not on my system,
+    ' and it can break installations that use linux subsystems.
+    '#If Mac Then
+    '    ' no need to do anything for TeXExeExt on Mac
+    '#Else
+    '    If TeXExePath <> vbNullString Then TeXExeExt = ".exe"
+    '#End If
     Dim libgsPath As String
     libgsPath = GetITSetting("Libgs", DEFAULT_LIBGS)
     Dim libgsString As String
@@ -169,6 +179,8 @@ Sub ButtonRun_Click()
         libgsString = vbNullString
     End If
         
+    Dim UseDVI As Boolean
+    UseDVI = UseDVIList(LATEXENGINEID)
     Dim UsePDF As Boolean
     UsePDF = UsePDFList(LATEXENGINEID)
     
@@ -180,14 +192,26 @@ Sub ButtonRun_Click()
     VectorOutputType = GetITSetting("VectorOutputType", DEFAULT_VECTOR_OUTPUT_TYPE)
     
     Dim OutputType As String
+    Dim OutputExt As String
     
     #If Mac Then
         If Not UseVector Then
-            ' Force PDF output for Mac in all cases except Vector (where dvi2svgm is a valid route),
-            ' as it likely more desirable than PNG
+            ' Force PDF output for Mac in bitmap case,
+            ' as PDF can be inserted on Mac and it is likely more desirable than PNG
             UsePDF = True
         End If
     #End If
+    If UseVector Then
+        If VectorOutputType = "dvisvgm" Then
+            ' "dvisvgm via DVI" only needs DVI/XDV, no PDF, whatever the engine
+            UseDVI = True
+            UsePDF = False
+        Else
+            ' "pdfiumdraw" and "dvisvgm via PDF" both require PDF, whatever the engine.
+            ' The last option, "tex2img", does not care how this is set.
+            UsePDF = True
+        End If
+    End If
     
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
@@ -229,7 +253,7 @@ Sub ButtonRun_Click()
         ' Use TeX2img to generate an EMF file from LaTeX
         LabelProcess.Caption = "LaTeX to EMF..."
         FrameProcess.Repaint
-        RunCommand = ShellEscape(tex2img_command) & " --latex " + tex2pdf_command _
+        RunCommand = ShellEscape(tex2img_command) & " --latex " + latex_command _
                             & " --preview- " + FilePrefix + ".tex" & " " + FilePrefix + ".emf"
         RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
         If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".emf")) Then
@@ -243,31 +267,70 @@ Sub ButtonRun_Click()
         FinalFilename = FilePrefix & ".emf"
         OutputType = "EMF"
     Else
-        ' Either a Bitmap display, a Vector display generated as SVG, or a Vector displays generated as EMF with pdfiumdraw
-        If UsePDF = True Then
-            ' PDF to PNG/SVG/EMF route
-            Dim OutputExt As String
-            
-            If UseLatexmk = True Then
-                OutputExt = ".pdf"
-                LabelProcess.Caption = "LaTeX to PDF..."
-                FrameProcess.Repaint
-                RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_options _
-                            & " -shell-escape -interaction=batchmode " & FilePrefix + ".tex"
-                RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+        If UseDVI = True Then
+            ' Convert to DVI
+            If latex_command = "xelatex" Then
+                OutputType = "XDV"
+                OutputExt = ".xdv"
             Else
-                If tex2pdf_command = "platex" Then
-                    OutputExt = ".dvi"
-                    LabelProcess.Caption = "LaTeX to DVI..."
-                Else
-                    OutputExt = ".pdf"
-                    LabelProcess.Caption = "LaTeX to PDF..."
-                End If
-                FrameProcess.Repaint
-                RunCommand = ShellEscape(TeXExePath & tex2pdf_command & TeXExeExt) & " -shell-escape -interaction=batchmode " _
-                                        & FilePrefix + ".tex"
-                RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+                OutputType = "DVI"
+                OutputExt = ".dvi"
             End If
+            LabelProcess.Caption = "LaTeX to " & OutputType & "..."
+            FrameProcess.Repaint
+            If UseLatexmk = True Then
+                RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_dvi_options _
+                                    & " -shell-escape -interaction=batchmode " + FilePrefix + ".tex"
+            Else ' Run latex engine in DVI/XDV output mode
+                RunCommand = ShellEscape(TeXExePath & latex_command & TeXExeExt) & " " & latex_dvi_options _
+                                    & " -shell-escape -interaction=batchmode " & FilePrefix + ".tex"
+            End If
+            RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+            If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
+                ' Error in Latex code
+                ' Read log file and show it to the user
+                If fs.FileExists(TempPath & FilePrefix & ".log") Then
+                    ShowLogFile (TempPath + FilePrefix + ".log")
+                Else
+                    ErrorMessage = "latex did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                    & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
+                    & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing."
+                    ShowError ErrorMessage, RunCommand
+                End If
+                FrameProcess.Visible = False
+                Exit Sub
+            End If
+            
+            If UsePDF = True Then
+                ' Further convert to PDF
+                LabelProcess.Caption = OutputType & " to PDF..."
+                FrameProcess.Repaint
+                RunCommand = ShellEscape(TeXExePath & "dvipdfmx" & TeXExeExt) & " -o " + FilePrefix + ".pdf" _
+                                        & " " & FilePrefix & OutputExt
+                RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+                If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
+                    ' Error in DVI to PDF conversion
+                    ErrorMessage = "Error while using dvipdfmx to convert from " & OutputType & " to PDF."
+                    ShowError ErrorMessage, RunCommand
+                    FrameProcess.Visible = False
+                    Exit Sub
+                End If
+                OutputType = "PDF"
+                OutputExt = ".pdf"
+            End If
+        Else ' If UseDVI is False, then UsePDF must be true: convert straight to PDF
+            OutputType = "PDF"
+            OutputExt = ".pdf"
+            LabelProcess.Caption = "LaTeX to PDF..."
+            FrameProcess.Repaint
+            If UseLatexmk = True Then
+                RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_pdf_options _
+                            & " -shell-escape -interaction=batchmode " & FilePrefix + ".tex"
+            Else
+                RunCommand = ShellEscape(TeXExePath & latex_command & TeXExeExt) & " -shell-escape -interaction=batchmode " _
+                                        & FilePrefix + ".tex"
+            End If
+            RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
             
             If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
                 ' Error in Latex code
@@ -275,7 +338,7 @@ Sub ButtonRun_Click()
                 If fs.FileExists(TempPath & FilePrefix & ".log") Then
                     ShowLogFile (TempPath & FilePrefix & ".log")
                 Else
-                    ErrorMessage = tex2pdf_command & " did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                    ErrorMessage = latex_command & " did not return in " & TimeOutTimeString & " seconds and may have hung." _
                     & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
                     & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing"
                     ShowError ErrorMessage, RunCommand
@@ -283,67 +346,63 @@ Sub ButtonRun_Click()
                 FrameProcess.Visible = False
                 Exit Sub
             End If
-            If UseLatexmk = False And tex2pdf_command = "platex" Then
-                LabelProcess.Caption = "DVI to PDF..."
+        End If
+        
+        ' By now, we either have a DVI/XDV file, or a PDF file. Let's generate a Vector (EMF/SVG) or Bitmap (PNG/PDF) display.
+        If UseVector Then
+            ' Vector display
+            If VectorOutputType = "pdfiumdraw" Then
+                ' Use pdfiumdraw to generate an EMF file from the previously generated PDF
+                LabelProcess.Caption = "PDF to EMF..."
                 FrameProcess.Repaint
-                ' platex actually outputs a DVI file, which we need to convert to PDF (we could go the EPS route, but this blends easier with IguanaTex's existing code)
-                RunCommand = ShellEscape(TeXExePath & "dvipdfmx" & TeXExeExt) & " -o " + FilePrefix + ".pdf" _
-                                        & " " & FilePrefix & ".dvi"
-                RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
-                    ' Error in DVI to PDF conversion
-                    ErrorMessage = "Error while using dvipdfmx to convert from DVI to PDF."
+                RunCommand = ShellEscape(pdfiumdraw_command) & " --extent=50 --emf --transparent --pages=1 " _
+                                    & FilePrefix & ".pdf"
+                RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+                If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".emf")) Then
+                    ErrorMessage = "TeX2img's pdfiumdraw did not return in " & TimeOutTimeString & " seconds and may have hung." _
+                            & vbNewLine & "You should have run TeX2img once outside IguanaTex to make sure its path are set correctly." _
+                            & vbNewLine & "Please make sure your code compiles outside IguanaTex."
                     ShowError ErrorMessage, RunCommand
                     FrameProcess.Visible = False
                     Exit Sub
                 End If
-            End If
-        
-            
-            If UseVector = True Then ' SVG or EMF
-                If VectorOutputType = "dvisvgm" Then ' Convert to SVG
-                    ' Use dvisvgm to generate SVG file
-                    LabelProcess.Caption = "PDF to SVG..."
-                    FrameProcess.Repaint
-                    RunCommand = ShellEscape(TeXExePath & "dvisvgm" & TeXExeExt) & " --pdf -o " _
-                                        & FilePrefix & ".svg" & libgsString & " " _
-                                        & FilePrefix & ".pdf"
-                    RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                    If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".svg")) Then
-                        ' Error in PDF to SVG conversion
-                        ErrorMessage = "Error while using dvisvgm to convert from PDF to SVG."
-                        ShowError ErrorMessage, RunCommand
-                        FrameProcess.Visible = False
-                        Exit Sub
-                    End If
-                    FinalFilename = FilePrefix & ".svg"
-                    OutputType = "SVG"
-                Else ' VectorOutputType = "pdfiumdraw"
-                    ' Use pdfiumdraw to generate an EMF file from the previously generated PDF
-                    LabelProcess.Caption = "PDF to EMF..."
-                    FrameProcess.Repaint
-                    RunCommand = ShellEscape(pdfiumdraw_command) & " --extent=50 --emf --transparent --pages=1 " _
-                                        & FilePrefix & ".pdf"
-                    RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                    If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".emf")) Then
-                        ErrorMessage = "TeX2img's pdfiumdraw did not return in " & TimeOutTimeString & " seconds and may have hung." _
-                                & vbNewLine & "You should have run TeX2img once outside IguanaTex to make sure its path are set correctly." _
-                                & vbNewLine & "Please make sure your code compiles outside IguanaTex."
-                        ShowError ErrorMessage, RunCommand
-                        FrameProcess.Visible = False
-                        Exit Sub
-                    End If
-                    FinalFilename = FilePrefix & ".emf"
-                    OutputType = "EMF"
+                FinalFilename = FilePrefix & ".emf"
+                OutputType = "EMF"
+            Else
+                ' Use dvisvgm to generate SVG (either from DVI/XDV or from PDF)
+                LabelProcess.Caption = OutputType & " to SVG..."
+                FrameProcess.Repaint
+                Dim dvisvgm_options As String
+                If OutputType = "PDF" Then
+                    dvisvgm_options = " --pdf"
+                Else
+                    dvisvgm_options = " --no-fonts"
                 End If
-            Else ' "Bitmap" Display, i.e., PDF on Mac, PNG on Windows
-                #If Mac Then
-                    LabelProcess.Caption = "Cropping PDF..."
-                    FrameProcess.Repaint
-                #Else
-                    LabelProcess.Caption = "PDF to PNG..."
-                    FrameProcess.Repaint
-                #End If
+                RunCommand = ShellEscape(TeXExePath & "dvisvgm" & TeXExeExt) & dvisvgm_options & " -o " _
+                                    & FilePrefix & ".svg" & libgsString & " " _
+                                    & FilePrefix & OutputExt
+                RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
+                If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".svg")) Then
+                    ' Error in DVI/XDV/PDF to SVG conversion
+                    ErrorMessage = "Error while using dvisvgm to convert from " & OutputType & " to SVG."
+                    ShowError ErrorMessage, RunCommand
+                    FrameProcess.Visible = False
+                    Exit Sub
+                End If
+                FinalFilename = FilePrefix & ".svg"
+                OutputType = "SVG"
+            
+            End If
+        Else
+            ' Bitmap display: PDF on Mac, PNG on PC
+            #If Mac Then
+                LabelProcess.Caption = "Cropping PDF..."
+                FrameProcess.Repaint
+            #Else
+                LabelProcess.Caption = OutputType & " to PNG..."
+                FrameProcess.Repaint
+            #End If
+            If OutputType = "PDF" Then ' Crop PDF and (on Windows) convert to PNG
                 ' Output Bounding Box to file and read back in the appropriate information
                 #If Mac Then
                     RunCommand = ShellEscape(gs_command) & " -q -dBATCH -dNOPAUSE -sDEVICE=bbox " _
@@ -367,7 +426,7 @@ Sub ButtonRun_Click()
                     ' PDF insert supported on Mac, only need to crop
                     RunCommand = ShellEscape(gs_command) & " -q -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile=" _
                                         & FilePrefix & "_tmp.pdf" & BBString _
-                                        & " -f " & ShellEscape(TempPath & FilePrefix & ".pdf")
+                                        & " -f " & FilePrefix & ".pdf"
                     RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
                     If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.pdf")) Then
                         ' Error in PDF crop
@@ -382,7 +441,7 @@ Sub ButtonRun_Click()
                     ' Convert PDF to PNG
                     RunCommand = ShellEscape(gs_command) & " -q -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r" & OutputDpiString _
                                         & " -sOutputFile=" & FilePrefix & "_tmp.png" & BBString _
-                                        & " -f " & ShellEscape(TempPath & FilePrefix & ".pdf")
+                                        & " -f " & FilePrefix & ".pdf"
                     RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
                     If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & "_tmp.png")) Then
                         ' Error in PDF to PNG conversion
@@ -414,89 +473,7 @@ Sub ButtonRun_Click()
                     OutputType = "PNG"
                     FinalFilename = FilePrefix & ".png"
                 #End If
-            End If
-            
-        Else
-            ' DVI to PNG/SVG/EMF routes
-            LabelProcess.Caption = "LaTeX to DVI..."
-            FrameProcess.Repaint
-            If UseLatexmk = True Then
-                RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_options _
-                                    & " -shell-escape -interaction=batchmode " + FilePrefix + ".tex"
-            Else
-                RunCommand = ShellEscape(TeXExePath & "pdflatex" & TeXExeExt) & " -shell-escape -output-format dvi -interaction=batchmode " _
-                                 & FilePrefix & ".tex"
-            End If
-            RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-            If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".dvi")) Then
-                ' Error in Latex code
-                ' Read log file and show it to the user
-                If fs.FileExists(TempPath & FilePrefix & ".log") Then
-                    ShowLogFile (TempPath + FilePrefix + ".log")
-                Else
-                    ErrorMessage = "latex did not return in " & TimeOutTimeString & " seconds and may have hung." _
-                    & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
-                    & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing."
-                    ShowError ErrorMessage, RunCommand
-                End If
-                FrameProcess.Visible = False
-                Exit Sub
-            End If
-            
-            If UseVector = True Then
-                If VectorOutputType = "dvisvgm" Then
-                    ' Use dvi2svg to generate SVG file
-                    LabelProcess.Caption = "DVI to SVG..."
-                    FrameProcess.Repaint
-                    RunCommand = ShellEscape(TeXExePath & "dvisvgm" & TeXExeExt) & " --no-font -o " & FilePrefix & ".svg" _
-                                            & " " & FilePrefix & ".dvi"
-                    RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                    If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".svg")) Then
-                        ' Error in DVI to SVG conversion
-                        ErrorMessage = "Error while using dvisvgm to convert from DVI to SVG."
-                        ShowError ErrorMessage, RunCommand
-                        FrameProcess.Visible = False
-                        Exit Sub
-                    End If
-                    FinalFilename = FilePrefix & ".svg"
-                    OutputType = "SVG"
-                Else ' VectorOutputType = "pdfiumdraw"
-                    ' Use TeX2img's pdfiumdraw to generate an EMF file
-                    LabelProcess.Caption = "DVI to PDF..."
-                    FrameProcess.Repaint
-                    RunCommand = ShellEscape(TeXExePath & "dvipdfmx" & TeXExeExt) & " -o " & FilePrefix + ".pdf" _
-                                            & " " & FilePrefix & ".dvi"
-                    RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                    If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".pdf")) Then
-                        ' Error in DVI to PDF conversion
-                        ErrorMessage = "Error while using dvipdfmx to convert from DVI to PDF."
-                        ShowError ErrorMessage, RunCommand
-                        FrameProcess.Visible = False
-                        Exit Sub
-                    End If
-                    
-                    LabelProcess.Caption = "PDF to EMF..."
-                    FrameProcess.Repaint
-                    
-                    RunCommand = ShellEscape(pdfiumdraw_command) & " --extent=50 --emf --transparent --pages=1 " _
-                                        & FilePrefix & ".pdf"
-                    RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
-                    
-                    If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".emf")) Then
-                        ErrorMessage = "pdfiumdraw did not return in " & TimeOutTimeString & " seconds and may have hung." _
-                                & vbNewLine & "You should have run TeX2img once outside IguanaTex to make sure its path are set correctly." _
-                                & vbNewLine & "Please make sure your code compiles outside IguanaTex."
-                        ShowError ErrorMessage, RunCommand
-                        FrameProcess.Visible = False
-                        Exit Sub
-                    End If
-                    FinalFilename = FilePrefix & ".emf"
-                    OutputType = "EMF"
-                End If
-            Else
-            
-                LabelProcess.Caption = "DVI to PNG..."
-                FrameProcess.Repaint
+            Else ' Convert DVI to PNG
                 Dim DviPngSwitches As String
                 ' monitor is 96 dpi or higher; we use OutputDpi (=1200 by default) dpi to get a crisper display,
                 ' and rescale later on for new displays to match the point size
@@ -576,8 +553,8 @@ Sub ButtonRun_Click()
         oldHeight = oldshape.Height
         oldWidth = oldshape.Width
         oldshapeIsVector = False
-        If oldshape.Tags.Item("BitmapVector") <> vbNullString Then
-            If oldshape.Tags.Item("BitmapVector") = 1 Then
+        If oldshape.Tags.item("BitmapVector") <> vbNullString Then
+            If oldshape.Tags.item("BitmapVector") = 1 Then
                 oldshapeIsVector = True
             End If
         End If
@@ -624,13 +601,13 @@ Sub ButtonRun_Click()
         Dim OldDpi As Long
         OldDpi = OutputDpi
         With oldshape.Tags
-            If .Item("TEXPOINTSCALING") <> vbNullString Then
+            If .item("TEXPOINTSCALING") <> vbNullString Then
                 isTexpoint = True
-                tScaleWidth = val(.Item("TEXPOINTSCALING")) * MagicScalingFactor
+                tScaleWidth = val(.item("TEXPOINTSCALING")) * MagicScalingFactor
                 tScaleHeight = tScaleWidth
             End If
-            If .Item("OUTPUTDPI") <> vbNullString Then
-                OldDpi = val(.Item("OUTPUTDPI"))
+            If .item("OUTPUTDPI") <> vbNullString Then
+                OldDpi = val(.item("OUTPUTDPI"))
             End If
         End With
         If Not isTexpoint Then ' modifying a normal display, either PNG or EMF
@@ -646,14 +623,14 @@ Sub ButtonRun_Click()
                 tScaleWidth = WidthOld / oldshape.Width * 960 / OutputDpi
             End If
             With oldshape.Tags
-                If .Item("ORIGINALHEIGHT") <> vbNullString Then
+                If .item("ORIGINALHEIGHT") <> vbNullString Then
                     Dim tmpHeight As Single
-                    tmpHeight = val(.Item("ORIGINALHEIGHT"))
+                    tmpHeight = val(.item("ORIGINALHEIGHT"))
                     tScaleHeight = HeightOld / tmpHeight * OldDpi / OutputDpi
                 End If
-                If .Item("ORIGINALWIDTH") <> vbNullString Then
+                If .item("ORIGINALWIDTH") <> vbNullString Then
                     Dim tmpWidth As Single
-                    tmpWidth = val(.Item("ORIGINALWIDTH"))
+                    tmpWidth = val(.item("ORIGINALWIDTH"))
                     tScaleWidth = WidthOld / tmpWidth * OldDpi / OutputDpi
                 End If
             End With
@@ -661,13 +638,13 @@ Sub ButtonRun_Click()
             Dim OldMagicScalingFactor As Single
             OldMagicScalingFactor = 1
             With oldshape.Tags
-                    If .Item("OUTPUTTYPE") <> vbNullString Then
-                        Select Case OutputType
+                    If .item("OUTPUTTYPE") <> vbNullString Then
+                        Select Case .item("OUTPUTTYPE")
                             Case "EMF": OldMagicScalingFactor = MagicScalingFactorEMF
                             Case "PNG": OldMagicScalingFactor = MagicScalingFactorPNG
                             Case "PDF": OldMagicScalingFactor = MagicScalingFactorPDF
                             Case "SVG": OldMagicScalingFactor = MagicScalingFactorSVG
-                            Case Else: MagicScalingFactor = 1
+                            Case Else: OldMagicScalingFactor = 1
                         End Select
                     Else ' from an older version where we do not record OutputType
                         If oldshapeIsVector = False Then ' PNG
@@ -784,7 +761,7 @@ Sub ButtonRun_Click()
             ' Handle the case of shape within EMF group.
             Dim DeleteLowestLayer As Boolean
             DeleteLowestLayer = False
-            If oldshape.Tags.Item("EMFchild") <> vbNullString Then
+            If oldshape.Tags.item("EMFchild") <> vbNullString Then
                 DeleteLowestLayer = True
             End If
             oldshape.Delete
@@ -1094,10 +1071,12 @@ Private Function BoundingBoxString(ByVal BBXFile As String) As String
         If TextSplit(0) = "%%HiResBoundingBox:" Then
             ' Without the +/- 0.1, we noticed that the crop was too tight
             ' On the other hand, not using the Hires BB results in wide margins (but that's the default in pdfcrop)
-            llx = CDbl(TextSplit(1)) - 0.1
-            lly = CDbl(TextSplit(2)) - 0.1
-            urx = CDbl(TextSplit(3)) + 0.1
-            ury = CDbl(TextSplit(4)) + 0.1
+            ' On Mac, +/-0.1 looks great, but it results on Windows in a display that appears cropped
+            ' (within a box of the same size...). So for now, we add +/-1 to be extra safe, but this is a hack.
+            llx = val(TextSplit(1)) - 1
+            lly = val(TextSplit(2)) - 1
+            urx = val(TextSplit(3)) + 1
+            ury = val(TextSplit(4)) + 1
             'compute size and offset
             sx = CStr(RoundUp((urx - llx) / 72 * OutputDpi))
             sy = CStr(RoundUp((ury - lly) / 72 * OutputDpi))
@@ -1118,10 +1097,10 @@ Private Function BoundingBoxString(ByVal BBXFile As String) As String
         tmptext = txtStream.ReadLine
         TextSplit = Split(tmptext, " ")
         If TextSplit(0) = "%%HiResBoundingBox:" Then
-            llx = CDbl(TextSplit(1)) - 0.1
-            lly = CDbl(TextSplit(2)) - 0.1
-            urx = CDbl(TextSplit(3)) + 0.1
-            ury = CDbl(TextSplit(4)) + 0.1
+            llx = val(TextSplit(1)) - 0.1
+            lly = val(TextSplit(2)) - 0.1
+            urx = val(TextSplit(3)) + 0.1
+            ury = val(TextSplit(4)) + 0.1
             'compute size and offset
             sx = CStr(Round((urx - llx) / 72 * OutputDpi))
             sy = CStr(Round((ury - lly) / 72 * OutputDpi))
@@ -1176,8 +1155,11 @@ Private Sub LoadSettings()
     ToggleButtonWrap.value = TextWindow1.WordWrap
     
     LaTexEngineList = GetLaTexEngineList()
-    LatexmkOptionsList = GetLatexmkOptionsList()
+    LaTexDVIOptionsList = GetLatexDVIOptionsList()
+    LatexmkPDFOptionsList = GetLatexmkPDFOptionsList()
+    LatexmkDVIOptionsList = GetLatexmkDVIOptionsList()
     UsePDFList = GetUsePDFList()
+    UseDVIList = GetUseDVIList()
     ComboBoxLaTexEngine.List = GetLaTexEngineDisplayList()
     ComboBoxLaTexEngine.ListIndex = GetITSetting("LaTeXEngineID", 0)
     TextBoxLocalDPI.Text = GetITSetting("OutputDpi", "1200")
@@ -1191,7 +1173,7 @@ Private Sub LoadSettings()
 End Sub
 
 
-Private Sub ButtonTeXPath_Click()
+Sub ButtonTeXPath_Click()
     #If Mac Then
         TextBoxFile.Text = MacChooseFileOfType("tex")
     #Else
@@ -1210,16 +1192,16 @@ Private Sub Apply_BitmapVector_Change()
         checkboxTransp.Enabled = False
         checkboxTransp.value = True
         TextBoxLocalDPI.Enabled = False
-        LabelDpi.Enabled = False
+        LabelDPI.Enabled = False
     Else
         checkboxTransp.Enabled = True
         TextBoxLocalDPI.Enabled = True
-        LabelDpi.Enabled = True
+        LabelDPI.Enabled = True
     End If
 
 End Sub
 
-Private Sub CheckBoxReset_Click()
+Sub CheckBoxReset_Click()
     Apply_CheckBoxReset
 End Sub
 
@@ -1227,7 +1209,7 @@ Private Sub Apply_CheckBoxReset()
     textboxSize.Enabled = CheckBoxReset.value = True
 End Sub
 
-Private Sub CheckBoxForcePreserveSize_Click()
+Sub CheckBoxForcePreserveSize_Click()
     If CheckBoxForcePreserveSize.value = True Then
         CheckBoxReset.Enabled = False
         CheckBoxReset.value = False
@@ -1237,12 +1219,12 @@ Private Sub CheckBoxForcePreserveSize_Click()
     Apply_CheckBoxReset
 End Sub
 
-Private Sub ButtonAbout_Click()
+Sub ButtonAbout_Click()
     AboutBox.Show 1
 End Sub
 
 
-Private Sub ButtonMakeDefault_Click()
+Sub ButtonMakeDefault_Click()
     SaveSettings
     Select Case MultiPage1.value
         Case 0 ' Direct input
@@ -1258,13 +1240,13 @@ Sub CmdButtonExternalEditor_Click()
     ExternalEditorForm.LaunchExternalEditor TextBoxTempFolder.Text, TextWindow1.Text
 End Sub
 
-Private Sub CmdButtonImportCode_Click()
+Sub CmdButtonImportCode_Click()
     TextWindowTemplateCode.Text = TextWindow1.Text
     TextWindowTemplateCode.SelStart = TextWindow1.SelStart
     TextWindowTemplateCode.SetFocus
 End Sub
 
-Private Sub CmdButtonLoadTemplate_Click()
+Sub CmdButtonLoadTemplate_Click()
     If TextWindowTemplateCode.Text = vbNullString Then
         MsgBox "Please select a template to be loaded"
     Else
@@ -1275,7 +1257,7 @@ Private Sub CmdButtonLoadTemplate_Click()
     End If
 End Sub
 
-Private Sub CmdButtonRemoveTemplate_Click()
+Sub CmdButtonRemoveTemplate_Click()
     Dim RemovedIndex As Long
     RemovedIndex = ComboBoxTemplate.ListIndex
     If ComboBoxTemplate.ListCount > 1 Then
@@ -1302,7 +1284,7 @@ Private Sub CmdButtonRemoveTemplate_Click()
     TextWindowTemplateCode.SetFocus
 End Sub
 
-Private Sub CmdButtonSaveTemplate_Click()
+Sub CmdButtonSaveTemplate_Click()
     ' get the right ID from the array of sorted template IDs
     Dim templateID As Long
     templateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
@@ -1341,7 +1323,7 @@ End Sub
 
 
 
-Private Sub ComboBoxTemplate_Click()
+Sub ComboBoxTemplate_Click()
     TextBoxTemplateName.Text = ComboBoxTemplate.Text
     ' Except for the empty "New Template" slot, get the code and LaTeXEngineID setting from registry
     If ComboBoxTemplate.ListIndex = ComboBoxTemplate.ListCount - 1 Then
@@ -1434,24 +1416,6 @@ Private Sub UserForm_Initialize()
     Me.Width = 385
     #If Mac Then
         ResizeUserForm Me
-        Dim ctrl As Control
-        For Each ctrl In Me.Controls
-            On Error Resume Next
-            ctrl.Accelerator = vbNullString
-        Next
-        MultiPage1.Pages(0).Accelerator = vbNullString
-        MultiPage1.Pages(1).Accelerator = vbNullString
-        MultiPage1.Pages(2).Accelerator = vbNullString
-'        CmdButtonImportCode.Accelerator = vbNullString
-'        CmdButtonLoadTemplate.Accelerator = vbNullString
-'        CmdButtonRemoveTemplate.Accelerator = vbNullString
-'        CmdButtonSaveTemplate.Accelerator = vbNullString
-'        ButtonCancel.Accelerator = vbNullString
-'        ButtonAbout.Accelerator = vbNullString
-'        ButtonMakeDefault.Accelerator = vbNullString
-'        ButtonRun.Accelerator = vbNullString
-'        ButtonLoad.path
-
     #End If
     
     LatexForm.textboxSize.Visible = True
@@ -1486,6 +1450,12 @@ Private Sub UserForm_Activate()
         'Execute macro to enable resizeability
         MakeFormResizable Me
         
+        #If Mac Then
+            MacEnableCopyPaste Me
+            MacEnableAccelerators Me
+            checkboxDebug.Accelerator = "E"
+        #End If
+        
         If Not FormHeightWidthSet Then
             #If Mac Then
                 LatexForm.Height = GetITSetting("LatexFormHeight", 320) * gUserFormResizeFactor
@@ -1511,11 +1481,7 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
     CheckBoxForcePreserveSize.value = False
     Label2.Caption = "Reset size:"
     ButtonRun.Caption = "ReGenerate"
-    #If Mac Then
-        ButtonRun.Accelerator = vbNullString
-    #Else
-        ButtonRun.Accelerator = "G"
-    #End If
+    ButtonRun.Accelerator = "G"
     
     TextWindow1.Text = mainText
     Dim CursorPosition As Long
@@ -1527,36 +1493,36 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
     FormWidthSet = False
      
     With oldshape.Tags
-        If .Item("IGUANATEXSIZE") <> vbNullString Then
-            textboxSize.Text = .Item("IGUANATEXSIZE")
+        If .item("IGUANATEXSIZE") <> vbNullString Then
+            textboxSize.Text = .item("IGUANATEXSIZE")
         End If
-        If .Item("OUTPUTDPI") <> vbNullString Then
-            TextBoxLocalDPI.Text = .Item("OUTPUTDPI")
+        If .item("OUTPUTDPI") <> vbNullString Then
+            TextBoxLocalDPI.Text = .item("OUTPUTDPI")
         End If
-        If .Item("BitmapVector") <> vbNullString Then
-            ComboBoxBitmapVector.ListIndex = .Item("BitmapVector")
+        If .item("BitmapVector") <> vbNullString Then
+            ComboBoxBitmapVector.ListIndex = .item("BitmapVector")
         End If
-        If .Item("TRANSPARENCY") <> vbNullString Then
-            checkboxTransp.value = SanitizeBoolean(.Item("TRANSPARENCY"), True)
-        ElseIf .Item("TRANSPARENT") <> vbNullString Then
-            checkboxTransp.value = SanitizeBoolean(.Item("TRANSPARENT"), True)
+        If .item("TRANSPARENCY") <> vbNullString Then
+            checkboxTransp.value = SanitizeBoolean(.item("TRANSPARENCY"), True)
+        ElseIf .item("TRANSPARENT") <> vbNullString Then
+            checkboxTransp.value = SanitizeBoolean(.item("TRANSPARENT"), True)
         End If
-        If .Item("IGUANATEXCURSOR") <> vbNullString Then
-            CursorPosition = .Item("IGUANATEXCURSOR")
+        If .item("IGUANATEXCURSOR") <> vbNullString Then
+            CursorPosition = .item("IGUANATEXCURSOR")
         End If
-        If .Item("LATEXENGINEID") <> vbNullString Then
-            ComboBoxLaTexEngine.ListIndex = .Item("LATEXENGINEID")
+        If .item("LATEXENGINEID") <> vbNullString Then
+            ComboBoxLaTexEngine.ListIndex = .item("LATEXENGINEID")
         End If
-        If .Item("LATEXFORMHEIGHT") <> vbNullString Then
-            LatexForm.Height = .Item("LATEXFORMHEIGHT")
+        If .item("LATEXFORMHEIGHT") <> vbNullString Then
+            LatexForm.Height = .item("LATEXFORMHEIGHT")
             FormHeightSet = True
         End If
-        If .Item("LATEXFORMWIDTH") <> vbNullString Then
-            LatexForm.Width = .Item("LATEXFORMWIDTH")
+        If .item("LATEXFORMWIDTH") <> vbNullString Then
+            LatexForm.Width = .item("LATEXFORMWIDTH")
             FormWidthSet = True
         End If
-        If .Item("LATEXFORMWRAP") <> vbNullString Then
-            TextWindow1.WordWrap = SanitizeBoolean(.Item("LATEXFORMWRAP"), True)
+        If .item("LATEXFORMWRAP") <> vbNullString Then
+            TextWindow1.WordWrap = SanitizeBoolean(.item("LATEXFORMWRAP"), True)
             ToggleButtonWrap.value = TextWindow1.WordWrap
         End If
     End With
@@ -1766,7 +1732,7 @@ Private Sub TextBoxFile_Change()
     ButtonLoadFile.Enabled = FileExists(TextBoxFile.Text) And isTex(TextBoxFile.Text)
 End Sub
 
-Private Sub ButtonLoadFile_Click()
+Sub ButtonLoadFile_Click()
     MultiPage1.value = 0
     TextWindow1.Text = ReadAll(TextBoxFile.Text)
     ToggleInputMode

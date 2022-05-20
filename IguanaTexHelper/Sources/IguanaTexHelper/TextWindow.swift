@@ -1,37 +1,43 @@
 import AppKit
 
-class TextWindow : NSWindow {
+class TextWindow: NSWindow {
     override var canBecomeKey: Bool { true }
     override var parent: NSWindow? {
         willSet {
             guard parent != nil else { return }
-            NotificationCenter.default.removeObserver(self,
-                                                      name: NSWindow.didBecomeMainNotification,
-                                                      object: parent)
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSWindow.didBecomeMainNotification,
+                object: parent
+            )
         }
         didSet {
             guard parent != nil else { return }
-            NotificationCenter.default.addObserver(self,
-                                                   selector: #selector(onParentDidBecomeMain(_:)),
-                                                   name: NSWindow.didBecomeMainNotification,
-                                                   object: parent)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(onParentDidBecomeMain(_:)),
+                name: NSWindow.didBecomeMainNotification,
+                object: parent
+            )
         }
     }
-    
-    weak var resizeTarget : AnyObject? = nil
-    let scrollView : NSScrollView = NSScrollView()
-    let textView : NSTextView = NSTextView()
-    var wordWrap : Bool = true {
-        didSet {
-            setupWordWrap()
-        }
-    }
-    
+
+    weak var resizeTarget: AnyObject? = nil
+    let scrollView: NSScrollView = NSScrollView()
+    let textView: NSTextView = NSTextView()
+    var wordWrap: Bool = true { didSet { setupWordWrap() } }
+
     init() {
-        super.init(contentRect: NSZeroRect, styleMask: .borderless, backing: .buffered, defer: false)
+        super.init(
+            contentRect: NSZeroRect,
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
         setupViews()
         setupWordWrap()
     }
+
     func setupViews() {
         textView.allowsUndo = true
         textView.isRichText = false
@@ -40,39 +46,33 @@ class TextWindow : NSWindow {
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude)
+            height: CGFloat.greatestFiniteMagnitude
+        )
         textView.isVerticallyResizable = true
         textView.isHorizontallyResizable = true
-        
-        scrollView.borderType = .noBorder
+        textView.autoresizingMask = [.width, .height]
+
+        scrollView.borderType = .bezelBorder
         scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
+        scrollView.autohidesScrollers = true
         scrollView.autoresizingMask = [.width, .height]
-        
+
         scrollView.documentView = textView
         self.contentView = scrollView
         self.initialFirstResponder = textView
     }
+
     func setupWordWrap() {
-        if (wordWrap) {
-            scrollView.hasHorizontalScroller = false
-            textView.autoresizingMask = .width
-            textView.textContainer?.containerSize = NSSize(
-                width: scrollView.contentSize.width,
-                height: CGFloat.greatestFiniteMagnitude)
-            textView.textContainer?.widthTracksTextView = true
-        } else {
-            scrollView.hasHorizontalScroller = true
-            textView.autoresizingMask = [.width, .height]
-            textView.textContainer?.containerSize = NSSize(
-                width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude)
-            textView.textContainer?.widthTracksTextView = false
-        }
+        scrollView.hasHorizontalScroller = wordWrap
+        textView.textContainer?.containerSize = NSSize(
+            width: wordWrap ? scrollView.contentSize.width : CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+        textView.textContainer?.widthTracksTextView = wordWrap
         textView.sizeToFit()
     }
-    @objc
-    func onParentDidBecomeMain(_ notificaton: Notification) {
+
+    @objc func onParentDidBecomeMain(_ notificaton: Notification) {
         self.orderFront(nil)
     }
 }
@@ -122,7 +122,9 @@ func getFocusedAccessibility(_ node: AnyObject) -> AnyObject? {
         return node
     }
 
-    if let children = ref.responds(to: accessibilityChildrenSelector) ? ref.accessibilityChildren() : nil {
+    if let children = ref.responds(to: accessibilityChildrenSelector)
+        ? ref.accessibilityChildren() : nil
+    {
         for child in children {
             if let result = getFocusedAccessibility(child as AnyObject) {
                 return result
@@ -134,7 +136,8 @@ func getFocusedAccessibility(_ node: AnyObject) -> AnyObject? {
 }
 
 func getAccessibilityFrame(_ node: AnyObject) -> NSRect? {
-    let accessibilityFrameSelector = #selector(NSAccessibilityProtocol.accessibilityFrame as (NSAccessibilityProtocol) -> () -> NSRect)
+    let accessibilityFrameSelector = #selector(
+        NSAccessibilityProtocol.accessibilityFrame as (NSAccessibilityProtocol) -> () -> NSRect)
     guard node.responds(to: accessibilityFrameSelector) else { return nil }
     return _unsafeReferenceCast(node, to: NSAccessibilityProtocol.self).accessibilityFrame()
 }
@@ -172,7 +175,9 @@ public func TWGetByteLength(_ handle: Int64, _: Int64, _: Int64, _: Int64) -> In
 }
 
 @_cdecl("TWGetBytes")
-public func TWGetBytes(_ handle: Int64, buffer: UnsafeMutableRawPointer?, length: Int64, _: Int64) -> Int64 {
+public func TWGetBytes(_ handle: Int64, buffer: UnsafeMutableRawPointer?, length: Int64, _: Int64)
+    -> Int64
+{
     guard let window = textWindows[handle] else { return 0 }
     let string = window.textView.string as NSString
     var usedLength: Int = 0
@@ -183,15 +188,22 @@ public func TWGetBytes(_ handle: Int64, buffer: UnsafeMutableRawPointer?, length
         encoding: String.Encoding.utf16LittleEndian.rawValue,
         options: [],
         range: NSRange(location: 0, length: Int(length)),
-        remaining: nil)
+        remaining: nil
+    )
     return Int64(usedLength)
 }
 
 @_cdecl("TWSetBytes")
-public func TWSetBytes(_ handle: Int64, buffer: UnsafeRawPointer?, length: Int64, _: Int64) -> Int64 {
+public func TWSetBytes(_ handle: Int64, buffer: UnsafeRawPointer?, length: Int64, _: Int64) -> Int64
+{
     guard let window = textWindows[handle] else { return 0 }
     if let buffer = buffer,
-       let string = NSString(bytes: buffer, length: Int(length), encoding: String.Encoding.utf16LittleEndian.rawValue) {
+        let string = NSString(
+            bytes: buffer,
+            length: Int(length),
+            encoding: String.Encoding.utf16LittleEndian.rawValue
+        )
+    {
         window.textView.string = string as String
     } else {
         window.textView.string = ""
@@ -202,7 +214,7 @@ public func TWSetBytes(_ handle: Int64, buffer: UnsafeRawPointer?, length: Int64
 @_cdecl("TWGetSelStart")
 public func TWGetSelStart(_ handle: Int64, _: Int64, _: Int64, _: Int64) -> Int64 {
     guard let window = textWindows[handle] else { return 0 }
-    return Int64(window.textView.selectedRange.location);
+    return Int64(window.textView.selectedRange.location)
 }
 
 @_cdecl("TWSetSelStart")

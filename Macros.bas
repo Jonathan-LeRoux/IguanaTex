@@ -19,11 +19,8 @@ Sub NewLatexEquation()
     LatexForm.Label2.Caption = "Set size:"
        
     LatexForm.ButtonRun.Caption = "Generate"
-    #If Mac Then
-        LatexForm.ButtonRun.Accelerator = vbNullString
-    #Else
-        LatexForm.ButtonRun.Accelerator = "G"
-    #End If
+    LatexForm.ButtonRun.Accelerator = "G"
+
     LatexForm.textboxSize.Enabled = True
     
     ShowLatexForm
@@ -81,7 +78,7 @@ Function TryEditLatexEquation() As Boolean
             Else
                 ' Non-group case: only a single object can be selected
                 Set oldshape = Sel.ShapeRange(1)
-                If oldshape.Tags.Item("EMFchild") <> vbNullString Then
+                If oldshape.Tags.item("EMFchild") <> vbNullString Then
                     TryEditLatexEquation = False ' we should not have an EMF child object by itself
                 Else
                     TryEditLatexEquation = TryProcessShape(oldshape)
@@ -100,18 +97,18 @@ Private Function TryProcessShape(oldshape As Shape) As Boolean
     
     TryProcessShape = False
     With oldshape.Tags
-        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
+        If .item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
             For j = 1 To .count
                 Debug.Print .Name(j) & vbTab & .value(j)
             Next j
             Load LatexForm
             
-            LatexText = .Item("LATEXADDIN")
+            LatexText = .item("LATEXADDIN")
             LatexForm.RetrieveOldShapeInfo oldshape, LatexText
             ShowLatexForm
             TryProcessShape = True
             Exit Function
-        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
+        ElseIf .item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
             For j = 1 To .count
                 Debug.Print .Name(j) & vbTab & .value(j)
             Next j
@@ -160,9 +157,9 @@ Private Sub DeDuplicateShapeNamesInSlide(SlideIndex As Integer)
         For n = LBound(NameList) To UBound(NameList)
             Key = NameList(n)
             If Not dict.Exists(Key) Then
-                dict.Item(Key) = 1
+                dict.item(Key) = 1
             Else
-                dict.Item(Key) = dict.Item(Key) + 1
+                dict.item(Key) = dict.item(Key) + 1
             End If
         Next n
     Next vSh
@@ -185,7 +182,7 @@ Private Function RenameDuplicateShapes(vSh As Shape, dict As Dictionary) As Dict
         Dim K As String
         Dim shpCount As Long
         K = vSh.Name
-        If dict.Item(K) > 1 Then
+        If dict.item(K) > 1 Then
             shpCount = 1
             Do While dict.Exists(K & " " & shpCount)
                 shpCount = shpCount + 1
@@ -327,20 +324,20 @@ Sub RegenerateOneDisplay(vSh As Shape)
     If RegenerateContinue Then
     vSh.Select
     With vSh.Tags
-        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
+        If .item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
             DoneProcessingShape = True
             RegenerateForm.LabelShapeNumber.Caption = RegenerateForm.LabelShapeNumber.Caption + 1
             DoEvents
             Load LatexForm
             
-            LatexText = .Item("LATEXADDIN")
+            LatexText = .item("LATEXADDIN")
             LatexForm.RetrieveOldShapeInfo vSh, LatexText
 
             Apply_BatchEditSettings
 
             LatexForm.ButtonRun_Click
             Exit Sub
-        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
+        ElseIf .item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
             DoneProcessingShape = True
             RegenerateForm.LabelShapeNumber.Caption = RegenerateForm.LabelShapeNumber.Caption + 1
             DoEvents
@@ -399,26 +396,34 @@ Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
     Dim picPath As String
     
     #If Mac Then
-        ' On Windows, we check if the LaTeXiT metadata extractor exists, but unfortunately, if we do this on Mac,
-        ' the Mac Sandbox asks us for permission to grant access to the executable, so we don't bother.
-        ' Shape needs to be a picture, if so we save it as PDF
-        picPath = TempPath & FilePrefix & ".pdf"
-        If vSh.Type = msoPicture Then
-            'vSh.Export picPath, msoPictureTypePDF
-            Dim NewPres As Presentation
-            Set NewPres = Presentations.Add(msoFalse)
-            Dim NewSlide As Slide
-            Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
-            Dim NewShape As Shape
-            vSh.Copy
-            NewPres.Slides(1).Shapes.Paste
-            ' This briefly displays a saving progress dialog, but I haven't found a way to disable that
-            NewPres.SaveAs picPath, ppSaveAsPDF
-            'Application.DisplayAlerts = True
-            NewPres.Close
-            Set NewPres = Nothing
-        End If
+        ' On Mac, we only check if the LaTeXiT metadata extractor exists if it is in the default add-in folder.
+        ' Otherwise, the Mac Sandbox asks us for permission to grant access to the executable, so we don't bother.
         Dim fs As New MacFileSystemObject
+        Dim ProceedWithLaTeXiT As Boolean
+        If Left(latexit_metadata_command, Len(DEFAULT_ADDIN_FOLDER)) = DEFAULT_ADDIN_FOLDER Then
+            ProceedWithLaTeXiT = fs.FileExists(latexit_metadata_command)
+        Else
+            ProceedWithLaTeXiT = True
+        End If
+        If ProceedWithLaTeXiT Then
+            ' Shape needs to be a picture, if so we save it as PDF
+            picPath = TempPath & FilePrefix & ".pdf"
+            If vSh.Type = msoPicture Then
+                'vSh.Export picPath, msoPictureTypePDF
+                Dim NewPres As Presentation
+                Set NewPres = Presentations.Add(msoFalse)
+                Dim NewSlide As Slide
+                Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
+                Dim NewShape As Shape
+                vSh.Copy
+                NewPres.Slides(1).Shapes.Paste
+                ' This briefly displays a saving progress dialog, but I haven't found a way to disable that
+                NewPres.SaveAs picPath, ppSaveAsPDF
+                'Application.DisplayAlerts = True
+                NewPres.Close
+                Set NewPres = Nothing
+            End If
+        End If
     #Else
         ' no need to go through all this trouble if the user does not have the LaTeXiT metadata extractor...
         Dim fs As New FileSystemObject
@@ -494,27 +499,27 @@ Private Function GetLatexTextFromTexPointShape(vSh As Shape) As String
     With vSh.Tags
         ScalingFactor = 1
         IsTemplate = False
-        If .Item("ORIGWIDTH") <> vbNullString Then
-            ScalingFactor = ScalingFactor * vSh.Width / val(.Item("ORIGWIDTH"))
+        If .item("ORIGWIDTH") <> vbNullString Then
+            ScalingFactor = ScalingFactor * vSh.Width / val(.item("ORIGWIDTH"))
         End If
-        If .Item("TEXPOINT") = "template" Then
+        If .item("TEXPOINT") = "template" Then
             IsTemplate = True
         End If
         vSh.Tags.Add "TEXPOINTSCALING", ScalingFactor
         
         If IsTemplate = True Then
-            SourceParts = Split(.Item("SOURCE"), vbTab, , vbTextCompare)
+            SourceParts = Split(.item("SOURCE"), vbTab, , vbTextCompare)
             If UBound(SourceParts) > 2 Then
                 TeXSource = SourceParts(3)
             Else
-                SourceParts = Split(.Item("SOURCE"), "equation", , vbTextCompare)
+                SourceParts = Split(.item("SOURCE"), "equation", , vbTextCompare)
                 SourceParts = Split(SourceParts(1), "template TP", , vbTextCompare)
                 TeXSource = SourceParts(0)
             End If
             LatexText = DEFAULT_LATEX_CODE_PRE & "$" & TeXSource & "$" & DEFAULT_LATEX_CODE_POST
             vSh.Tags.Add "IGUANATEXCURSOR", Len(LatexText) - 16
         Else
-            LatexText = .Item("SOURCE")
+            LatexText = .item("SOURCE")
         End If
         Dim j As Long
         For j = 1 To .count
@@ -561,9 +566,9 @@ End Sub
 Function IsShapeDisplay(vSh As Shape) As Boolean
     IsShapeDisplay = False
     With vSh.Tags
-        If .Item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
+        If .item("LATEXADDIN") <> vbNullString Then ' we're dealing with an IguanaTex display
             IsShapeDisplay = True
-        ElseIf .Item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
+        ElseIf .item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
             IsShapeDisplay = True
         ElseIf GetLatexTextFromLatexItShape(vSh) <> vbNullString Then ' we're dealing with a LatexIt display
             IsShapeDisplay = True
@@ -661,24 +666,5 @@ Public Sub InsertVectorGraphicsFile()
     Load LoadVectorGraphicsForm
     LoadVectorGraphicsForm.ButtonPath_Click
     LoadVectorGraphicsForm.Show
-End Sub
-
-Public Sub TestError()
-    Dim ErrorMessage As String
-    ErrorMessage = "latex did not return in 60 seconds and may have hung." _
-            & vbNewLine & "Please make sure your code compiles outside IguanaTex." _
-            & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font/package is missing."
-    Dim LastCommand As String
-    
-    Dim TeXExePath As String, TeXExeExt As String
-    TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
-    TeXExeExt = vbNullString
-    Dim FilePrefix As String
-    FilePrefix = DefaultFilePrefix
-    
-    LastCommand = ShellEscape(TeXExePath & "pdflatex" & TeXExeExt) & " -shell-escape -output-format dvi -interaction=batchmode " _
-                                 & FilePrefix & ".tex"
-    ShowError ErrorMessage, LastCommand
-                            
 End Sub
 

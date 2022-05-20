@@ -10,7 +10,8 @@ Public Const DEFAULT_GS_COMMAND As String = "/usr/local/bin/gs"
 Public Const DEFAULT_IM_CONV As String = "/usr/local/bin/convert"
 Public Const DEFAULT_TEX2IMG_COMMAND As String = "/usr/local/bin/tex2img"
 Public Const DEFAULT_EDITOR As String = "open -b 'texstudio'"
-Public Const DEFAULT_LATEXIT_METADATA_COMMAND As String = "~/Downloads/LaTeXiT-metadata/LaTeXiT-metadata-macos"
+Public Const DEFAULT_ADDIN_FOLDER As String = "/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/"
+Public Const DEFAULT_LATEXIT_METADATA_COMMAND As String = DEFAULT_ADDIN_FOLDER & "LaTeXiT-metadata-macos"
 Public Const NEWLINE As String = vbLf
 Public Const PathSep As String = "/"
 
@@ -29,7 +30,7 @@ Public Const PathSep As String = "\"
 
 #End If
 
-Public Const IGUANATEX_VERSION As Integer = 159
+Public Const IGUANATEX_VERSION As Integer = 160
 
 Public Const DEFAULT_LATEX_CODE As String = "\documentclass{article}" & NEWLINE & "\usepackage{amsmath}" & NEWLINE & "\pagestyle{empty}" & NEWLINE & _
                                             "\begin{document}" & NEWLINE & NEWLINE & NEWLINE & NEWLINE & NEWLINE & "\end{document}"

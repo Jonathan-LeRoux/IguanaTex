@@ -3,7 +3,7 @@ Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} ExternalEditorForm
    Caption         =   "External Editor"
    ClientHeight    =   2688
    ClientLeft      =   84
-   ClientTop       =   390
+   ClientTop       =   396
    ClientWidth     =   5232
    OleObjectBlob   =   "ExternalEditorForm.frx":0000
    StartUpPosition =   1  'CenterOwner
@@ -24,7 +24,13 @@ Private Sub UserForm_Initialize()
     #End If
 End Sub
 
-Private Sub CmdButtonCancel_Click()
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableAccelerators Me
+    #End If
+End Sub
+
+Sub CmdButtonCancel_Click()
     Unload ExternalEditorForm
 End Sub
 
@@ -45,13 +51,13 @@ Private Sub LoadTextIntoLatexForm()
 
 End Sub
 
-Private Sub CmdButtonReload_Click()
+Sub CmdButtonReload_Click()
     LoadTextIntoLatexForm
     LatexForm.Hide
     LatexForm.Show vbModal
 End Sub
 
-Private Sub CmdButtonGenerate_Click()
+Sub CmdButtonGenerate_Click()
     LoadTextIntoLatexForm
     DoEvents
     LatexForm.ButtonRun_Click

@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Default Settings and Paths"
-   ClientHeight    =   9084.001
-   ClientLeft      =   -6
-   ClientTop       =   198
-   ClientWidth     =   6234
+   ClientHeight    =   10896
+   ClientLeft      =   -12
+   ClientTop       =   204
+   ClientWidth     =   6240
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -16,7 +16,7 @@ Attribute VB_Exposed = False
 Option Explicit
 Private UsePDFList As Variant
 
-Private Sub ButtonCancelTemp_Click()
+Sub ButtonCancelTemp_Click()
     Unload SetTempForm
 End Sub
 
@@ -64,7 +64,7 @@ Private Sub ButtonLibgsPath_Click()
     TextBoxLibgs.SetFocus
 End Sub
 
-Private Sub ButtonSetTemp_Click()
+Sub ButtonSetTemp_Click()
     Dim res As String
     
     ' Temp folder
@@ -104,6 +104,10 @@ Private Sub ButtonSetTemp_Click()
         res = TextBoxGS.Text
     #Else
         res = RemoveQuotes(TextBoxGS.Text)
+        ' Make sure the user pointed to the "c.exe" version (if they used a ".exe" executable)
+        If Right$(res, 4) = ".exe" And Right$(res, 5) <> "c.exe" Then
+            res = Left$(res, Len(res) - 4) & "c.exe"
+        End If
     #End If
     SetITSetting "GS Command", REG_SZ, CStr(res)
     
@@ -127,7 +131,7 @@ Private Sub ButtonSetTemp_Click()
     res = AddTrailingSlash(res)
     SetITSetting "TeXExePath", REG_SZ, CStr(res)
     
-    ' Path to LaTeXiT-metadata extractor (currently Mac only)
+    ' Path to LaTeXiT-metadata extractor
     res = RemoveQuotes(TextBoxLaTeXiT.Text)
     SetITSetting "LaTeXiT", REG_SZ, CStr(res)
     
@@ -223,7 +227,7 @@ Private Sub SetPDFdependencies()
     End If
 End Sub
 
-Private Sub ButtonReset_Click()
+Sub ButtonReset_Click()
     AbsPathButton.value = True
     AbsPathTextBox.Text = DEFAULT_TEMP_DIR
     
@@ -278,6 +282,12 @@ Private Sub ButtonReset_Click()
     
 End Sub
 
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableCopyPaste Me
+        MacEnableAccelerators Me
+    #End If
+End Sub
 
 
 Private Sub UserForm_Initialize()
@@ -289,14 +299,21 @@ Private Sub UserForm_Initialize()
     Me.Height = 480
     Me.Width = 320
     #If Mac Then
-        Me.ComboBoxVectorOutputType.Enabled = False
-        Me.LabelLibgs.Top = Me.LabelTeX2img.Top
+        'Me.ComboBoxVectorOutputType.Enabled = False
+        Me.LabelSetGS.Caption = "Set ghostscript command (gs)"
+        Me.LabelLibgs.Top = Me.LabelSetFullPath.Top
+        Me.LabelSetFullPath.Visible = False
         Me.LabelTeX2img.Visible = False
-        Me.TextBoxLibgs.Top = Me.TextBoxTeX2img.Top
+        Me.TextBoxLibgs.Top = Me.TextBoxIMconv.Top
+        Me.TextBoxIMconv.Visible = False
         Me.TextBoxTeX2img.Visible = False
-        Me.ButtonLibgsPath.Top = Me.ButtonTeX2img.Top
+        Me.ButtonLibgsPath.Top = Me.ButtonIMPath.Top
+        Me.ButtonIMPath.Visible = False
         Me.ButtonTeX2img.Visible = False
-        Me.LabelWindowSize.Top = Me.TextBoxLibgs.Top + 26
+        Me.LabelTeX2imgGithub.Visible = False
+        Me.LabelDLTeX2img.Visible = False
+        Me.LabelDLImageMagick.Visible = False
+        Me.LabelWindowSize.Top = Me.TextBoxLaTeXiT.Top + 26
         Me.LabelWindowHeight.Top = Me.LabelWindowSize.Top
         Me.LabelWindowWidth.Top = Me.LabelWindowHeight.Top
         Me.TextBoxWindowHeight.Top = Me.LabelWindowHeight.Top - 2
@@ -313,9 +330,6 @@ Private Sub UserForm_Initialize()
         ResizeUserForm Me
     #Else
         Me.Height = 430
-'        Me.TextBoxLaTeXiT.Visible = False
-'        Me.LabelLaTeXiT.Visible = False
-'        Me.ButtonLaTeXiTPath.Visible = False
         Me.TextBoxLibgs.Visible = False
         Me.LabelLibgs.Visible = False
         Me.ButtonLibgsPath.Visible = False
@@ -384,8 +398,7 @@ Private Sub UserForm_Initialize()
     ComboBoxBitmapVector.ListIndex = GetITSetting("BitmapVector", 0)
     ComboBoxVectorOutputType.List = GetVectorOutputTypeDisplayList()
     ComboBoxVectorOutputType.ListIndex = GetITSetting("VectorOutputTypeIdx", 0)
-    
-    
+    ComboBoxVectorOutputType.ControlTipText = "SVG via DVI w/ dvisvgm is recommended due to issues with PDF"
     
     UsePDFList = GetUsePDFList()
     

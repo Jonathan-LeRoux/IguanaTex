@@ -1,0 +1,16 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "InterposeKit",
+        "repositoryURL": "https://github.com/steipete/InterposeKit.git",
+        "state": {
+          "branch": null,
+          "revision": "17853ad69961a5114e25c60c3ce7600feac0eabd",
+          "version": "0.0.2"
+        }
+      }
+    ]
+  },
+  "version": 1
+}

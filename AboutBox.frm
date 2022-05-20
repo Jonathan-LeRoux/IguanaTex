@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} AboutBox 
    Caption         =   "IguanaTex"
-   ClientHeight    =   5286
+   ClientHeight    =   5280
    ClientLeft      =   48
-   ClientTop       =   330
-   ClientWidth     =   8790.001
+   ClientTop       =   336
+   ClientWidth     =   8796.001
    OleObjectBlob   =   "AboutBox.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -14,7 +14,7 @@ Attribute VB_Creatable = False
 Attribute VB_PredeclaredId = True
 Attribute VB_Exposed = False
 Option Explicit
-Private Sub CloseAboutButton_Click()
+Public Sub CloseAboutButton_Click()
     Unload AboutBox
 End Sub
 
@@ -33,3 +33,10 @@ Private Sub UserForm_Initialize()
         ResizeUserForm Me
     #End If
 End Sub
+
+Private Sub UserForm_Activate()
+    #If Mac Then
+        MacEnableAccelerators Me
+    #End If
+End Sub
+

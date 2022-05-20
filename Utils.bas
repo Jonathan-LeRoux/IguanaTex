@@ -11,24 +11,33 @@ Private Const POINTS_PER_INCH As Long = 72 'A point is defined as 1/72 inches
 #If Mac Then
 Private Declare PtrSafe Function MacMakeFormResizable _
  Lib "/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/libIguanaTexHelper.dylib" _
-(ByVal index As LongLong, ByVal handler As LongPtr, ByVal c As LongLong, ByVal d As LongLong) As LongLong
+(ByVal formPtr As LongPtr, ByVal handler As LongPtr, ByVal c As LongLong, ByVal d As LongLong) As LongLong
 
-Private MacResizableForms As New Collection
+' Find an item in a collection by its ObjPtr
+Public Function GetItemByPtr(ByRef collection As Variant, ByVal itemPtr As LongPtr) As Variant
+    Dim item As Variant
+    For Each item In collection
+        If ObjPtr(item) = itemPtr Then
+            Set GetItemByPtr = item
+            Exit Function
+        End If
+    Next
+    Set GetItemByPtr = Nothing
+End Function
 
-Private Sub MacDoResize(ByVal index As LongLong, ByVal Left As Double, ByVal Top As Double, ByVal Width As Double, ByVal Height As Double)
+Private Sub MacDoResize(ByVal formPtr As LongPtr, ByVal Left As Double, ByVal Top As Double, ByVal Width As Double, ByVal Height As Double)
     Dim form As Variant
-    Set form = MacResizableForms(index)
-    form.Move Left, Top, Width, Height
-    form.Repaint
+    Set form = GetItemByPtr(UserForms, formPtr)
+    If Not (form Is Nothing) Then
+        form.Move Left, Top, Width, Height
+        form.Repaint
+    End If
 End Sub
 
 ' caller must ensure that `currentForm` is the current active form
 ' TODO: Get the current active form programmatically, instead of
 Public Sub MakeFormResizable(currentForm As Variant)
-    Dim index As LongLong
-    MacResizableForms.Add currentForm
-    index = MacResizableForms.count
-    MacMakeFormResizable index, AddressOf MacDoResize, 0, 0
+    MacMakeFormResizable ObjPtr(currentForm), AddressOf MacDoResize, 0, 0
 End Sub
 #Else
 ' Code to make UserForm resizable
@@ -129,7 +138,6 @@ Public Sub MakeFormResizable(currentForm As UserForm)
      If RetVal = 0 Then MsgBox "Unable to make UserForm Resizable."
      
 End Sub
-
 
 ' Functions to get the DPI (not currently used as this is not reliable).
 ' DLLs and global variables declared/defined at the top
@@ -448,8 +456,22 @@ Public Function GetLaTexEngineDisplayList() As Variant
     GetLaTexEngineDisplayList = Array("latex (DVI)", "pdflatex", "xelatex", "lualatex", "platex")
 End Function
 
-Public Function GetLatexmkOptionsList() As Variant
-    GetLatexmkOptionsList = Array("-dvi", "-pdf", "-xelatex", "-lualatex", "-pdfdvi -latex=platex -e ""$dvipdf='dvipdfmx %O %S';$bibtex='pbibtex';""")
+Public Function GetLatexDVIOptionsList() As Variant
+    GetLatexDVIOptionsList = Array("-output-format dvi", "-output-format dvi", "-no-pdf", "-output-format dvi", vbNullString)
+End Function
+
+Public Function GetLatexmkPDFOptionsList() As Variant
+    GetLatexmkPDFOptionsList = Array("-pdf", "-pdf", "-xelatex", _
+        "-lualatex", "-pdfdvi -latex=platex -e ""$dvipdf='dvipdfmx %O %S';$bibtex='pbibtex';""")
+End Function
+
+Public Function GetLatexmkDVIOptionsList() As Variant
+    GetLatexmkDVIOptionsList = Array("-dvi", "-dvi", "-pdfxe -pdfxelatex=""xelatex --shell-escape %O %S""", _
+        "-dvi -pdf- -latex=""dvilualatex --shell-escape %O %S""", "-dvi -latex=platex -e ""$bibtex='pbibtex';""")
+End Function
+
+Public Function GetUseDVIList() As Variant
+    GetUseDVIList = Array(True, False, False, False, True)
 End Function
 
 Public Function GetUsePDFList() As Variant
@@ -462,17 +484,17 @@ End Function
 
 Public Function GetVectorOutputTypeDisplayList() As Variant
     #If Mac Then
-        GetVectorOutputTypeDisplayList = Array("SVG via dvisvgm")
+        GetVectorOutputTypeDisplayList = Array("SVG via DVI w/ dvisvgm", "SVG via PDF w/ dvisvgm")
     #Else
-        GetVectorOutputTypeDisplayList = Array("SVG via dvisvgm", "EMF via TeX2img", "EMF via pdfiumdraw")
+        GetVectorOutputTypeDisplayList = Array("SVG via DVI w/ dvisvgm", "SVG via PDF w/ dvisvgm", "EMF w/ TeX2img", "EMF w/ pdfiumdraw")
     #End If
 End Function
 
 Public Function GetVectorOutputTypeList() As Variant
     #If Mac Then
-        GetVectorOutputTypeList = Array("dvisvgm")
+        GetVectorOutputTypeList = Array("dvisvgm", "dvisvgmpdf")
     #Else
-        GetVectorOutputTypeList = Array("dvisvgm", "tex2img", "pdfiumdraw")
+        GetVectorOutputTypeList = Array("dvisvgm", "dvisvgmpdf", "tex2img", "pdfiumdraw")
     #End If
 End Function
 
@@ -486,7 +508,7 @@ Public Sub FullyUngroupShape(NewShape As Shape)
     If NewShape.Type = msoGroup Then
         Set Shr = NewShape.Ungroup
         For i = 1 To Shr.count
-            Set s = Shr.Item(i)
+            Set s = Shr.item(i)
             If s.Type = msoGroup Then
                 FullyUngroupShape s
             End If
@@ -567,8 +589,8 @@ Public Function ConvertEMF(inSh As Shape, ByVal ScalingX As Single, ByVal Scalin
         If FileType = "emf" Then
             Set Shr = Shr.Ungroup
             ' Clean up
-            Shr.Item(1).Delete
-            Shr.Item(2).Delete
+            Shr.item(1).Delete
+            Shr.item(2).Delete
             If Shr(3).GroupItems.count > 2 Then
                 Set NewShape = Shr(3)
             Else ' only a single freeform, so not a group
@@ -798,7 +820,7 @@ handler:
 End Function
 
 
-Function RoundUp(ByVal value As Double)
+Function RoundUp(ByVal value As Double) As Variant
     If Int(value) = value Then
         RoundUp = value
     Else

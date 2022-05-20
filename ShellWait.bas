@@ -5,6 +5,9 @@ Option Explicit
 Public Function Execute(ByVal CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
     Dim TeXExePath As String
     TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
+    If debugMode Then
+        ShowError vbNullString, CommandLine, "Debug mode", "Next command:", "Continue"
+    End If
     Execute = CLng(AppleScriptTask("IguanaTex.scpt", "MacExecute", _
         "export PATH=" & ShellEscape(TeXExePath) & """:$PATH""" & " && " & _
         "cd " & ShellEscape(StartupDir) & " && " & _
