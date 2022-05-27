@@ -1072,11 +1072,15 @@ Private Function BoundingBoxString(ByVal BBXFile As String) As String
             ' Without the +/- 0.1, we noticed that the crop was too tight
             ' On the other hand, not using the Hires BB results in wide margins (but that's the default in pdfcrop)
             ' On Mac, +/-0.1 looks great, but it results on Windows in a display that appears cropped
-            ' (within a box of the same size...). So for now, we add +/-1 to be extra safe, but this is a hack.
-            llx = val(TextSplit(1)) - 1
-            lly = val(TextSplit(2)) - 1
-            urx = val(TextSplit(3)) + 1
-            ury = val(TextSplit(4)) + 1
+            ' (within a box of the same size...). So I tried adding +/-1 to be extra safe, but this leads to other
+            ' issues: the size is still different on Windows, and it also messes up the scaling when vectorizing on
+            ' the Mac. So I decided to revert to 0.1 until I can find a real fix. Windows users will need to
+            ' "regenerate" displays that appear crop.
+            ' Another option would be to use PNG on Mac as well.
+            llx = val(TextSplit(1)) - 0.1
+            lly = val(TextSplit(2)) - 0.1
+            urx = val(TextSplit(3)) + 0.1
+            ury = val(TextSplit(4)) + 0.1
             'compute size and offset
             sx = CStr(RoundUp((urx - llx) / 72 * OutputDpi))
             sy = CStr(RoundUp((ury - lly) / 72 * OutputDpi))

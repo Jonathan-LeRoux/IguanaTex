@@ -2,6 +2,9 @@ Attribute VB_Name = "MacUtils"
 Option Explicit
 Option Private Module
 
+Public Const gUserFormResizeFactor As Double = 1.333333
+
+#If Mac Then
 ' macOS virtual keycodes. See <HIToolbox/Events.h>
 ' or https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_code_values#code_values_on_mac
 Private Const kVK_ANSI_A As LongLong = &H0
@@ -13,9 +16,6 @@ Private Const kVK_ANSI_V As LongLong = &H9
 Private Const NSEventModifierFlagShift As LongLong = &H20000
 Private Const NSEventModifierFlagCommand As LongLong = &H100000
 
-Public Const gUserFormResizeFactor As Double = 1.333333
-
-#If Mac Then
 Private Declare PtrSafe Function MacEnableCopyPaste_Native _
  Lib "/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/libIguanaTexHelper.dylib" _
  Alias "MacEnableCopyPaste" _

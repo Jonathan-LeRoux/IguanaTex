@@ -6,6 +6,14 @@ Public RegenerateContinue As Boolean
 Sub NewLatexEquation()
     Load LatexForm
     
+    Dim osld As Slide
+    On Error Resume Next
+    Set osld = ActiveWindow.Selection.SlideRange(1)
+    If Err <> 0 Then
+        MsgBox "Please select a slide on which to generate the LaTeX display."
+        Exit Sub
+    End If
+    
     Dim Sel As Selection
     Set Sel = Application.ActiveWindow.Selection
     If (Sel.Type = ppSelectionText) Then
