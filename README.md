@@ -60,6 +60,19 @@ This repository hosts the source code in a form that can be easily tracked, shar
 
 ### Mac
 
+#### Automatic installation with Homebrew
+
+If you use Homebrew, installation is as simple as:
+```bash
+brew tap tsung-ju/iguanatexmac
+brew install --cask --no-quarantine iguanatexmac latexit-metadata
+```
+Then follow **5. Verify that paths are set correctly** in the Manual installation instructions below.
+
+For more details (e.g., how to upgrade or uninstall), please see [Tsung-Ju's Homebrew instructions](https://github.com/tsung-ju/homebrew-iguanatexmac).
+
+#### Manual installation
+
 1. **Download the "prebuilt files for Mac" zip** from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases)  
 There are 3 files to install:
 * `IguanaTex.scpt`: AppleScript file for handling file and folder access
@@ -82,14 +95,15 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
   * The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**: 
-  * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them. The defaults should match the MacTex installation locations.
-  * If you cannot find them, open a terminal and use "locate \<filename\>".
+  * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations.
+  * If you cannot find them, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
 
 6. (Optional) **Install LaTeXiT-metadata**:
   * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
   * Download [`LaTeXiT-metadata-macos`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.59/LaTeXiT-metadata-macos) from the Releases page, add executable permission, and either set the path to its location in the "Main Settings" window or copy it to the secure add-in folder:  
   `chmod 755 ./LaTeXiT-metadata-macos`  
   `sudo cp ./LaTeXiT-metadata-macos '/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/'`
+  * The first time LaTeXiT-metadata-macos is called by IguanaTex, Mac OS may block it. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
   * The executable was compiled on Mac OS 10.13 but should work on all versions. Please let me know if you have any issue.
   * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
   * Source code to be released soon.
