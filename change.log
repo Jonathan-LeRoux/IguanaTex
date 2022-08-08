@@ -1,3 +1,6 @@
+New in IguanaTex 1.60.2 (August 8, 2022)
+- (Win) Fixed bug occurring when using the Insert Vector Graphics File function with a presentation in a OneDrive/SharePoint directory
+
 New in IguanaTex 1.60.1 (May 26, 2022)
 - (Win/Mac) Fixed bug that would occur when no slide is selected
 - (Win) Fixed bug that prevented the add-in from running on 32 bit Windows

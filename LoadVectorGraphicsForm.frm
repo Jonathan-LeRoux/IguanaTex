@@ -130,9 +130,10 @@ Private Sub DoInsertVectorGraphicsFile()
     Dim StartFolder As String
     ' The StartFolder doesn't really matter here because everything is relative to the input file,
     ' we just need any folder from which to launch the commands
-    If ActivePresentation.path <> vbNullString Then
-        StartFolder = ActivePresentation.path
-    ElseIf GetTempPath() <> vbNullString Then
+    'If ActivePresentation.path <> vbNullString Then
+    '    StartFolder = ActivePresentation.path
+    'Else
+    If GetTempPath() <> vbNullString Then
         StartFolder = GetTempPath()
     Else
         #If Mac Then
