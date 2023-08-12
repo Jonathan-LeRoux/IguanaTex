@@ -15,7 +15,7 @@ This repository hosts the source code in a form that can be easily tracked, shar
 * OS: Windows 2000 or later (32- or 64-bit).
 * PowerPoint: 
   * IguanaTex has been tested with PowerPoint 2010, 2013, 2016, 2019 (both 32 and 64 bit), Office 365, and PowerPoint 2003. It is likely to also work in PowerPoint 2000 and 2007.
-  * SVG support is only available for Office 365 (and PowerPoint 2019? To be confirmed)
+  * SVG support is available for Office 365 and recent retail versions of PowerPoint. Support is confirmed for PowerPoint 2021 at least for versions 2108 and above, and likely (although unconfirmed) for PowerPoint 2019 and maybe even PowerPoint 2016 for the same versions. Note that volume licensed versions, which are at version 1808 as of August 2023, do not support SVG conversion to Shape, which is required by IguanaTex.
 * LaTeX: [TeXLive](https://www.tug.org/texlive/) or [MiKTeX](http://miktex.org/)
 * [GhostScript](http://www.ghostscript.com/download/gsdnld.html) (if the latest version raises issues, try gs9.26)
 * [ImageMagick](http://www.imagemagick.org/script/download.php#windows)
