@@ -1,3 +1,7 @@
+New in IguanaTex 1.60.3 (October 13, 2023)
+- (Win/Mac) Fixed bug where extracting a LaTeXiT display (or simply checking if a display was created with LaTeXiT) would replace the clipboard text
+- (Win/Mac) Fixed bug that resulted in unnecessarily checking if every display in a slide is a LaTeX display. This resulted in significant slowdowns particularly when checking for potential LaTeXiT displays is enabled. Code will now only check when necessary, and when necessary will only check the first time it encounters a given display.
+
 New in IguanaTex 1.60.2 (August 8, 2022)
 - (Win) Fixed bug occurring when using the Insert Vector Graphics File function with a presentation in a OneDrive/SharePoint directory
 
