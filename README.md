@@ -15,7 +15,7 @@ This repository hosts the source code in a form that can be easily tracked, shar
 * OS: Windows 2000 or later (32- or 64-bit).
 * PowerPoint: 
   * IguanaTex has been tested with PowerPoint 2010, 2013, 2016, 2019 (both 32 and 64 bit), Office 365, and PowerPoint 2003. It is likely to also work in PowerPoint 2000 and 2007.
-  * SVG support is only available for Office 365 (and PowerPoint 2019? To be confirmed)
+  * SVG support is available for Office 365 and recent retail versions of PowerPoint. Support is confirmed for PowerPoint 2021 at least for versions 2108 and above, and likely (although unconfirmed) for PowerPoint 2019 and maybe even PowerPoint 2016 for the same versions. Note that volume licensed versions, which are at version 1808 as of August 2023, do not support SVG conversion to Shape, which is required by IguanaTex.
 * LaTeX: [TeXLive](https://www.tug.org/texlive/) or [MiKTeX](http://miktex.org/)
 * [GhostScript](http://www.ghostscript.com/download/gsdnld.html) (if the latest version raises issues, try gs9.26)
 * [ImageMagick](http://www.imagemagick.org/script/download.php#windows)
@@ -35,19 +35,19 @@ This repository hosts the source code in a form that can be easily tracked, shar
 
 ### Windows 
 
-1. **Download the .ppam add-in** file from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases), or from the [IguanaTex Download page](http://www.jonathanleroux.org/software/iguanatex/download.html).
-2. **Load the add-in**: in "File" > "Options" > "Add-Ins" > "Manage:", choose "PowerPoint Add-Ins" then "Go...", then click  "Add New", select the .ppam file in the folder where you downloaded it, then "Close" (if you downloaded the .pptm source and saved it as .ppam, it will be in the default Add-In folder).
+1. **Download the .ppam add-in** file from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases), or from the [IguanaTex Download page](http://www.jonathanleroux.org/software/iguanatex/download.html), and save it in a [Trusted Location](https://learn.microsoft.com/en-us/DeployOffice/security/trusted-locations) (see [this Microsoft article](https://learn.microsoft.com/en-us/DeployOffice/security/internet-macros-blocked#guidance-on-allowing-vba-macros-to-run-in-files-you-trust)), such as `%appdata%\Microsoft\Addins` (i.e., `C:\Users\user_name\Appdata\Roaming\Microsoft\Addins`).
+2. **Load the add-in**: in "File" > "Options" > "Add-Ins" > "Manage:" (lower part of the window), choose "PowerPoint Add-Ins" in the selection box. Then press "Go...", then click  "Add New", select the `.ppam` file in the folder where you downloaded it, then "Close" (if you downloaded the .pptm source and saved it as `.ppam`, it will be in the default Add-In folder).
 3. **Create and set a temporary file folder**: IguanaTex needs access to a folder with read/write permissions to store temporary files.
   * The default is "C:\Temp\". If you have write permissions under "C:\", create the folder "C:\Temp\". You're all set.
   * If you cannot create this folder, choose or create a folder with write permission at any other location. In the IguanaTex tab, choose "Main Settings" and put the path to the folder of your choice. You can also use a relative path under the presentation's folder (e.g., ".\" for the presentation folder itself).
 4. **Install and set path to GhostScript and ImageMagick**:
-  * Set the **full** path to gswin32c.exe or gswin64c.exe (note the "c"!) and to ImageMagick's magick.exe in the "Main Settings" window.
+  * Set the **full** path to `gswin32c.exe` or `gswin64c.exe` (note the "`c`"!) and to ImageMagick's magick.exe in the "Main Settings" window.
   * Best way to make sure the path is correct is to use the "..." button next to each path and navigate to the correct file.
   * Some default paths include `%USERPROFILE%`. It is recommended to click on "..." to make sure the path gets properly converted to the actual user profile path. 
 5. (Optional) **Install and set path to TeX2img**:
   * Only needed for vector graphics support via EMF (compared to SVG, pros: available on all PowerPoint versions, fully modifiable shapes; cons: some displays randomly suffer from distortions)
   * Download from [this link](https://www.ms.u-tokyo.ac.jp/~abenori/soft/index.html#TEX2IMG) (more details on TeX2img on their [Github repo](https://github.com/abenori/TeX2img))
-  * After unpacking TeX2img somewhere on your machine, run TeX2img.exe once to let it automatically set the various paths to latex/ghostscript, then set the **full** path to TeX2imgc.exe (note the "c"!) in the "Main Settings" window.
+  * After unpacking TeX2img somewhere on your machine, run TeX2img.exe once to let it automatically set the various paths to latex/ghostscript, then set the **full** path to `TeX2imgc.exe` (note the "`c`"!) in the "Main Settings" window.
 6. (Optional) **Install LaTeXiT-metadata**:
   * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
   * Download [`LaTeXiT-metadata-Win.zip`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.59/LaTeXiT-metadata-Win.zip) from the Releases page, unzip, and set the path to `LaTeXiT-metadata.exe` in the "Main Settings" window.
