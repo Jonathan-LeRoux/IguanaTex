@@ -106,7 +106,7 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
   * The first time LaTeXiT-metadata-macos is called by IguanaTex, Mac OS may block it. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
   * The executable was compiled on Mac OS 10.13 but should work on all versions. Please let me know if you have any issue.
   * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
-  * Source code to be released soon.
+  * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS).
 
 ## Known Issues
 
