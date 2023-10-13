@@ -304,6 +304,7 @@ Private Function CollectGroupedItemList(vSh As Shape, AllDisplays As Boolean) As
     Dim added_length As Long
     Dim TmpList() As String
     Dim SubList() As String
+    Dim AddToList As Boolean
     prev_length = -1
     For n = 1 To vSh.GroupItems.count
         If vSh.GroupItems(n).Type = msoGroup Then ' this case should never occur, as PPT disregards subgroups. Consider removing.
@@ -315,7 +316,14 @@ Private Function CollectGroupedItemList(vSh As Shape, AllDisplays As Boolean) As
             Next j
             prev_length = UBound(TmpList)
         Else
-            If AllDisplays Or IsShapeDisplay(vSh.GroupItems(n)) Then
+            If AllDisplays Then
+                AddToList = True
+            ElseIf IsShapeDisplay(vSh.GroupItems(n)) Then ' Avoid this lengthy check if possible
+                AddToList = True
+            Else
+                AddToList = False
+            End If
+            If AddToList Then
                 ReDim Preserve TmpList(0 To prev_length + 1) As String
                 TmpList(UBound(TmpList)) = vSh.GroupItems(n).Name
                 prev_length = UBound(TmpList)
@@ -422,9 +430,12 @@ Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
                 Set NewPres = Presentations.Add(msoFalse)
                 Dim NewSlide As Slide
                 Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
-                Dim NewShape As Shape
+                'Dim NewShape As Shape
+                Dim ClipboardString As String
+                ClipboardString = Clipboard ' Backup clipboard text if any
                 vSh.Copy
                 NewPres.Slides(1).Shapes.Paste
+                Clipboard ClipboardString ' Restore clipboard text if any
                 ' This briefly displays a saving progress dialog, but I haven't found a way to disable that
                 NewPres.SaveAs picPath, ppSaveAsPDF
                 'Application.DisplayAlerts = True
@@ -442,11 +453,14 @@ Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
                 ' Unfortunately, saving as EMF corrupts the EMF file and loses the LaTeXiT info
                 'vSh.Export picPath, ppShapeFormatEMF
                 ' So, we need to use a more complicated route...
+                Dim ClipboardString As String
+                ClipboardString = Clipboard ' Backup clipboard text if any
+                
                 Dim NewPres As Presentation
                 Set NewPres = Presentations.Add(msoFalse)
                 Dim NewSlide As Slide
                 Set NewSlide = NewPres.Slides.Add(index:=1, Layout:=ppLayoutBlank)
-                Dim NewShape As Shape
+                'Dim NewShape As Shape
                 vSh.Copy
                 NewPres.Slides(1).Shapes.Paste
                 Dim FilePrefixLatexit As String
@@ -454,6 +468,9 @@ Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
                 NewPres.SaveAs (FilePrefixLatexit & ".pptx")
                 NewPres.Close
                 Set NewPres = Nothing
+                
+                Clipboard ClipboardString ' Restore clipboard text if any
+                
                 fs.CopyFile FilePrefixLatexit & ".pptx", FilePrefixLatexit & ".zip", True
                 fs.DeleteFile FilePrefixLatexit & ".pptx"
                 Dim Image1EMF As String
@@ -578,8 +595,17 @@ Function IsShapeDisplay(vSh As Shape) As Boolean
             IsShapeDisplay = True
         ElseIf .item("SOURCE") <> vbNullString Then ' we're dealing with a Texpoint display
             IsShapeDisplay = True
+        ElseIf .item("IsLatexItDisplay") <> vbNullString Then ' see if we've already checked if LatexIt display
+            If .item("IsLatexItDisplay") = "True" Then
+                IsShapeDisplay = True
+            Else
+                IsShapeDisplay = False
+            End If
         ElseIf GetLatexTextFromLatexItShape(vSh) <> vbNullString Then ' we're dealing with a LatexIt display
             IsShapeDisplay = True
+            vSh.Tags.Add "IsLatexItDisplay", "True"
+        Else
+            vSh.Tags.Add "IsLatexItDisplay", "False"
         End If
     End With
 End Function

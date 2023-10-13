@@ -91,7 +91,20 @@ Function Clipboard(Optional StoreText As String) As String
     'Set myData = New DataObject
     'myData.SetText StoreText
     'myData.PutInClipboard
-    AppleScriptTask "IguanaTex.scpt", "MacSetClipboard", StoreText
+    Dim x As Variant
+    
+    Select Case True
+        Case Len(StoreText)
+            'Write to the clipboard
+            AppleScriptTask "IguanaTex.scpt", "MacSetClipboard", StoreText
+        Case Else
+          'Read from the clipboard (no variable passed through)
+            x = AppleScriptTask("IguanaTex.scpt", "MacSetClipboard", vbNullString)
+            'If IsNull(x) Then
+            '   x = vbNullString
+            'End If
+            Clipboard = x
+    End Select
 #Else
     'PURPOSE: Read/Write to Clipboard
     'Source: ExcelHero.com (Daniel Ferry)
@@ -111,7 +124,11 @@ Function Clipboard(Optional StoreText As String) As String
               .setData "text", x
           Case Else
             'Read from the clipboard (no variable passed through)
-              Clipboard = .GetData("text")
+              x = .GetData("text")
+              If IsNull(x) Then
+                 x = vbNullString
+              End If
+              Clipboard = x
         End Select
       End With
     End With
