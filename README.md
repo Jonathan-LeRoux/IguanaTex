@@ -108,6 +108,14 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
   * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
   * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS).
 
+## Non-obvious tricks
+
+IguanaTex's usage should mostly be self-explanatory, but there are a few tips and tricks that may not be.
+
+* Accelerator keys (i.e., keyboard shortcuts): many of IguanaTex's commands ("Generate", "Cancel", etc) can be accessed by using a combination of modifier keys and a single letter. Look for the underlined letter in the corresponding button's text/label.
+  * Windows: Alt + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Alt + g`. (This is the standard Office behavior on Windows)
+  * Mac: Ctrl + Cmd + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Ctrl + Cmd + g`. (Accelerator keys are not available in the standard Office for Mac, this was specially coded by Tsung-Ju for IguanaTex)
+
 ## Known Issues
 
 * "Bitmap" displays created on Mac (which are inserted PDFs) have a small extra margin around them so that they do not appear cropped on Windows. In earlier versions, there was no margin but the display would appear cropped. This seems to be a bug with the way PowerPoint handles some PDFs on Mac, internally storing them as EMF files. The PDFs created by LaTeXiT do not have that issue, however, so there may be a way to circumvent this bug in a future version of IguanaTex.
