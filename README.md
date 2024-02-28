@@ -77,7 +77,7 @@ For more details (e.g., how to upgrade or uninstall), please see [Tsung-Ju's Hom
 There are 3 files to install:
 * `IguanaTex.scpt`: AppleScript file for handling file and folder access
 * `libIguanaTexHelper.dylib`: library for creating native text views; source code included in the git repo, under "IguanaTexHelper/"
-* `IguanaTexMac.ppam`: main add-in file
+* `IguanaTex_v1_XX_Y.ppam`: main add-in file
 
 2. **Install `IguanaTex.scpt`**
 ```bash
@@ -91,7 +91,7 @@ sudo mkdir -p '/Library/Application Support/Microsoft/Office365/User Content.loc
 sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/libIguanaTexHelper.dylib'
 ```
 
-4. **Load the add-in**: Start PowerPoint (restart if it was running when installing the dylib). From the menu bar, select Tools > PowerPoint Add-ins... > '+' , and choose `IguanaTexMac.ppam`
+4. **Load the add-in**: Start PowerPoint (restart if it was running when installing the dylib). From the menu bar, select Tools > PowerPoint Add-ins... > '+' , and choose `IguanaTex_v1_XX_Y.ppam`
   * The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**: 
