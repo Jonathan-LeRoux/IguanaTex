@@ -38,25 +38,25 @@ This repository hosts the source code in a form that can be easily tracked, shar
 1. **Download the .ppam add-in** file from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases), or from the [IguanaTex Download page](http://www.jonathanleroux.org/software/iguanatex/download.html), and save it in a [Trusted Location](https://learn.microsoft.com/en-us/DeployOffice/security/trusted-locations) (see [this Microsoft article](https://learn.microsoft.com/en-us/DeployOffice/security/internet-macros-blocked#guidance-on-allowing-vba-macros-to-run-in-files-you-trust)), such as `%appdata%\Microsoft\Addins` (i.e., `C:\Users\user_name\Appdata\Roaming\Microsoft\Addins`).
 2. **Load the add-in**: in "File" > "Options" > "Add-Ins" > "Manage:" (lower part of the window), choose "PowerPoint Add-Ins" in the selection box. Then press "Go...", then click  "Add New", select the `.ppam` file in the folder where you downloaded it, then "Close" (if you downloaded the .pptm source and saved it as `.ppam`, it will be in the default Add-In folder).
 3. **Create and set a temporary file folder**: IguanaTex needs access to a folder with read/write permissions to store temporary files.
-  * The default is "C:\Temp\". If you have write permissions under "C:\", create the folder "C:\Temp\". You're all set.
-  * If you cannot create this folder, choose or create a folder with write permission at any other location. In the IguanaTex tab, choose "Main Settings" and put the path to the folder of your choice. You can also use a relative path under the presentation's folder (e.g., ".\" for the presentation folder itself).
+   * The default is "C:\Temp\". If you have write permissions under "C:\", create the folder "C:\Temp\". You're all set.
+   * If you cannot create this folder, choose or create a folder with write permission at any other location. In the IguanaTex tab, choose "Main Settings" and put the path to the folder of your choice. You can also use a relative path under the presentation's folder (e.g., ".\" for the presentation folder itself).
 4. **Install and set path to GhostScript and ImageMagick**:
-  * Set the **full** path to `gswin32c.exe` or `gswin64c.exe` (note the "`c`"!) and to ImageMagick's magick.exe in the "Main Settings" window.
-  * Best way to make sure the path is correct is to use the "..." button next to each path and navigate to the correct file.
-  * Some default paths include `%USERPROFILE%`. It is recommended to click on "..." to make sure the path gets properly converted to the actual user profile path. 
+   * Set the **full** path to `gswin32c.exe` or `gswin64c.exe` (note the "`c`"!) and to ImageMagick's magick.exe in the "Main Settings" window.
+   * Best way to make sure the path is correct is to use the "..." button next to each path and navigate to the correct file.
+   * Some default paths include `%USERPROFILE%`. It is recommended to click on "..." to make sure the path gets properly converted to the actual user profile path. 
 5. (Optional) **Install and set path to TeX2img**:
-  * Only needed for vector graphics support via EMF (compared to SVG, pros: available on all PowerPoint versions, fully modifiable shapes; cons: some displays randomly suffer from distortions)
-  * Download from [this link](https://www.ms.u-tokyo.ac.jp/~abenori/soft/index.html#TEX2IMG) (more details on TeX2img on their [Github repo](https://github.com/abenori/TeX2img))
-  * After unpacking TeX2img somewhere on your machine, run TeX2img.exe once to let it automatically set the various paths to latex/ghostscript, then set the **full** path to `TeX2imgc.exe` (note the "`c`"!) in the "Main Settings" window.
+   * Only needed for vector graphics support via EMF (compared to SVG, pros of EMF are: available on all PowerPoint versions, fully modifiable shapes; cons: some displays randomly suffer from distortions)
+   * Download from [this link](https://www.ms.u-tokyo.ac.jp/~abenori/soft/index.html#TEX2IMG) (more details on TeX2img on their [Github repo](https://github.com/abenori/TeX2img))
+   * After unpacking TeX2img somewhere on your machine, run TeX2img.exe once to let it automatically set the various paths to latex/ghostscript, then set the **full** path to `TeX2imgc.exe` (note the "`c`"!) in the "Main Settings" window.
 6. (Optional) **Install LaTeXiT-metadata**:
-  * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
-  * Download [`LaTeXiT-metadata-Win.zip`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.60.3/LaTeXiT-metadata-Win.zip) from the Releases page, unzip, and set the path to `LaTeXiT-metadata.exe` in the "Main Settings" window.
-  * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
-  * Source code to be released soon.
+   * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
+   * Download [`LaTeXiT-metadata-Win.zip`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.60.3/LaTeXiT-metadata-Win.zip) from the Releases page, unzip, and set the path to `LaTeXiT-metadata.exe` in the "Main Settings" window.
+   * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
+   * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-Win).
 
 **Other settings**:
-* If you have a non-standard LaTeX installation, you can specify the folder in which the executables are included.
-* If you would like to have the option of using an external editor, e.g., when debugging LaTeX source code, you can specify the path to that editor. If you would like to use that editor by default over the IguanaTex edit window, check the "use as default" checkbox.
+* If you have a non-standard LaTeX installation, you can specify in Main Settings the folder in which the executables are included.
+* If you would like to have the option of using an external editor, e.g., when debugging LaTeX source code, you can specify the path to that editor in Main Settings. If you would like to use that editor by default over the IguanaTex edit window, check the "use as default" checkbox.
 
 ### Mac
 
@@ -69,15 +69,15 @@ brew install --cask --no-quarantine iguanatexmac latexit-metadata
 ```
 Then follow **5. Verify that paths are set correctly** in the Manual installation instructions below.
 
-For more details (e.g., how to upgrade or uninstall), please see [Tsung-Ju's Homebrew instructions](https://github.com/tsung-ju/homebrew-iguanatexmac).
+For more details (e.g., how to **upgrade** or **uninstall**), please see [Tsung-Ju's Homebrew instructions](https://github.com/tsung-ju/homebrew-iguanatexmac).
 
 #### Manual installation
 
 1. **Download the "prebuilt files for Mac" zip** from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases)  
 There are 3 files to install:
-* `IguanaTex.scpt`: AppleScript file for handling file and folder access
-* `libIguanaTexHelper.dylib`: library for creating native text views; source code included in the git repo, under "IguanaTexHelper/"
-* `IguanaTex_v1_XX_Y.ppam`: main add-in file
+   * `IguanaTex.scpt`: AppleScript file for handling file and folder access
+   * `libIguanaTexHelper.dylib`: library for creating native text views; source code included in the git repo, under "IguanaTexHelper/"
+   * `IguanaTex_v1_XX_Y.ppam`: main add-in file
 
 2. **Install `IguanaTex.scpt`**
 ```bash
@@ -92,29 +92,29 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
 ```
 
 4. **Load the add-in**: Start PowerPoint (restart if it was running when installing the dylib). From the menu bar, select Tools > PowerPoint Add-ins... > '+' , and choose `IguanaTex_v1_XX_Y.ppam`
-  * The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
+   * The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**: 
-  * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations.
-  * If you cannot find them, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
+   * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations.
+   * If you cannot find them, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
 
 6. (Optional) **Install LaTeXiT-metadata**:
-  * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
-  * Download [`LaTeXiT-metadata-macos`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.60.3/LaTeXiT-metadata-macos) from the Releases page, add executable permission, and either set the path to its location in the "Main Settings" window or copy it to the secure add-in folder:  
+   * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
+   * Download [`LaTeXiT-metadata-macos`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.60.3/LaTeXiT-metadata-macos) from the Releases page, add executable permission, and either set the path to its location in the "Main Settings" window or copy it to the secure add-in folder:  
   `chmod 755 ./LaTeXiT-metadata-macos`  
   `sudo cp ./LaTeXiT-metadata-macos '/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/'`
-  * The first time LaTeXiT-metadata-macos is called by IguanaTex, Mac OS may block it. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
-  * The executable was compiled on Mac OS 10.13 but should work on all versions. Please let me know if you have any issue.
-  * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
-  * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS).
+   * The first time LaTeXiT-metadata-macos is called by IguanaTex, Mac OS may block it. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
+   * The executable was compiled on Mac OS 10.13 but should work on all versions. Please let me know if you have any issue.
+   * LaTeXiT-metadata was kindly prepared by Pierre Chatelier, [LaTeXiT](https://www.chachatelier.fr/latexit/)'s author, at my request. Many thanks to him!
+   * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS).
 
 ## Non-obvious tricks
 
 IguanaTex's usage should mostly be self-explanatory, but there are a few tips and tricks that may not be.
 
 * Accelerator keys (i.e., keyboard shortcuts): many of IguanaTex's commands ("Generate", "Cancel", etc) can be accessed by using a combination of modifier keys and a single letter. Look for the underlined letter in the corresponding button's text/label.
-  * Windows: Alt + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Alt + g`. (This is the standard Office behavior on Windows)
-  * Mac: Ctrl + Cmd + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Ctrl + Cmd + g`. (Accelerator keys are not available in the standard Office for Mac, this was specially coded by Tsung-Ju for IguanaTex)
+* Windows: Alt + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Alt + g`. (This is the standard Office behavior on Windows)
+* Mac: Ctrl + Cmd + letter. For example, instead of clicking on the "<ins>G</ins>enerate" button, you can use `Ctrl + Cmd + g`. (Accelerator keys are not available in the standard Office for Mac, this was specially coded by Tsung-Ju for IguanaTex)
 
 ## Known Issues
 
