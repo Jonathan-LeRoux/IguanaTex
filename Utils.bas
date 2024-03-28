@@ -479,7 +479,7 @@ Public Function GetUsePDFList() As Variant
 End Function
 
 Public Function GetBitmapVectorList() As Variant
-    GetBitmapVectorList = Array("Bitmap", "Vector")
+    GetBitmapVectorList = Array("Picture", "Shape")
 End Function
 
 Public Function GetVectorOutputTypeDisplayList() As Variant
@@ -497,6 +497,15 @@ Public Function GetVectorOutputTypeList() As Variant
         GetVectorOutputTypeList = Array("dvisvgm", "dvisvgmpdf", "tex2img", "pdfiumdraw")
     #End If
 End Function
+
+Public Function GetPictureOutputTypeDisplayList() As Variant
+    #If Mac Then
+        GetPictureOutputTypeDisplayList = Array("PDF", "PNG")
+    #Else
+        GetPictureOutputTypeDisplayList = Array("PNG")
+    #End If
+End Function
+
 
 ' Shape functions
 
@@ -680,7 +689,14 @@ Public Function convertSVG(inSh As Shape, ByVal ScalingX As Single, ByVal Scalin
     ' Because we're applying a ribbon function, we need to use selection to keep track of the shape
     Dim Sel As Selection
     inSh.Select
-    Call CommandBars.ExecuteMso("SVGEdit")
+    Dim ConversionSuccessful As Boolean
+    ConversionSuccessful = ApplySVGEdit
+    If ConversionSuccessful = False Then
+        MsgBox "SVG conversion to Shape was unsuccessful. " & vbNewLine _
+             & "File will be inserted as is, " _
+             & "please make sure it displays correctly." & vbNewLine _
+             & "Your PowerPoint version may not support this feature."
+    End If
     Set Sel = Application.ActiveWindow.Selection
     Dim NewShape As Shape
     
@@ -720,7 +736,15 @@ Public Function convertSVG(inSh As Shape, ByVal ScalingX As Single, ByVal Scalin
     Set convertSVG = NewShape
 End Function
 
-
+Private Function ApplySVGEdit() As Boolean
+    On Error GoTo handler
+    Call CommandBars.ExecuteMso("SVGEdit")
+    ApplySVGEdit = True
+Done:
+    Exit Function
+handler:
+    ApplySVGEdit = False
+End Function
 
 Private Function LineToFreeform(ByVal s As Shape) As Shape
     Dim t As Double

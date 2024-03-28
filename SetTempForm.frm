@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SetTempForm 
    Caption         =   "Default Settings and Paths"
-   ClientHeight    =   10896
+   ClientHeight    =   10908
    ClientLeft      =   -12
    ClientTop       =   204
-   ClientWidth     =   6240
+   ClientWidth     =   6180
    OleObjectBlob   =   "SetTempForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -97,6 +97,13 @@ Sub ButtonSetTemp_Click()
     SetITSetting "VectorOutputTypeIdx", REG_DWORD, ComboBoxVectorOutputType.ListIndex
     SetITSetting "VectorOutputType", REG_SZ, CStr(VectorOutputType)
     
+    Dim PictureOutputTypeList As Variant
+    PictureOutputTypeList = GetPictureOutputTypeDisplayList()
+    Dim PictureOutputType As String
+    PictureOutputType = PictureOutputTypeList(ComboBoxPictureOutputType.ListIndex)
+    SetITSetting "PictureOutputTypeIdx", REG_DWORD, ComboBoxPictureOutputType.ListIndex
+    SetITSetting "PictureOutputType", REG_SZ, CStr(PictureOutputType)
+    
     
     ' GS command
     #If Mac Then
@@ -131,6 +138,11 @@ Sub ButtonSetTemp_Click()
     res = AddTrailingSlash(res)
     SetITSetting "TeXExePath", REG_SZ, CStr(res)
     
+    ' Path to TeX Extra Path
+    res = RemoveQuotes(TextBoxTeXExtraPath.Text)
+    res = AddTrailingSlash(res)
+    SetITSetting "TeXExtraPath", REG_SZ, CStr(res)
+    
     ' Path to LaTeXiT-metadata extractor
     res = RemoveQuotes(TextBoxLaTeXiT.Text)
     SetITSetting "LaTeXiT", REG_SZ, CStr(res)
@@ -163,6 +175,9 @@ Sub ButtonSetTemp_Click()
     ' Use Latexmk by default
     SetITSetting "UseLatexmk", REG_DWORD, BoolToInt(CheckBoxLatexmk.value)
     
+    ' Add LaTeX source as Alt. text to display by default
+    SetITSetting "AddAltText", REG_DWORD, BoolToInt(CheckBoxAltText.value)
+    
     ' Keep Temporary files by default
     SetITSetting "KeepTempFiles", REG_DWORD, BoolToInt(CheckBoxKeepTempFiles.value)
     
@@ -175,12 +190,10 @@ Sub ButtonSetTemp_Click()
     Unload SetTempForm
 End Sub
 
-
 Private Sub AbsPathButton_Click()
     AbsPathButton.value = True
     SetAbsRelDependencies
 End Sub
-
 
 Private Sub LabelDLgs_Click()
     OpenURL "http://www.ghostscript.com/download/gsdnld.html"
@@ -236,6 +249,7 @@ Sub ButtonReset_Click()
     CheckBoxExternalEditor.value = False
     
     CheckBoxLatexmk.value = False
+    CheckBoxAltText.value = True
     CheckBoxKeepTempFiles.value = True
     'CheckBoxEMF.Value = False
     ComboBoxBitmapVector.ListIndex = 0
@@ -256,6 +270,7 @@ Sub ButtonReset_Click()
     TextBoxExternalEditor.Text = DEFAULT_EDITOR
     
     TextBoxTeXExePath.Text = DEFAULT_TEX_EXE_PATH
+    TextBoxTeXExtraPath.Text = DEFAULT_TEX_EXTRA_PATH
     
     TextBoxLaTeXiT.Text = Replace(DEFAULT_LATEXIT_METADATA_COMMAND, "%USERPROFILE%", UserProfile)
     
@@ -297,23 +312,88 @@ Private Sub UserForm_Initialize()
     ' I'm fixing the height because I have been getting issues with form automatically resizing
     ' to something too small, resulting in very small font
     Me.Height = 480
-    Me.Width = 320
+    Me.Width = 322
+    Me.CheckBoxAltText.Top = Me.CheckBoxLatexmk.Top + 24
+    
     #If Mac Then
-        'Me.ComboBoxVectorOutputType.Enabled = False
-        Me.LabelSetGS.Caption = "Set ghostscript command (gs)"
-        Me.LabelLibgs.Top = Me.LabelSetFullPath.Top
+        ' Place Picture output info at correct spot, move Shape output down
+        Me.ComboBoxPictureOutputType.Top = Me.CheckBoxLatexmk.Top
+        Me.LabelPictureOutputCreationMode.Top = Me.ComboBoxPictureOutputType.Top + 2
+        Me.ComboBoxVectorOutputType.Top = Me.CheckBoxAltText.Top
+        Me.LabelVectorOutputCreationMode.Top = Me.ComboBoxVectorOutputType.Top + 2
+    #Else
+        ' Place Shape output info at correct spot
+        Me.ComboBoxVectorOutputType.Top = Me.CheckBoxAltText.Top
+        Me.LabelVectorOutputCreationMode.Top = Me.ComboBoxVectorOutputType.Top + 2
+        '''' Uncomment!
+        Me.LabelPictureOutputCreationMode.Visible = False
+        Me.ComboBoxPictureOutputType.Visible = False
+    #End If
+    ''''' To be removed!!!
+    'Me.ComboBoxPictureOutputType.Top = Me.CheckBoxLatexmk.Top
+    'Me.LabelPictureOutputCreationMode.Top = Me.ComboBoxPictureOutputType.Top + 2
+    'Me.ComboBoxVectorOutputType.Top = Me.ComboBoxPictureOutputType.Top + 24
+    'Me.LabelVectorOutputCreationMode.Top = Me.ComboBoxVectorOutputType.Top + 2
+    '''''
+            
+    ' Place everyone relatively to "Create Shape output" box
+    Me.LabelMagicRescalingFactors.Top = Me.LabelVectorOutputCreationMode.Top + 22
+    Me.LabelVectorX.Top = Me.LabelMagicRescalingFactors.Top + 16
+    Me.LabelVectorY.Top = Me.LabelVectorX.Top
+    Me.LabelBitmapX.Top = Me.LabelVectorX.Top
+    Me.LabelBitmapY.Top = Me.LabelVectorX.Top
+    Me.TextBoxVectorScalingX.Top = Me.LabelVectorX.Top - 2
+    Me.TextBoxVectorScalingY.Top = Me.TextBoxVectorScalingX.Top
+    Me.TextBoxBitmapScalingX.Top = Me.TextBoxVectorScalingX.Top
+    Me.TextBoxBitmapScalingY.Top = Me.TextBoxVectorScalingX.Top
+    
+    Me.LabelDefaultUses.Caption = "(Except for LaTeX, which uses DVI output, Ghostscript required)"
+    Me.LabelDefaultUses.Top = Me.LabelVectorX.Top + 20
+    Me.LabelSetGS.Caption = "Set Ghostscript command (gs)"
+    Me.LabelSetGS.Top = Me.LabelDefaultUses.Top + 16
+    Me.LabelDLgs.Top = Me.LabelSetGS.Top
+    Me.TextBoxGS.Top = Me.LabelSetGS.Top + 12
+    Me.ButtonGSPath.Top = Me.TextBoxGS.Top - 1
+    
+    Me.LabelSetFullPath.Top = Me.LabelSetGS.Top + 30
+    Me.LabelDLImageMagick.Top = Me.LabelDLgs.Top + 30
+    Me.TextBoxIMconv.Top = Me.TextBoxGS.Top + 30
+    Me.ButtonIMPath.Top = Me.ButtonGSPath.Top + 30
+    ' Set libgs box on Mac where ImageMagick's box is on Win
+    Me.LabelLibgs.Top = Me.LabelSetGS.Top + 30
+    Me.TextBoxLibgs.Top = Me.TextBoxGS.Top + 30
+    Me.ButtonLibgsPath.Top = Me.ButtonGSPath.Top + 30
+    
+    Me.LabelEditor.Top = Me.LabelSetFullPath.Top + 30
+    Me.LabelDLtexstudio.Top = Me.LabelDLImageMagick.Top + 30
+    Me.CheckBoxExternalEditor.Top = Me.LabelEditor.Top - 2
+    Me.TextBoxExternalEditor.Top = Me.TextBoxIMconv.Top + 30
+    Me.ButtonEditorPath.Top = Me.ButtonIMPath.Top + 30
+    
+    Me.LabelTeXExePath.Top = Me.LabelEditor.Top + 30
+    Me.TextBoxTeXExePath.Top = Me.TextBoxExternalEditor.Top + 30
+    Me.ButtonTeXExePath.Top = Me.ButtonEditorPath.Top + 30
+    
+    Me.LabelLaTeXiT.Top = Me.LabelTeXExePath.Top + 30
+    Me.TextBoxLaTeXiT.Top = Me.TextBoxTeXExePath.Top + 30
+    Me.ButtonLaTeXiTPath.Top = Me.ButtonTeXExePath.Top + 30
+            
+    #If Mac Then
+        ' Remove ImageMagick and TeX2img info on Mac
         Me.LabelSetFullPath.Visible = False
-        Me.LabelTeX2img.Visible = False
-        Me.TextBoxLibgs.Top = Me.TextBoxIMconv.Top
         Me.TextBoxIMconv.Visible = False
-        Me.TextBoxTeX2img.Visible = False
-        Me.ButtonLibgsPath.Top = Me.ButtonIMPath.Top
         Me.ButtonIMPath.Visible = False
+        Me.LabelTeX2img.Visible = False
+        Me.TextBoxTeX2img.Visible = False
         Me.ButtonTeX2img.Visible = False
         Me.LabelTeX2imgGithub.Visible = False
         Me.LabelDLTeX2img.Visible = False
         Me.LabelDLImageMagick.Visible = False
-        Me.LabelWindowSize.Top = Me.TextBoxLaTeXiT.Top + 26
+        
+        ' Set bottom layout respective to LaTeXiT box
+        Me.LabelTeXExtraPath.Top = Me.LabelLaTeXiT.Top + 30
+        Me.TextBoxTeXExtraPath.Top = Me.TextBoxLaTeXiT.Top + 30
+        Me.LabelWindowSize.Top = Me.TextBoxTeXExtraPath.Top + 26
         Me.LabelWindowHeight.Top = Me.LabelWindowSize.Top
         Me.LabelWindowWidth.Top = Me.LabelWindowHeight.Top
         Me.TextBoxWindowHeight.Top = Me.LabelWindowHeight.Top - 2
@@ -326,13 +406,23 @@ Private Sub UserForm_Initialize()
         Me.ButtonCancelTemp.Top = Me.LabelWindowSize.Top + 24
         Me.ButtonSetTemp.Top = Me.ButtonCancelTemp.Top
         Me.ButtonReset.Top = Me.ButtonCancelTemp.Top
-        Me.Height = Me.ButtonCancelTemp.Top + 56
+        Me.Height = Me.ButtonCancelTemp.Top + 58
         ResizeUserForm Me
     #Else
-        Me.Height = 430
+        'Me.Height = 430
         Me.TextBoxLibgs.Visible = False
         Me.LabelLibgs.Visible = False
         Me.ButtonLibgsPath.Visible = False
+        Me.LabelTeXExtraPath.Visible = False
+        Me.TextBoxTeXExtraPath.Visible = False
+        
+        ' Place TeX2img info below LaTeXiT
+        Me.LabelTeX2img.Top = Me.LabelLaTeXiT.Top + 30
+        Me.LabelTeX2imgGithub.Top = Me.LabelTeX2img.Top
+        Me.LabelDLTeX2img.Top = Me.LabelTeX2img.Top
+        Me.TextBoxTeX2img.Top = Me.TextBoxLaTeXiT.Top + 30
+        Me.ButtonTeX2img.Top = Me.ButtonLaTeXiTPath.Top + 30
+        
         Me.LabelWindowSize.Visible = False
         Me.LabelWindowHeight.Visible = False
         Me.LabelWindowWidth.Visible = False
@@ -341,7 +431,7 @@ Private Sub UserForm_Initialize()
         Me.ButtonCancelTemp.Top = Me.TextBoxTeX2img.Top + 26
         Me.ButtonSetTemp.Top = Me.ButtonCancelTemp.Top
         Me.ButtonReset.Top = Me.ButtonCancelTemp.Top
-        Me.Height = Me.ButtonCancelTemp.Top + 56
+        Me.Height = Me.ButtonCancelTemp.Top + 58
     #End If
     
     Dim res As String
@@ -392,6 +482,8 @@ Private Sub UserForm_Initialize()
     TextBoxLaTeXiT.Text = Replace(GetITSetting("LaTeXiT", DEFAULT_LATEXIT_METADATA_COMMAND), "%USERPROFILE%", UserProfile)
     'TextBoxLaTeXiT.Text = GetITSetting("LaTeXiT", DEFAULT_LATEXIT_METADATA_COMMAND)
     TextBoxLibgs.Text = GetITSetting("Libgs", DEFAULT_LIBGS)
+    TextBoxTeXExtraPath.Text = GetITSetting("TeXExtraPath", DEFAULT_TEX_EXTRA_PATH)
+    
     
     'CheckBoxEMF.Value = GetITSetting("EMFoutput", False)
     ComboBoxBitmapVector.List = GetBitmapVectorList()
@@ -399,6 +491,9 @@ Private Sub UserForm_Initialize()
     ComboBoxVectorOutputType.List = GetVectorOutputTypeDisplayList()
     ComboBoxVectorOutputType.ListIndex = GetITSetting("VectorOutputTypeIdx", 0)
     ComboBoxVectorOutputType.ControlTipText = "SVG via DVI w/ dvisvgm is recommended due to issues with PDF"
+    ComboBoxPictureOutputType.List = GetPictureOutputTypeDisplayList()
+    ComboBoxPictureOutputType.ListIndex = GetITSetting("PictureOutputTypeIdx", 0)
+    
     
     UsePDFList = GetUsePDFList()
     
@@ -407,6 +502,7 @@ Private Sub UserForm_Initialize()
     'CheckBoxPDF.Value = GetITSetting("UsePDF", False)
     
     CheckBoxLatexmk.value = GetITSetting("UseLatexmk", False)
+    CheckBoxAltText.value = GetITSetting("AddAltText", True)
     CheckBoxKeepTempFiles.value = GetITSetting("KeepTempFiles", True)
     
     ' Latex editor window size on Mac

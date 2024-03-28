@@ -20,7 +20,7 @@ Private Sub ComboBoxVectorOutputType_Change()
 End Sub
 
 Private Sub SetVectorTypeDependencies()
-    If ComboBoxVectorOutputType.ListIndex = 0 Or ComboBoxVectorOutputType.ListIndex = 1 Then
+    If ComboBoxVectorOutputType.ListIndex = 0 Then
         CheckBoxCleanUp.value = False
         CheckBoxCleanUp.Enabled = False
         CheckBoxConvertLines.value = False
@@ -48,7 +48,7 @@ Private Sub UserForm_Initialize()
     Me.Height = 194
     Me.Width = 355
     #If Mac Then
-        Me.LabelInsertPath.Caption = "Insert path of .pdf/.ps/.eps/.svg file:"
+        Me.LabelInsertPath.Caption = "Insert path of .pdf/.dvi/.xdv/.ps/.eps/.svg file:"
         ResizeUserForm Me
         ComboBoxVectorOutputType.Enabled = False
     #End If
@@ -76,9 +76,9 @@ Private Function isInsertableVectorFile(file As String) As Boolean
     Dim Ext As String
     Ext = GetExtension(file)
     #If Mac Then
-        isInsertableVectorFile = Ext = "eps" Or Ext = "pdf" Or Ext = ".ps" Or Ext = "svg"
+        isInsertableVectorFile = Ext = "pdf" Or Ext = "dvi" Or Ext = "xdv" Or Ext = "ps" Or Ext = "eps" Or Ext = "svg"
     #Else
-        isInsertableVectorFile = Ext = "eps" Or Ext = "emf" Or Ext = "pdf" Or Ext = "ps" Or Ext = "svg"
+        isInsertableVectorFile = Ext = "pdf" Or Ext = "dvi" Or Ext = "xdv" Or Ext = "ps" Or Ext = "eps" Or Ext = "emf" Or Ext = "svg"
     #End If
 End Function
 
@@ -219,19 +219,22 @@ Private Sub DoInsertVectorGraphicsFile()
             Dim DeleteTmpPDF As Boolean
             DeleteTmpPDF = False
             ' If .dvi/.xdv/.ps/.eps file, convert to .pdf first, using ps2pdf/eps2pdf/dvipdfmx
-            If Ext = "ps" Or Ext = "eps" Then
+            If Ext = "ps" Or Ext = "eps" Or Ext = "dvi" Or Ext = "xdv" Then
                 psPath = path
                 pdfPath = path + "_tmp.pdf"
                 If fs.FileExists(pdfPath) Then fs.DeleteFile pdfPath
                 Dim pspdf_command As String
+                Dim pdfpath_prefix As String
+                pdfpath_prefix = vbNullString
                 If Ext = "ps" Then
                     pspdf_command = "ps2pdf"
                 ElseIf Ext = "eps" Then
                     pspdf_command = "epspdf"
                 Else
                     pspdf_command = "dvipdfmx"
+                    pdfpath_prefix = "-o "
                 End If
-                RunCommand = ShellEscape(TeXExePath & pspdf_command & TeXExeExt) & " " + ShellEscape(psPath) + " " + ShellEscape(pdfPath)
+                RunCommand = ShellEscape(TeXExePath & pspdf_command & TeXExeExt) & " " + ShellEscape(psPath) + " " + pdfpath_prefix + ShellEscape(pdfPath)
                 RetVal& = Execute(RunCommand, StartFolder, debugMode, TimeOutTime)
                 If (RetVal& <> 0 Or Not fs.FileExists(pdfPath)) Then
                     ErrorMessage = "DVI/XDV/PS/EPS to PDF conversion failed" _

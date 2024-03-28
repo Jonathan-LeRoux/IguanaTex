@@ -1,3 +1,13 @@
+New in IguanaTex 1.61.0 (March 19, 2024)
+- (Win/Mac) Changed Bitmap/Vector naming to Picture/Shape, to reflect the actual difference in how PowerPoint handles each type of display. The naming also better suits the fact that Picture displays on Mac are PDF and thus cannot be described as Bitmap. (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/41)
+- (Win/Mac) Raise an error if user tries to use a combination of engine and output which requires ImageMagick without its path pointing to a file that exists (i.e., PNG output with all engines other than "latex (DVI)").
+- (Mac) Implemented PNG support for Mac
+- (Mac) Added option in Main Settings to specify extra path(s) to handle packages that require external executables such as pygmentize (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/55)
+- (Win/Mac) Added option in Main Settings to decide whether to include Alternative Text or not
+- (Win/Mac) Fixed bug that could occur when using dvipng and there exists already a PNG file from a prior run.
+- (Win/Mac) Improved handling of error when PowerPoint version does not support conversion of SVG to Shape. (somewhat fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/54)
+- (Win/Mac) Fixed bugs in the Load Vector Graphics File function: it was impossible to load DVI/XDV files, and they would not have been processed correctly anyway; options for post-processing in the EMF conversion case were incorrectly disabled.
+
 New in IguanaTex 1.60.3 (October 13, 2023)
 - (Win/Mac) Fixed bug where extracting a LaTeXiT display (or simply checking if a display was created with LaTeXiT) would replace the clipboard text
 - (Win/Mac) Fixed bug that resulted in unnecessarily checking if every display in a slide is a LaTeX display. This resulted in significant slowdowns particularly when checking for potential LaTeXiT displays is enabled. Code will now only check when necessary, and when necessary will only check the first time it encounters a given display.

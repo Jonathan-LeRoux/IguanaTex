@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
-   ClientHeight    =   4872
-   ClientLeft      =   -264
-   ClientTop       =   -948
-   ClientWidth     =   5064
+   ClientHeight    =   5880
+   ClientLeft      =   -288
+   ClientTop       =   -1044
+   ClientWidth     =   7668
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -46,8 +46,8 @@ Sub InitializeApp()
     AddMenuItem "New Latex display...", "NewLatexEquation", 18 '226
     AddMenuItem "Edit Latex display...", "EditLatexEquation", 37
     AddMenuItem "Regenerate selection...", "RegenerateSelection", 19
-    AddMenuItem "Vectorize selection...", "ConvertToVector", 153
-    AddMenuItem "Rasterize selection...", "ConvertToBitmap", 931
+    AddMenuItem "Convert to Shape...", "ConvertToVector", 153
+    AddMenuItem "Convert to Picture...", "ConvertToBitmap", 931
     AddMenuItem "Settings...", "LoadSettingsForm", 548
     AddMenuItem "Insert vector file...", "InsertVectorGraphicsFile", 23
     
@@ -91,8 +91,8 @@ Sub UnInitializeApp()
     RemoveMenuItem "New Latex display..."
     RemoveMenuItem "Edit Latex display..."
     RemoveMenuItem "Regenerate selection..."
-    RemoveMenuItem "Vectorize selection..."
-    RemoveMenuItem "Rasterize selection..."
+    RemoveMenuItem "Convert to Shape..."
+    RemoveMenuItem "Convert to Picture..."
     RemoveMenuItem "Settings..."
     RemoveMenuItem "Insert vector file..."
     ' Clean up older versions
@@ -159,6 +159,8 @@ Sub ButtonRun_Click()
     latexmk_pdf_options = LatexmkPDFOptionsList(LATEXENGINEID)
     Dim latexmk_dvi_options As String
     latexmk_dvi_options = LatexmkDVIOptionsList(LATEXENGINEID)
+    Dim AddAltText As Boolean
+    AddAltText = GetITSetting("AddAltText", False)
     
     Dim TeXExePath As String, TeXExeExt As String
     TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
@@ -190,17 +192,12 @@ Sub ButtonRun_Click()
     UseVector = Not (BitmapVector = 0)
     Dim VectorOutputType As String
     VectorOutputType = GetITSetting("VectorOutputType", DEFAULT_VECTOR_OUTPUT_TYPE)
+    Dim PictureOutputType As String
+    PictureOutputType = GetITSetting("PictureOutputType", DEFAULT_PICTURE_OUTPUT_TYPE)
     
     Dim OutputType As String
     Dim OutputExt As String
     
-    #If Mac Then
-        If Not UseVector Then
-            ' Force PDF output for Mac in bitmap case,
-            ' as PDF can be inserted on Mac and it is likely more desirable than PNG
-            UsePDF = True
-        End If
-    #End If
     If UseVector Then
         If VectorOutputType = "dvisvgm" Then
             ' "dvisvgm via DVI" only needs DVI/XDV, no PDF, whatever the engine
@@ -211,6 +208,14 @@ Sub ButtonRun_Click()
             ' The last option, "tex2img", does not care how this is set.
             UsePDF = True
         End If
+    Else
+        #If Mac Then
+            ' For PNG on Mac, we force the use of DVI as it's a pain to convert PDF to PNG with proper DPI
+            If PictureOutputType = "PNG" Then
+                UseDVI = True
+                UsePDF = False
+            End If
+        #End If
     End If
     
     Dim TimeOutTimeString As String
@@ -348,9 +353,10 @@ Sub ButtonRun_Click()
             End If
         End If
         
-        ' By now, we either have a DVI/XDV file, or a PDF file. Let's generate a Vector (EMF/SVG) or Bitmap (PNG/PDF) display.
+        ' By now, we either have a DVI/XDV file, or a PDF file. Let's generate a Shape (EMF/SVG) or Picture (PNG/PDF) display.
         If UseVector Then
-            ' Vector display
+            ' Shape display -- formerly known as "Vector"
+            ' I won't replace Vector with Shape everywhere in the code to avoid introducing bugs
             If VectorOutputType = "pdfiumdraw" Then
                 ' Use pdfiumdraw to generate an EMF file from the previously generated PDF
                 LabelProcess.Caption = "PDF to EMF..."
@@ -394,14 +400,14 @@ Sub ButtonRun_Click()
             
             End If
         Else
-            ' Bitmap display: PDF on Mac, PNG on PC
-            #If Mac Then
+            ' Picture display: PDF or PNG on Mac, PNG on PC
+            If PictureOutputType = "PDF" Then
                 LabelProcess.Caption = "Cropping PDF..."
                 FrameProcess.Repaint
-            #Else
+            Else
                 LabelProcess.Caption = OutputType & " to PNG..."
                 FrameProcess.Repaint
-            #End If
+            End If
             If OutputType = "PDF" Then ' Crop PDF and (on Windows) convert to PNG
                 ' Output Bounding Box to file and read back in the appropriate information
                 #If Mac Then
@@ -422,7 +428,7 @@ Sub ButtonRun_Click()
                 Dim BBString As String
                 BBString = BoundingBoxString(TempPath + FilePrefix + ".bbx")
                 
-                #If Mac Then
+                If PictureOutputType = "PDF" Then ' Only on Mac
                     ' PDF insert supported on Mac, only need to crop
                     RunCommand = ShellEscape(gs_command) & " -q -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -sOutputFile=" _
                                         & FilePrefix & "_tmp.pdf" & BBString _
@@ -437,7 +443,7 @@ Sub ButtonRun_Click()
                     End If
                     OutputType = "PDF"
                     FinalFilename = FilePrefix & "_tmp.pdf"
-                #Else
+                Else ' This should only occur on Win, because we force DVI->PNG conversion on Mac for PNG
                     ' Convert PDF to PNG
                     RunCommand = ShellEscape(gs_command) & " -q -dBATCH -dNOPAUSE -sDEVICE=pngalpha -r" & OutputDpiString _
                                         & " -sOutputFile=" & FilePrefix & "_tmp.png" & BBString _
@@ -453,8 +459,6 @@ Sub ButtonRun_Click()
                     ' Unfortunately, the resulting file has a metadata DPI of OutputDpi (=1200), not the default screen one (usually 96),
                     ' so there is a discrepancy with the dvipng output, which is always 96 (independent of the screen, actually).
                     ' The only workaround I have found so far is to use Imagemagick's convert to change the DPI (but not the pixel size!)
-                    ' Execute ShellEscape(IMconv) & " -units PixelsPerInch " & FilePrefix & "_tmp.png" & _
-                    ' " -density " & CStr(dpi) & " " & FilePrefix & ".png", TempPath, debugMode
                     RunCommand = ShellEscape(IMconv) & " -units PixelsPerInch " & FilePrefix & "_tmp.png" _
                                             & " -density " & CStr(default_screen_dpi) & " " & FilePrefix & ".png"
                     RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
@@ -466,13 +470,12 @@ Sub ButtonRun_Click()
                         FrameProcess.Visible = False
                         Exit Sub
                     End If
-                    
                     ' 'I considered using ImageMagick's convert, but it's extremely slow, and uses ghostscript in the backend anyway
                     'PdfPngSwitches = "-density 1200 -trim -transparent white -antialias +repage"
                     'Execute IMconv & " " & PdfPngSwitches & " """ & FilePrefix & ".pdf"" """ & FilePrefix & ".png""", TempPath, debugMode
                     OutputType = "PNG"
                     FinalFilename = FilePrefix & ".png"
-                #End If
+                End If
             Else ' Convert DVI to PNG
                 Dim DviPngSwitches As String
                 ' monitor is 96 dpi or higher; we use OutputDpi (=1200 by default) dpi to get a crisper display,
@@ -485,7 +488,6 @@ Sub ButtonRun_Click()
                     RetValConv& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
                     If (RetValConv& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & ".png")) Then
                         ErrorMessage = "dvipng failed, or did not return in " & TimeOutTimeString & " seconds and may have hung." _
-                            & vbNewLine & "You may want to try compiling using the PDF->PNG option." _
                             & vbNewLine & "You may also try generating in Debug mode, as it will let you know if any font is missing."
                         ShowError ErrorMessage, RunCommand
                         FrameProcess.Visible = False
@@ -911,11 +913,13 @@ Sub ButtonRun_Click()
     End If
     
     ' Add Alternative Text
-    NewShape.AlternativeText = TextWindow1.Text
-    If UseVector = True Then
-        NewShape.Title = "IguanaTex Vector Display"
-    Else
-        NewShape.Title = "IguanaTex Bitmap Display"
+    If AddAltText = True Then
+        NewShape.AlternativeText = TextWindow1.Text
+        If UseVector = True Then
+            NewShape.Title = "IguanaTex Shape Display"
+        Else
+            NewShape.Title = "IguanaTex Picture Display"
+        End If
     End If
     
     ' Select the new shape
