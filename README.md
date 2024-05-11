@@ -40,7 +40,8 @@ This repository hosts the source code in a form that can be easily tracked, shar
 3. **Create and set a temporary file folder**: IguanaTex needs access to a folder with read/write permissions to store temporary files.
    * The default is "C:\Temp\". If you have write permissions under "C:\", create the folder "C:\Temp\". You're all set.
    * If you cannot create this folder, choose or create a folder with write permission at any other location. In the IguanaTex tab, choose "Main Settings" and put the path to the folder of your choice. You can also use a relative path under the presentation's folder (e.g., ".\" for the presentation folder itself).
-4. **Install and set path to GhostScript and ImageMagick**:
+4. **Install and set path to GhostScript and ImageMagick** (required for Picture outputs, except if using "Latex (DVI)" engine):
+   * Needed to convert intermediate PDF files into PNG before insertion into PowerPoint as a Picture object. In the Picture generation process, all LaTeX engines except "Latex (DVI)" output PDF files. Even when generating a Shape, it is often better to first generate a Picture then convert to Shape: Picture generation is faster and more robust, so it can be convenient to work on a display in Picture mode then do a final conversion to Shape, preserving the size.
    * Set the **full** path to `gswin32c.exe` or `gswin64c.exe` (note the "`c`"!) and to ImageMagick's magick.exe in the "Main Settings" window.
    * Best way to make sure the path is correct is to use the "..." button next to each path and navigate to the correct file.
    * Some default paths include `%USERPROFILE%`. It is recommended to click on "..." to make sure the path gets properly converted to the actual user profile path. 
