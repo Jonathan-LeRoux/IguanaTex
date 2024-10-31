@@ -194,7 +194,7 @@ Private Sub LabelDLTeX2img_Click()
     #If Mac Then
         OpenURL "https://tex2img.tech/#DOWNLOAD"
     #Else
-        OpenURL "https://www.ms.u-tokyo.ac.jp/~abenori/soft/bin/TeX2img_2.1.0.zip"
+        OpenURL "https://www.ms.u-tokyo.ac.jp/~abenori/soft/bin/TeX2img_2.2.1.zip"
     #End If
 End Sub
 
