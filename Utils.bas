@@ -428,6 +428,12 @@ Public Function AddTrailingSlash(Str As String) As String
     AddTrailingSlash = Str
 End Function
 
+Public Function FixTrailingSlash(Str As String) As String
+    If Str <> vbNullString And Right$(Str, 1) = WrongPathSep Then Str = Left$(Str, Len(Str) - 1) & PathSep
+    FixTrailingSlash = Str
+End Function
+
+
 ' Sanitize booleans to get consistent representation
 Public Function BoolToInt(ByVal val As Boolean) As Long
     If val Then
@@ -449,33 +455,40 @@ End Sub
 
 ' Define constant arrays as functions
 Public Function GetLaTexEngineList() As Variant
-    GetLaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex", "platex")
+    GetLaTexEngineList = Array("pdflatex", "pdflatex", "xelatex", "lualatex", "platex", "tectonic")
 End Function
 
 Public Function GetLaTexEngineDisplayList() As Variant
-    GetLaTexEngineDisplayList = Array("latex (DVI)", "pdflatex", "xelatex", "lualatex", "platex")
+    GetLaTexEngineDisplayList = Array("latex (DVI)", "pdflatex", "xelatex", "lualatex", "platex", "tectonic")
 End Function
 
 Public Function GetLatexDVIOptionsList() As Variant
-    GetLatexDVIOptionsList = Array("-output-format dvi", "-output-format dvi", "-no-pdf", "-output-format dvi", vbNullString)
+    GetLatexDVIOptionsList = Array("-output-format dvi", "-output-format dvi", "-no-pdf", "-output-format dvi", vbNullString, "--outfmt xdv")
 End Function
 
 Public Function GetLatexmkPDFOptionsList() As Variant
     GetLatexmkPDFOptionsList = Array("-pdf", "-pdf", "-xelatex", _
-        "-lualatex", "-pdfdvi -latex=platex -e ""$dvipdf='dvipdfmx %O %S';$bibtex='pbibtex';""")
+        "-lualatex", "-pdfdvi -latex=platex -e ""$dvipdf='dvipdfmx %O %S';$bibtex='pbibtex';""", vbNullString)
 End Function
 
 Public Function GetLatexmkDVIOptionsList() As Variant
     GetLatexmkDVIOptionsList = Array("-dvi", "-dvi", "-pdfxe -pdfxelatex=""xelatex --shell-escape %O %S""", _
-        "-dvi -pdf- -latex=""dvilualatex --shell-escape %O %S""", "-dvi -latex=platex -e ""$bibtex='pbibtex';""")
+        "-dvi -pdf- -latex=""dvilualatex --shell-escape %O %S""", "-dvi -latex=platex -e ""$bibtex='pbibtex';""", vbNullString)
+End Function
+
+Public Function ShellEscapeBatchmodeOptionsList() As Variant
+    Dim DefaultString As String
+    DefaultString = " -shell-escape -interaction=batchmode "
+    ShellEscapeBatchmodeOptionsList = Array(DefaultString, DefaultString, DefaultString, _
+        DefaultString, DefaultString, " -Z shell-escape ")
 End Function
 
 Public Function GetUseDVIList() As Variant
-    GetUseDVIList = Array(True, False, False, False, True)
+    GetUseDVIList = Array(True, False, False, False, True, False)
 End Function
 
 Public Function GetUsePDFList() As Variant
-    GetUsePDFList = Array(False, True, True, True, True)
+    GetUsePDFList = Array(False, True, True, True, True, True)
 End Function
 
 Public Function GetBitmapVectorList() As Variant

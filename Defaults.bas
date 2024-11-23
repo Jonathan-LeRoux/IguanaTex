@@ -16,6 +16,7 @@ Public Const DEFAULT_ADDIN_FOLDER As String = "/Library/Application Support/Micr
 Public Const DEFAULT_LATEXIT_METADATA_COMMAND As String = DEFAULT_ADDIN_FOLDER & "LaTeXiT-metadata-macos"
 Public Const NEWLINE As String = vbLf
 Public Const PathSep As String = "/"
+Public Const WrongPathSep As String = "\"
 
 #Else
 Public Const DEFAULT_TEMP_DIR As String = "c:\temp\"
@@ -31,6 +32,7 @@ Public Const DEFAULT_EDITOR As String = "C:\Program Files (x86)\TeXstudio\texstu
 Public Const DEFAULT_LATEXIT_METADATA_COMMAND As String = "%USERPROFILE%\Downloads\LaTeXiT-metadata\LaTeXiT-metadata-win.exe"
 Public Const NEWLINE As String = vbCrLf
 Public Const PathSep As String = "\"
+Public Const WrongPathSep As String = "/"
 
 #End If
 

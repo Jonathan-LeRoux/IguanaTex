@@ -152,13 +152,19 @@ Sub ButtonRun_Click()
     Dim pdfiumdraw_command As String
     pdfiumdraw_command = GetFolderFromPath(tex2img_command) & "pdfiumdraw.exe"
     Dim UseLatexmk As Boolean
-    UseLatexmk = GetITSetting("UseLatexmk", False)
+    If latex_command = "tectonic" Then
+        UseLatexmk = False
+    Else
+        UseLatexmk = GetITSetting("UseLatexmk", False)
+    End If
     Dim latexmk_command As String
     latexmk_command = "latexmk"
     Dim latexmk_pdf_options As String
     latexmk_pdf_options = LatexmkPDFOptionsList(LATEXENGINEID)
     Dim latexmk_dvi_options As String
     latexmk_dvi_options = LatexmkDVIOptionsList(LATEXENGINEID)
+    Dim shellescape_batchmode_options As String
+    shellescape_batchmode_options = ShellEscapeBatchmodeOptionsList(LATEXENGINEID)
     Dim AddAltText As Boolean
     AddAltText = GetITSetting("AddAltText", False)
     
@@ -274,7 +280,7 @@ Sub ButtonRun_Click()
     Else
         If UseDVI = True Then
             ' Convert to DVI
-            If latex_command = "xelatex" Then
+            If latex_command = "xelatex" Or latex_command = "tectonic" Then
                 OutputType = "XDV"
                 OutputExt = ".xdv"
             Else
@@ -285,10 +291,10 @@ Sub ButtonRun_Click()
             FrameProcess.Repaint
             If UseLatexmk = True Then
                 RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_dvi_options _
-                                    & " -shell-escape -interaction=batchmode " + FilePrefix + ".tex"
+                                    & shellescape_batchmode_options + FilePrefix + ".tex"
             Else ' Run latex engine in DVI/XDV output mode
                 RunCommand = ShellEscape(TeXExePath & latex_command & TeXExeExt) & " " & latex_dvi_options _
-                                    & " -shell-escape -interaction=batchmode " & FilePrefix + ".tex"
+                                    & shellescape_batchmode_options & FilePrefix + ".tex"
             End If
             RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)
             If (RetVal& <> 0 Or Not fs.FileExists(TempPath & FilePrefix & OutputExt)) Then
@@ -330,9 +336,9 @@ Sub ButtonRun_Click()
             FrameProcess.Repaint
             If UseLatexmk = True Then
                 RunCommand = ShellEscape(TeXExePath & latexmk_command & TeXExeExt) & " " & latexmk_pdf_options _
-                            & " -shell-escape -interaction=batchmode " & FilePrefix + ".tex"
+                            & shellescape_batchmode_options & FilePrefix + ".tex"
             Else
-                RunCommand = ShellEscape(TeXExePath & latex_command & TeXExeExt) & " -shell-escape -interaction=batchmode " _
+                RunCommand = ShellEscape(TeXExePath & latex_command & TeXExeExt) & shellescape_batchmode_options _
                                         & FilePrefix + ".tex"
             End If
             RetVal& = Execute(RunCommand, TempPath, debugMode, TimeOutTime)

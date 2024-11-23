@@ -14,7 +14,7 @@ This repository hosts the source code in a form that can be easily tracked, shar
 
 * OS: Windows 2000 or later (32- or 64-bit).
 * PowerPoint: 
-  * IguanaTex has been tested with PowerPoint 2010, 2013, 2016, 2019 (both 32 and 64 bit), Office 365, and PowerPoint 2003. It is likely to also work in PowerPoint 2000 and 2007.
+  * IguanaTex has been tested with Office 365, Office 2019, Office 2021 (including LTSC version), PowerPoint 2003, 2010, 2013, 2016, 2019 (both 32 and 64 bit). It is likely to also work in PowerPoint 2000 and 2007.
   * SVG support is available for Office 365 and recent retail versions of PowerPoint. Support is confirmed for PowerPoint 2021 at least for versions 2108 and above, and likely (although unconfirmed) for PowerPoint 2019 and maybe even PowerPoint 2016 for the same versions. Note that volume licensed versions, which are at version 1808 as of August 2023, do not support SVG conversion to Shape, which is required by IguanaTex.
 * LaTeX: [TeXLive](https://www.tug.org/texlive/) or [MiKTeX](http://miktex.org/)
 * [GhostScript](http://www.ghostscript.com/download/gsdnld.html) (if the latest version raises issues, try gs9.26)
@@ -26,8 +26,8 @@ This repository hosts the source code in a form that can be easily tracked, shar
 * Intel or Apple Silicon Mac
   * On Apple Silicon based Macs, PowerPoint needs to be run with the setting "Open using Rosetta."
 * PowerPoint for Mac: 
-  * Powerpoint 2019 or Office 365
-  * PowerPoint 2016 (Version 16.16.7 190210 or later) (to be confirmed; some features, e.g., SVG, may not work)
+  * Office 365, Office 2021 (including LTSC version), Powerpoint 2019, PowerPoint 2016 (Version 16.16.7 190210 or later)
+  * SVG support is available for Office 365 and recent retail versions of PowerPoint, including 2019 and 2021. Note that volume licensed (LTSC) versions do not support SVG conversion to Shape, which is required by IguanaTex.
 * [MacTeX](https://www.tug.org/mactex/): Make sure you install `libgs` for SVG support, by selecting "Customize" at the "Installation Type" step of the MacTex installer. (I haven't found a way to install libgs via TexLive after the initial install, if you know one please let me know)
 
 
@@ -56,7 +56,10 @@ This repository hosts the source code in a form that can be easily tracked, shar
    * [Source code is now public](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-Win).
 
 **Other settings**:
-* If you have a non-standard LaTeX installation, you can specify in Main Settings the folder in which the executables are included.
+* If you have a non-standard LaTeX installation, you can specify in Main Settings the folder in which the executables are included, or more generally a prefix to be added to all commands (e.g., `wsl -e ` for a LaTeX installation under the Windows Subsystem for Linux).
+* If you plan to use Tectonic: 
+   * if you are specifying a path or prefix for the LaTeX installation as explained above, that will be used for the Tectonic executable as well, so please make sure Tectonic is under that path or that it can be called with the specified prefix; 
+   * if you are not specifying any path or prefix, then the Tectonic executable needs to be on your PATH.
 * If you would like to have the option of using an external editor, e.g., when debugging LaTeX source code, you can specify the path to that editor in Main Settings. If you would like to use that editor by default over the IguanaTex edit window, check the "use as default" checkbox.
 
 ### Mac

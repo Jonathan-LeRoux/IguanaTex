@@ -133,9 +133,9 @@ Sub ButtonSetTemp_Click()
     res = RemoveQuotes(TextBoxTeX2img.Text)
     SetITSetting "TeX2img Command", REG_SZ, CStr(res)
     
-    ' Path to TeX Executables Folder
+    ' Prefix to TeX Executables; if a folder, the user needs to add trailing "/" or "\"
     res = RemoveQuotes(TextBoxTeXExePath.Text)
-    res = AddTrailingSlash(res)
+    res = FixTrailingSlash(res)  ' we kindly fix this if the user picked the wrong one
     SetITSetting "TeXExePath", REG_SZ, CStr(res)
     
     ' Path to TeX Extra Path
