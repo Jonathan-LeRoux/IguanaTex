@@ -136,7 +136,13 @@ Sub ButtonSetTemp_Click()
     ' Prefix to TeX Executables; if a folder, the user needs to add trailing "/" or "\"
     res = RemoveQuotes(TextBoxTeXExePath.Text)
     res = FixTrailingSlash(res)  ' we kindly fix this if the user picked the wrong one
+    If res = vbNullString Then
+        ' On Mac, empty TeXExePath leads to issues, so we reset to default.
+        ' On Windows, default is empty, so this has no effect.
+        res = DEFAULT_TEX_EXE_PATH
+    End If
     SetITSetting "TeXExePath", REG_SZ, CStr(res)
+    
     
     ' Path to TeX Extra Path
     res = RemoveQuotes(TextBoxTeXExtraPath.Text)
@@ -181,7 +187,7 @@ Sub ButtonSetTemp_Click()
     ' Keep Temporary files by default
     SetITSetting "KeepTempFiles", REG_DWORD, BoolToInt(CheckBoxKeepTempFiles.value)
     
-    ' Height and Width of the Editor Window on Mac (until we make it resizable)
+    ' Height and Width of the Editor Window on Mac (remnant from when it wasn't resizable)
     #If Mac Then
         SetITSetting "LatexFormHeight", REG_DWORD, CLng(val(TextBoxWindowHeight.Text))
         SetITSetting "LatexFormWidth", REG_DWORD, CLng(val(TextBoxWindowWidth.Text))
@@ -207,7 +213,7 @@ Private Sub LabelDLTeX2img_Click()
     #If Mac Then
         OpenURL "https://tex2img.tech/#DOWNLOAD"
     #Else
-        OpenURL "https://www.ms.u-tokyo.ac.jp/~abenori/soft/bin/TeX2img_2.1.0.zip"
+        OpenURL "https://www.ms.u-tokyo.ac.jp/~abenori/soft/bin/TeX2img_2.2.1.zip"
     #End If
 End Sub
 
@@ -325,7 +331,6 @@ Private Sub UserForm_Initialize()
         ' Place Shape output info at correct spot
         Me.ComboBoxVectorOutputType.Top = Me.CheckBoxAltText.Top
         Me.LabelVectorOutputCreationMode.Top = Me.ComboBoxVectorOutputType.Top + 2
-        '''' Uncomment!
         Me.LabelPictureOutputCreationMode.Visible = False
         Me.ComboBoxPictureOutputType.Visible = False
     #End If
@@ -442,11 +447,6 @@ Private Sub UserForm_Initialize()
     RelPathTextBox.Text = GetITSetting("Rel Temp Dir", vbNullString)
     
     AbsPathButton.value = GetITSetting("AbsOrRel", True)
-    
-    ' We now make UTF-8 the only choice
-    'CheckBoxUTF8.Value = GetITSetting("UseUTF8", True)
-    'CheckBoxUTF8.Visible = False
-    'CheckBoxUTF8.Enabled = False
     
     TextBoxGS.Text = GetITSetting("GS Command", DEFAULT_GS_COMMAND)
     

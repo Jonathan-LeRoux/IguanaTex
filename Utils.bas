@@ -237,6 +237,10 @@ Public Function GetExtension(ByVal FileName As String) As String
     GetExtension = LCase$(Right$(FileName, Len(FileName) - InStrRev(FileName, ".")))
 End Function
 
+Public Function isTex(file As String) As Boolean
+    isTex = GetExtension(file) = "tex"
+End Function
+
 Public Function GetFolderFromPath(strFullPath As String) As String
     GetFolderFromPath = Left(strFullPath, InStrRev(strFullPath, PathSep))
 End Function
@@ -870,7 +874,11 @@ Public Function ShellEscape(Str As String) As String
     #If Mac Then
         ShellEscape = "'" & Replace(Replace(Str, "\", "\\"), "'", "'\''") & "'"
     #Else
-        ShellEscape = """" & Str & """"
+        If Left$(Str, 4) = "wsl " Then
+            ShellEscape = Str
+        Else
+            ShellEscape = """" & Str & """"
+        End If
     #End If
 End Function
 
@@ -889,3 +897,31 @@ Sub ShowError(ErrorMessage As String, LastCommand As String, _
     Unload myForm
     Set myForm = Nothing
 End Sub
+
+Public Function BGR2HEX(ByVal bgr As Long) As String
+    Dim ReversedHex As String
+    Dim nR As String, nG As String, nB As String
+    ReversedHex = hex(bgr)
+    While Len(ReversedHex) < 6 ' pad on left to 6 hex digits
+        ReversedHex = "0" & ReversedHex
+    Wend
+    
+    nB = Mid(ReversedHex, 1, 2)
+    nG = Mid(ReversedHex, 3, 2)
+    nR = Mid(ReversedHex, 5, 2)
+    
+    BGR2HEX = nR & nG & nB
+End Function
+
+Public Function ReverseHex(ByVal value As String) As String
+    Dim nR As String, nG As String, nB As String
+    While Len(value) < 6 ' pad on left to 6 hex digits
+        value = "0" & value
+    Wend
+    
+    nR = Mid(value, 1, 2)
+    nG = Mid(value, 3, 2)
+    nB = Mid(value, 5, 2)
+    
+    ReverseHex = nB & nG & nR
+End Function

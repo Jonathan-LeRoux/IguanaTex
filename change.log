@@ -1,4 +1,13 @@
-New in IguanaTex 1.61.0 (March 19, 2024)
+New in IguanaTex 1.62 (July 31, 2024)
+- (Win/Mac) Added support for Tectonic (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/63)
+- (Win/Mac) Allowed for custom prefix for LaTeX commands instead of only a folder specifying a path. This for example allows using a LaTeX installation under the Windows Subsystem for Linux via the prefix `wsl -e ` (because wsl does not support quotes around the command, it is treated as a special case). (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/64)
+- (Win/Mac) Added option to set a Fill color for Shape objects in the editor window. The color is stored when clicking "Make Default". (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/68)
+- (Win/Mac) Added button to directly generate from file without first loading into the edit window. File path in editor window's "Read from file" is now also stored when clicking "Make Default". Created macro "LoadDefaultFileAndGenerate" to generate display from default file (enables 1-click generation from file by adding macro to Quick Access Toolbar, currently only on Windows due to Microsoft bug on Mac). (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/66 and https://github.com/Jonathan-LeRoux/IguanaTex/issues/67)
+- (Win/Mac) Added test to make sure that the temporary file IguanaTex_tmp.tex can be created, to avoid raising an error (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/77)
+- (Win/Mac) Only settings that are currently visible and active in the Editor window now get saved when clicking "Make Default" (all used to be saved).
+- (Mac) Fixed editor window size not being saved when clicking "Make default". The editor window size can also be set in the Main Settings on Mac.
+
+New in IguanaTex 1.61 (March 27, 2024)
 - (Win/Mac) Changed Bitmap/Vector naming to Picture/Shape, to reflect the actual difference in how PowerPoint handles each type of display. The naming also better suits the fact that Picture displays on Mac are PDF and thus cannot be described as Bitmap. (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/41)
 - (Win/Mac) Raise an error if user tries to use a combination of engine and output which requires ImageMagick without its path pointing to a file that exists (i.e., PNG output with all engines other than "latex (DVI)").
 - (Mac) Implemented PNG support for Mac

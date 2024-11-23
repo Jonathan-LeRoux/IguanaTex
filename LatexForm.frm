@@ -50,6 +50,7 @@ Sub InitializeApp()
     AddMenuItem "Convert to Picture...", "ConvertToBitmap", 931
     AddMenuItem "Settings...", "LoadSettingsForm", 548
     AddMenuItem "Insert vector file...", "InsertVectorGraphicsFile", 23
+    AddMenuItem "Generate from .tex...", "LoadDefaultFileAndGenerate", 2649
     
 End Sub
 
@@ -95,6 +96,7 @@ Sub UnInitializeApp()
     RemoveMenuItem "Convert to Picture..."
     RemoveMenuItem "Settings..."
     RemoveMenuItem "Insert vector file..."
+    RemoveMenuItem "Generate from .tex..."
     ' Clean up older versions
     RemoveMenuItem "Regenerate selected displays..."
     RemoveMenuItem "Convert to EMF..."
@@ -245,7 +247,9 @@ Sub ButtonRun_Click()
     BitmapScalingY = val(GetITSetting("BitmapScalingY", "1"))
     
     ' Write latex to a temp file
+    On Error GoTo FileNotWritable
     WriteToFile TempPath, FilePrefix, TextWindow1.Text
+    On Error GoTo 0
     
     ' Run latex
     #If Mac Then
@@ -918,6 +922,11 @@ Sub ButtonRun_Click()
         NewShape.Fill.Visible = True
     End If
     
+    If TextBoxChooseColor.Visible Then
+        NewShape.Fill.ForeColor.RGB = CLng("&H" & ReverseHex(TextBoxChooseColor.Text))
+    End If
+    
+    
     ' Add Alternative Text
     If AddAltText = True Then
         NewShape.AlternativeText = TextWindow1.Text
@@ -949,6 +958,9 @@ Sub ButtonRun_Click()
     Unload LatexForm
 Exit Sub
    
+FileNotWritable:
+   MsgBox "An error occurred while deleting temporary files """ & TempPath & FilePrefix & ".*""." & vbCrLf & _
+          "Please make sure none of these files is open in another application."
 End Sub
 
 Private Sub AddTagsToShape(ByVal vSh As Shape)
@@ -957,6 +969,7 @@ Private Sub AddTagsToShape(ByVal vSh As Shape)
         .Add "IguanaTexSize", val(textboxSize.Text)
         .Add "IGUANATEXCURSOR", TextWindow1.SelStart
         .Add "TRANSPARENCY", checkboxTransp.value
+        .Add "COLORHEX", TextBoxChooseColor.Text
         .Add "FILENAME", TextBoxFile.Text
         .Add "LATEXENGINEID", ComboBoxLaTexEngine.ListIndex
         .Add "TEMPFOLDER", TextBoxTempFolder.Text
@@ -1131,34 +1144,42 @@ Private Function BoundingBoxString(ByVal BBXFile As String) As String
 End Function
 
 Private Sub SaveSettings()
-    SetITSetting "Transparent", REG_DWORD, BoolToInt(checkboxTransp.value)
     SetITSetting "Debug", REG_DWORD, BoolToInt(checkboxDebug.value)
     SetITSetting "PointSize", REG_DWORD, CLng(val(textboxSize.Text))
-    SetITSetting "LatexCode", REG_SZ, CStr(TextWindow1.Text)
-    SetITSetting "LatexCodeCursor", REG_DWORD, CLng(TextWindow1.SelStart)
+    If ComboBoxBitmapVector.ListIndex = 0 Then
+        SetITSetting "Transparent", REG_DWORD, BoolToInt(checkboxTransp.value)
+        SetITSetting "OutputDpi", REG_DWORD, CLng(val(TextBoxLocalDPI.Text))
+    End If
+    If ComboBoxBitmapVector.ListIndex = 1 Then
+        SetITSetting "ColorHex", REG_SZ, CStr(TextBoxChooseColor.Text)
+    End If
+    If MultiPage1.value = 0 Then
+        SetITSetting "LatexCode", REG_SZ, CStr(TextWindow1.Text)
+        SetITSetting "LatexCodeCursor", REG_DWORD, CLng(TextWindow1.SelStart)
+        SetITSetting "EditorFontSize", REG_DWORD, CLng(TextWindow1.Font.Size)
+        SetITSetting "LatexFormWrap", REG_DWORD, BoolToInt(TextWindow1.WordWrap)
+    End If
     #If Mac Then
         ' We save the height/width settings without the Mac resizing factor
-        ' But until we make the window resizable, we don't save these settings,
-        ' and instead let the user set them in Main Settings
-        ' SetITSetting "LatexFormHeight", REG_DWORD, CLng(LatexForm.Height / gUserFormResizeFactor)
-        ' SetITSetting "LatexFormWidth", REG_DWORD, CLng(LatexForm.Width / gUserFormResizeFactor)
+        SetITSetting "LatexFormHeight", REG_DWORD, CLng(LatexForm.Height / gUserFormResizeFactor)
+        SetITSetting "LatexFormWidth", REG_DWORD, CLng(LatexForm.Width / gUserFormResizeFactor)
     #Else
         SetITSetting "LatexFormHeight", REG_DWORD, CLng(LatexForm.Height)
         SetITSetting "LatexFormWidth", REG_DWORD, CLng(LatexForm.Width)
     #End If
-    SetITSetting "EditorFontSize", REG_DWORD, CLng(TextWindow1.Font.Size)
     SetITSetting "Multipage", REG_SZ, MultiPage1.value
-    SetITSetting "LatexFormWrap", REG_DWORD, BoolToInt(TextWindow1.WordWrap)
     'SetITSetting "EMFoutput", REG_DWORD, BoolToInt(CheckBoxEMF.Value)
     SetITSetting "BitmapVector", REG_DWORD, ComboBoxBitmapVector.ListIndex
-    SetITSetting "OutputDpi", REG_DWORD, CLng(val(TextBoxLocalDPI.Text))
-    
+    If MultiPage1.value = 1 Then
+        SetITSetting "ReadFromFilePath", REG_SZ, CStr(TextBoxFile.Text)
+    End If
     
 End Sub
 
 Private Sub LoadSettings()
     checkboxTransp.value = CBool(GetITSetting("Transparent", True))
     checkboxDebug.value = CBool(GetITSetting("Debug", False))
+    TextBoxChooseColor.Text = GetITSetting("ColorHex", "000000")
     textboxSize.Text = GetITSetting("PointSize", "20")
     TextWindow1.Text = GetITSetting("LatexCode", DEFAULT_LATEX_CODE)
     TextWindow1.SelStart = GetITSetting("LatexCodeCursor", 0)
@@ -1167,6 +1188,7 @@ Private Sub LoadSettings()
     TextBoxTempFolder.Text = GetTempPath()
     TextWindow1.WordWrap = CBool(GetITSetting("LatexFormWrap", True))
     ToggleButtonWrap.value = TextWindow1.WordWrap
+    TextBoxFile.Text = GetITSetting("ReadFromFilePath", vbNullString)
     
     LaTexEngineList = GetLaTexEngineList()
     LaTexDVIOptionsList = GetLatexDVIOptionsList()
@@ -1203,12 +1225,18 @@ End Sub
 
 Private Sub Apply_BitmapVector_Change()
     If ComboBoxBitmapVector.ListIndex = 1 Then
-        checkboxTransp.Enabled = False
+        'checkboxTransp.Enabled = False
+        checkboxTransp.Visible = False
         checkboxTransp.value = True
+        TextBoxChooseColor.Visible = True
+        LabelChooseColor.Visible = True
         TextBoxLocalDPI.Enabled = False
         LabelDPI.Enabled = False
     Else
-        checkboxTransp.Enabled = True
+        'checkboxTransp.Enabled = True
+        checkboxTransp.Visible = True
+        TextBoxChooseColor.Visible = False
+        LabelChooseColor.Visible = False
         TextBoxLocalDPI.Enabled = True
         LabelDPI.Enabled = True
     End If
@@ -1419,7 +1447,7 @@ Private Sub UserForm_Initialize()
     #End If
 
     LoadSettings
-    
+    Apply_BitmapVector_Change
     ' With multiple monitors, the "CenterOwner" option to open the UserForm in the center of the parent window
     ' does not seem to work, at least in Office 2010.
     ' The following code to manually place the UserForm somehow makes the "CenterOwner" option work.
@@ -1441,7 +1469,7 @@ Private Sub UserForm_Initialize()
     
 End Sub
 
-Private Function isFormModeless() As Boolean
+Public Function isFormModeless() As Boolean
 
     On Error GoTo EH
 
@@ -1521,6 +1549,9 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
         ElseIf .item("TRANSPARENT") <> vbNullString Then
             checkboxTransp.value = SanitizeBoolean(.item("TRANSPARENT"), True)
         End If
+        If .item("COLORHEX") <> vbNullString Then
+            TextBoxChooseColor.Text = .item("COLORHEX")
+        End If
         If .item("IGUANATEXCURSOR") <> vbNullString Then
             CursorPosition = .item("IGUANATEXCURSOR")
         End If
@@ -1540,6 +1571,11 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             ToggleButtonWrap.value = TextWindow1.WordWrap
         End If
     End With
+    If ComboBoxBitmapVector.ListIndex = 1 Then
+        ' We override the Fill color for Shape objects, in case it has been manually changed after generation
+        TextBoxChooseColor.Text = BGR2HEX(oldshape.Fill.ForeColor.RGB)
+    End If
+    
     Apply_BitmapVector_Change
     FormHeightWidthSet = FormHeightSet And FormWidthSet
     TextWindow1.SelStart = CursorPosition
@@ -1617,7 +1653,11 @@ Private Sub ResizeForm()
     Label3.Top = Label2.Top
     checkboxTransp.Top = CheckBoxReset.Top + 21 'checkboxTransp.Height + 2
     CheckBoxForcePreserveSize.Top = checkboxTransp.Top
-    CheckBoxForcePreserveSize.Left = checkboxTransp.Left + checkboxTransp.Width
+    CheckBoxForcePreserveSize.Left = CheckBoxResetFormat.Left + CheckBoxResetFormat.Width - CheckBoxForcePreserveSize.Width
+    TextBoxChooseColor.Top = checkboxTransp.Top
+    LabelChooseColor.Left = checkboxTransp.Left
+    TextBoxChooseColor.Left = LabelChooseColor.Left + LabelChooseColor.Width
+    LabelChooseColor.Top = TextBoxChooseColor.Top + Round(TextBoxChooseColor.Height - LabelChooseColor.Height) / 2
     checkboxDebug.Top = checkboxTransp.Top + 21 ' checkboxTransp.Height + 2
     CheckBoxResetFormat.Top = checkboxDebug.Top
     CheckBoxResetFormat.Left = checkboxDebug.Left + checkboxDebug.Width + 10
@@ -1732,10 +1772,6 @@ Private Sub TransferGroupFormat(ByVal oldshape As Shape, ByRef NewShape As Shape
     End If
 End Sub
 
-Private Function isTex(file As String) As Boolean
-    isTex = GetExtension(file) = "tex"
-End Function
-
 
 Private Sub MultiPage1_Change()
     ToggleInputMode
@@ -1744,12 +1780,21 @@ End Sub
 
 Private Sub TextBoxFile_Change()
     ButtonLoadFile.Enabled = FileExists(TextBoxFile.Text) And isTex(TextBoxFile.Text)
+    ButtonLoadAndGenerate.Enabled = ButtonLoadFile.Enabled
 End Sub
 
 Sub ButtonLoadFile_Click()
     MultiPage1.value = 0
     TextWindow1.Text = ReadAll(TextBoxFile.Text)
     ToggleInputMode
+End Sub
+
+
+Private Sub ButtonLoadAndGenerate_Click()
+    MultiPage1.value = 0
+    TextWindow1.Text = ReadAll(TextBoxFile.Text)
+    ToggleInputMode
+    ButtonRun_Click
 End Sub
 
 Private Sub ToggleInputMode()
@@ -1777,6 +1822,7 @@ Private Sub ToggleInputMode()
         Case 1 ' Read from file
             TextBoxFile.SetFocus
             ButtonLoadFile.Enabled = FileExists(TextBoxFile.Text) And isTex(TextBoxFile.Text)
+            ButtonLoadAndGenerate.Enabled = ButtonLoadFile.Enabled
         Case Else ' Templates
             If TextBoxTemplateName.Text = vbNullString Then
                 TextBoxTemplateName.Text = ComboBoxTemplate.Text
@@ -1863,3 +1909,4 @@ Private Sub Userform_QueryClose(Cancel As Integer, CloseMode As Integer)
 End Sub
 
 #End If
+

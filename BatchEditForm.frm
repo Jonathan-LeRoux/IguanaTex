@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} BatchEditForm 
    Caption         =   "Batch edit"
-   ClientHeight    =   5964
+   ClientHeight    =   5880
    ClientLeft      =   48
    ClientTop       =   384
-   ClientWidth     =   4956
+   ClientWidth     =   4908
    OleObjectBlob   =   "BatchEditForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -21,6 +21,11 @@ Private Sub UserForm_Initialize()
     Me.Left = Application.Left + 25
     Me.Height = 322
     Me.Width = 256
+    TextBoxChooseColor.Top = checkboxTransp.Top
+    LabelChooseColor.Left = checkboxTransp.Left
+    TextBoxChooseColor.Left = LabelChooseColor.Left + LabelChooseColor.Width
+    LabelChooseColor.Top = TextBoxChooseColor.Top + Round(TextBoxChooseColor.Height - LabelChooseColor.Height) / 2
+    
     #If Mac Then
         ResizeUserForm Me
     #End If
@@ -44,6 +49,7 @@ Private Sub LoadSettings()
     textboxSize.Text = GetITSetting("PointSize", "20")
     checkboxTransp.value = CBool(GetITSetting("Transparent", True))
     CheckBoxResetFormat.value = False
+    TextBoxChooseColor.Text = GetITSetting("ColorHex", "000000")
     
     CheckBoxModifyEngine.value = False
     CheckBoxModifyTempFolder.value = False
@@ -150,6 +156,8 @@ End Sub
 
 Private Sub Apply_CheckBoxModifyTransparency()
     checkboxTransp.Enabled = CheckBoxModifyTransparency.value
+    TextBoxChooseColor.Enabled = CheckBoxModifyTransparency.value
+    LabelChooseColor.Enabled = CheckBoxModifyTransparency.value
 End Sub
 
 Private Sub Apply_CheckBoxModifyResetFormat()
@@ -173,11 +181,17 @@ Private Sub Apply_BitmapVector_Change()
         CheckBoxModifyLocalDPI.value = False
         CheckBoxModifyTransparency.value = False
         CheckBoxModifyLocalDPI.Enabled = False
-        CheckBoxModifyTransparency.Enabled = False
+        CheckBoxModifyTransparency.Enabled = True
+        checkboxTransp.Visible = False
         checkboxTransp.value = True
+        TextBoxChooseColor.Visible = True
+        LabelChooseColor.Visible = True
     Else
         CheckBoxModifyLocalDPI.Enabled = True
-        CheckBoxModifyTransparency.Enabled = False
+        CheckBoxModifyTransparency.Enabled = True
+        checkboxTransp.Visible = True
+        TextBoxChooseColor.Visible = False
+        LabelChooseColor.Visible = False
     End If
     Apply_CheckBoxModifyLocalDPI
     Apply_CheckBoxModifyTransparency

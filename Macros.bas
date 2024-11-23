@@ -577,6 +577,7 @@ Private Sub Apply_BatchEditSettings()
     End If
     If BatchEditForm.CheckBoxModifyTransparency.value Then
         LatexForm.checkboxTransp.value = BatchEditForm.checkboxTransp.value
+        LatexForm.TextBoxChooseColor.Text = BatchEditForm.TextBoxChooseColor.Text
     End If
     If BatchEditForm.CheckBoxModifyResetFormat.value Then
         LatexForm.CheckBoxResetFormat.value = BatchEditForm.CheckBoxResetFormat.value
@@ -702,3 +703,27 @@ Public Sub InsertVectorGraphicsFile()
     LoadVectorGraphicsForm.Show
 End Sub
 
+Public Sub LoadDefaultFileAndGenerate()
+    
+    Dim osld As Slide
+    On Error Resume Next
+    Set osld = ActiveWindow.Selection.SlideRange(1)
+    If Err <> 0 Then
+        MsgBox "Please select a slide on which to generate the LaTeX display."
+        Exit Sub
+    End If
+    Load LatexForm
+    If FileExists(LatexForm.TextBoxFile.Text) And isTex(LatexForm.TextBoxFile.Text) Then
+        LatexForm.TextWindow1.Text = ReadAll(LatexForm.TextBoxFile.Text)
+        LatexForm.FrameProcess.Visible = True
+        LatexForm.MultiPage1.value = 0
+        LatexForm.MultiPage1.Visible = True
+        LatexForm.Show vbModeless
+        LatexForm.Repaint
+        LatexForm.ButtonRun_Click
+    Else
+        MsgBox "You need to set an existing LaTeX file as default file path " _
+               & "using ""Make Default"" in the IguanaTeX ""Read from file"" pane."
+    End If
+    Unload LatexForm
+End Sub

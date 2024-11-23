@@ -4,17 +4,20 @@ Option Explicit
 #If Mac Then
 Public Function Execute(ByVal CommandLine As String, StartupDir As String, Optional debugMode As Boolean = False, Optional WaitTime As Long = -1) As Long
     Dim TeXExePath As String
-    TeXExePath = GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH)
+    TeXExePath = GetFolderFromPath(GetITSetting("TeXExePath", DEFAULT_TEX_EXE_PATH))
+    If TeXExePath <> vbNullString Then
+        TeXExePath = TeXExePath & ":"
+    End If
     Dim TeXExtraPath As String
     TeXExtraPath = GetITSetting("TeXExtraPath", DEFAULT_TEX_EXTRA_PATH)
     If TeXExtraPath <> vbNullString Then
-        TeXExtraPath = ":" & TeXExtraPath
+        TeXExtraPath = TeXExtraPath & ":"
     End If
     If debugMode Then
         ShowError vbNullString, CommandLine, "Debug mode", "Next command:", "Continue"
     End If
     Execute = CLng(AppleScriptTask("IguanaTex.scpt", "MacExecute", _
-        "export PATH=" & ShellEscape(TeXExePath) & ShellEscape(TeXExtraPath) & """:$PATH""" & " && " & _
+        "export PATH=" & ShellEscape(TeXExePath) & ShellEscape(TeXExtraPath) & """$PATH""" & " && " & _
         "cd " & ShellEscape(StartupDir) & " && " & _
         CommandLine))
 End Function

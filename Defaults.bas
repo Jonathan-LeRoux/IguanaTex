@@ -36,7 +36,7 @@ Public Const WrongPathSep As String = "/"
 
 #End If
 
-Public Const IGUANATEX_VERSION As Integer = 161
+Public Const IGUANATEX_VERSION As Integer = 162
 
 Public Const DEFAULT_LATEX_CODE As String = "\documentclass{article}" & NEWLINE & "\usepackage{amsmath}" & NEWLINE & "\pagestyle{empty}" & NEWLINE & _
                                             "\begin{document}" & NEWLINE & NEWLINE & NEWLINE & NEWLINE & NEWLINE & "\end{document}"
