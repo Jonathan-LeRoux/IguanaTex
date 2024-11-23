@@ -99,8 +99,8 @@ sudo cp ./libIguanaTexHelper.dylib '/Library/Application Support/Microsoft/Offic
    * The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**: 
-   * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations.
-   * If you cannot find them, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
+   * Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.9.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations, but your installation may differ.
+   * If you cannot find them or if IguanaTex complains that a command did not return, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
 
 6. (Optional) **Install LaTeXiT-metadata**:
    * Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
