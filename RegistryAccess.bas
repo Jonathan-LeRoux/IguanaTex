@@ -31,10 +31,10 @@ Public Const KEY_ALL_ACCESS = &H3F
 Public Const REG_OPTION_NON_VOLATILE = 0
 
 #If Mac Then
-    Public Function GetRegistryValue(Hive, Keyname, Valuename, defaultValue)
+    Public Function GetRegistryValue(Hive, Keyname, Valuename, DefaultValue)
         If Hive <> HKEY_CURRENT_USER Then
             MsgBox "GetRegistryValue with Hive other than HKEY_CURRENT_USER is not implemented. return defaultValue."
-            GetRegistryValue = defaultValue
+            GetRegistryValue = DefaultValue
             Exit Function
         End If
         
@@ -42,18 +42,18 @@ Public Const REG_OPTION_NON_VOLATILE = 0
         
         Str = GetSetting("IguanaTex", Keyname, Valuename, "")
         If Str = "" Then
-            GetRegistryValue = defaultValue
+            GetRegistryValue = DefaultValue
         Else
             Dim sp() As String
             sp = Split(Str, ":", 2)
             If UBound(sp) + 1 < 2 Then
-                GetRegistryValue = defaultValue
+                GetRegistryValue = DefaultValue
             ElseIf sp(0) = "sz" Then
                 GetRegistryValue = sp(1)
             ElseIf sp(0) = "dword" Then
                 GetRegistryValue = CLng(sp(1))
             Else
-                GetRegistryValue = defaultValue
+                GetRegistryValue = DefaultValue
             End If
         End If
     End Function
@@ -245,7 +245,7 @@ QueryValueExError:
         RegCloseKey (hNewKey)
     End Sub
 
-    Public Function GetRegistryValue(Hive As Long, Keyname As String, Valuename As String, defaultValue As Variant) As Variant
+    Public Function GetRegistryValue(Hive As Long, Keyname As String, Valuename As String, DefaultValue As Variant) As Variant
         Dim lRetVal As Long         'result of the API functions
         Dim hKey As Long         'handle of opened key
         Dim vValue As Variant      'setting of queried value
@@ -257,7 +257,7 @@ QueryValueExError:
         If (lRetVal = 0) Then
             GetRegistryValue = vValue
         Else
-            GetRegistryValue = defaultValue
+            GetRegistryValue = DefaultValue
         End If
     End Function
 

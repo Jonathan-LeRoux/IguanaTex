@@ -60,6 +60,10 @@ Private Sub UserForm_Initialize()
     ComboBoxVectorOutputType.ListIndex = GetITSetting("LoadVectorFileOutputTypeIdx", 0)
     CheckBoxCleanUp.value = GetITSetting("LoadVectorFileCleanUp", True)
     SetVectorTypeDependencies
+    ShowAcceleratorTip Me.ButtonLoadFile
+    ShowAcceleratorTip Me.ButtonCancel
+    ShowAcceleratorTip Me.CommandButtonSave
+    
 End Sub
 
 Private Sub UserForm_Activate()

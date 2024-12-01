@@ -149,8 +149,8 @@ Public Sub Hide()
     TWHide mHandle, UNUSED, UNUSED, UNUSED
 End Sub
 
-Public Sub SetResizeTarget(target As control, parentForm As UserForm)
-    Dim backup As control
+Public Sub SetResizeTarget(target As Control, parentForm As UserForm)
+    Dim backup As Control
     Set backup = parentForm.ActiveControl
     target.SetFocus
     TWSetResizeTarget mHandle, UNUSED, UNUSED, UNUSED

@@ -19,6 +19,9 @@ Private Sub UserForm_Initialize()
     Me.Left = Application.Left + 25
     Me.Height = 158
     Me.Width = 270
+    ShowAcceleratorTip Me.CmdButtonGenerate
+    ShowAcceleratorTip Me.CmdButtonReload
+    ShowAcceleratorTip Me.CmdButtonCancel
     #If Mac Then
         ResizeUserForm Me
     #End If
@@ -72,7 +75,7 @@ Public Sub LaunchExternalEditor(TempPath As String, LatexCode As String)
     FilePrefix = "ext_" & DefaultFilePrefix
     
     ' Write latex to a temp file
-    WriteToFile TempPath, FilePrefix, LatexCode
+    WriteToFile TempPath, FilePrefix, ".tex", LatexCode
     
     ' Launch external editor
     On Error GoTo ShellError

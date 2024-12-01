@@ -245,36 +245,48 @@ Public Function GetFolderFromPath(strFullPath As String) As String
     GetFolderFromPath = Left(strFullPath, InStrRev(strFullPath, PathSep))
 End Function
 
+Public Function GetFileFromPath(strFullPath As String) As String
+    Dim Ext As String
+    Ext = GetExtension(strFullPath)
+    Dim TempFileName As String
+    TempFileName = Right(strFullPath, Len(strFullPath) - InStrRev(strFullPath, PathSep))
+    If InStrRev(TempFileName, ".") > 0 Then
+        GetFileFromPath = Left(TempFileName, InStrRev(TempFileName, ".") - 1)
+    Else
+        GetFileFromPath = TempFileName
+    End If
+End Function
+
 Public Function BrowseFilePath(Optional ByVal InitialName As String = vbNullString, _
                         Optional ByVal NameFilterDesc As String = vbNullString, _
                         Optional ByVal NameFilterExt As String = vbNullString, _
-                        Optional ByVal ButtonNAmeStr As String = vbNullString) As String
+                        Optional ByVal ButtonNameStr As String = vbNullString) As String
     #If Mac Then
         BrowseFilePath = AppleScriptTask("IguanaTex.scpt", "MacChooseFile", InitialName)
         
     #Else
-    Dim fd As FileDialog
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+        Dim fd As FileDialog
+        Set fd = Application.FileDialog(msoFileDialogFilePicker)
+        
+        Dim vrtSelectedItem As Variant
+        fd.AllowMultiSelect = False
+        fd.InitialFileName = InitialName
+        fd.Filters.Clear
+        If NameFilterExt <> vbNullString Then fd.Filters.Add NameFilterDesc, NameFilterExt, 1
+        If ButtonNameStr <> vbNullString Then fd.ButtonName = ButtonNameStr
+        
+        BrowseFilePath = vbNullString
+        If fd.Show = -1 Then
+            For Each vrtSelectedItem In fd.SelectedItems
+                BrowseFilePath = vrtSelectedItem
+            Next vrtSelectedItem
+        End If
     
-    Dim vrtSelectedItem As Variant
-    fd.AllowMultiSelect = False
-    fd.InitialFileName = InitialName
-    fd.Filters.Clear
-    If NameFilterExt <> vbNullString Then fd.Filters.Add NameFilterDesc, NameFilterExt, 1
-    If ButtonNAmeStr <> vbNullString Then fd.ButtonNAme = ButtonNAmeStr
+        If BrowseFilePath = vbNullString Then
+            BrowseFilePath = InitialName
+        End If
     
-    BrowseFilePath = vbNullString
-    If fd.Show = -1 Then
-        For Each vrtSelectedItem In fd.SelectedItems
-            BrowseFilePath = vrtSelectedItem
-        Next vrtSelectedItem
-    End If
-
-    If BrowseFilePath = vbNullString Then
-        BrowseFilePath = InitialName
-    End If
-
-    Set fd = Nothing
+        Set fd = Nothing
     #End If
 End Function
 
@@ -289,6 +301,7 @@ Public Function BrowseFolderPath(Optional ByVal InitialName As String = vbNullSt
     Dim vrtSelectedItem As Variant
     fd.AllowMultiSelect = False
     fd.InitialFileName = InitialName
+    fd.Title = "Select Folder:"
     
     BrowseFolderPath = vbNullString
     If fd.Show = -1 Then
@@ -351,10 +364,10 @@ Public Function ReadTextFile(ByVal FileName As String) As String
 End Function
 
 
-Public Sub WriteToFile(ByVal TempPath As String, ByVal FilePrefix As String, ByVal InputText As String)
+Public Sub WriteToFile(ByVal TempPath As String, ByVal FilePrefix As String, ByVal FileExtension As String, ByVal InputText As String)
     #If Mac Then
         Dim fs As New MacFileSystemObject
-        If fs.FileExists(TempPath & FilePrefix & ".png") Then
+        If fs.FileExists(TempPath & FilePrefix & ".png") And FileExtension <> ".xml" Then
             fs.FindDelete TempPath, FilePrefix + "*.*" 'Make sure we don't keep old files
         End If
     
@@ -364,7 +377,7 @@ Public Sub WriteToFile(ByVal TempPath As String, ByVal FilePrefix As String, ByV
     
         ' clear file content
         fnum = FreeFile()
-        Open TempPath + FilePrefix + ".tex" For Output Access Write As fnum
+        Open TempPath + FilePrefix + FileExtension For Output Access Write As fnum
         Close #fnum
     
         ' write data
@@ -372,14 +385,14 @@ Public Sub WriteToFile(ByVal TempPath As String, ByVal FilePrefix As String, ByV
         data = StringToUtf8(InputText)
     
         fnum = FreeFile()
-        Open TempPath + FilePrefix + ".tex" For Binary Access Write As fnum
+        Open TempPath + FilePrefix + FileExtension For Binary Access Write As fnum
         Put #fnum, , data
         Close #fnum
     
         Set fs = Nothing
     #Else
         Dim fs As New FileSystemObject
-        If fs.FileExists(TempPath & FilePrefix & ".png") Then
+        If fs.FileExists(TempPath & FilePrefix & ".png") And FileExtension <> ".xml" Then
             fs.DeleteFile TempPath + FilePrefix + "*.*" 'Make sure we don't keep old files
         End If
         Dim BinaryStream As Object
@@ -400,7 +413,7 @@ Public Sub WriteToFile(ByVal TempPath As String, ByVal FilePrefix As String, ByV
             .Flush
             .Close
         End With
-        BinaryStream.SaveToFile TempPath & FilePrefix & ".tex", 2 'Save binary data To disk
+        BinaryStream.SaveToFile TempPath & FilePrefix & FileExtension, 2 'Save binary data To disk
         BinaryStream.Flush
         BinaryStream.Close
         
@@ -437,6 +450,17 @@ Public Function FixTrailingSlash(Str As String) As String
     FixTrailingSlash = Str
 End Function
 
+Public Function IsInArray(ByVal arr As Variant, ByVal valueToCheck As String) As Boolean
+    IsInArray = False
+    Dim n As Variant
+    For Each n In arr
+        If n = valueToCheck Then
+            IsInArray = True
+            Exit For
+        End If
+    Next
+
+End Function
 
 ' Sanitize booleans to get consistent representation
 Public Function BoolToInt(ByVal val As Boolean) As Long
@@ -448,8 +472,8 @@ Public Function BoolToInt(ByVal val As Boolean) As Long
 End Function
 
 ' Wrapper for settings retrieval/storing
-Public Function GetITSetting(ByVal Valuename As String, ByVal defaultValue As Variant) As Variant
-    GetITSetting = GetRegistryValue(HKEY_CURRENT_USER, RegPath, Valuename, defaultValue)
+Public Function GetITSetting(ByVal Valuename As String, ByVal DefaultValue As Variant) As Variant
+    GetITSetting = GetRegistryValue(HKEY_CURRENT_USER, RegPath, Valuename, DefaultValue)
 End Function
 
 Public Sub SetITSetting(ByRef Valuename As String, Valuetype As Long, value As Variant)
@@ -925,3 +949,13 @@ Public Function ReverseHex(ByVal value As String) As String
     
     ReverseHex = nB & nG & nR
 End Function
+
+Public Sub ShowAcceleratorTip(ThisButton As Object)
+    On Error Resume Next
+    #If Mac Then
+        ThisButton.ControlTipText = "Use Control+Command+" & LCase(ThisButton.Accelerator) & " as shortcut"
+    #Else
+        ThisButton.ControlTipText = "Use Alt+" & LCase(ThisButton.Accelerator) & " as shortcut"
+    #End If
+    On Error GoTo 0
+End Sub

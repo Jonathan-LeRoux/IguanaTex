@@ -25,6 +25,8 @@ Private Sub UserForm_Initialize()
     LabelChooseColor.Left = checkboxTransp.Left
     TextBoxChooseColor.Left = LabelChooseColor.Left + LabelChooseColor.Width
     LabelChooseColor.Top = TextBoxChooseColor.Top + Round(TextBoxChooseColor.Height - LabelChooseColor.Height) / 2
+    ShowAcceleratorTip Me.ButtonRun
+    ShowAcceleratorTip Me.ButtonCancel
     
     #If Mac Then
         ResizeUserForm Me
@@ -141,7 +143,7 @@ End Sub
 Private Sub Apply_CheckBoxModifyLocalDPI()
     LabelLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
     TextBoxLocalDPI.Enabled = CheckBoxModifyLocalDPI.value
-    LabelDPI.Enabled = CheckBoxModifyLocalDPI.value
+    LabelDpi.Enabled = CheckBoxModifyLocalDPI.value
 End Sub
 
 Private Sub Apply_CheckBoxModifySize()

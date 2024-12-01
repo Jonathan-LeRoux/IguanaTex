@@ -40,7 +40,7 @@ Private Sub MacDoCopyPaste(ByVal formPtr As LongPtr, ByVal keyCode As LongLong, 
         Exit Sub
     End If
 
-    Dim ctrl As control
+    Dim ctrl As Control
     Set ctrl = form.ActiveControl
     Do
         If TypeOf ctrl Is Frame Then
@@ -82,7 +82,7 @@ Private Sub MacDoAccelerator(ByVal formPtr As LongPtr, ByVal asciiCode As LongLo
         Exit Sub
     End If
 
-    Dim ctrl As control
+    Dim ctrl As Control
     On Error Resume Next
     For Each ctrl In form.Controls
         If TypeOf ctrl Is MultiPage Then
@@ -142,14 +142,14 @@ Public Function MacChooseFileOfType(typeStr As String) As String
     MacChooseFileOfType = AppleScriptTask("IguanaTex.scpt", "MacChooseFileOfType", typeStr)
 End Function
 
-Public Function MacChooseApp(defaultValue As String) As String
-    MacChooseApp = AppleScriptTask("IguanaTex.scpt", "MacChooseApp", defaultValue)
+Public Function MacChooseApp(DefaultValue As String) As String
+    MacChooseApp = AppleScriptTask("IguanaTex.scpt", "MacChooseApp", DefaultValue)
 End Function
 #End If
 
 Sub ResizeUserForm(frm As Object, Optional dResizeFactor As Double = 0#)
 'Created by Jon Peltier
-    Dim ctrl As control
+    Dim ctrl As Control
     Dim sColWidths As String
     Dim vColWidths As Variant
     Dim iCol As Long

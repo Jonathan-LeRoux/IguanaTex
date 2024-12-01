@@ -15,7 +15,7 @@ Public Sub ExportVisualBasicCode()
     Dim count As Integer
     Dim path As String
     Dim directory As String
-    Dim extension As String
+    Dim Extension As String
     #If Mac Then
         Dim fs As New MacFileSystemObject
     #Else
@@ -35,20 +35,20 @@ Public Sub ExportVisualBasicCode()
     For Each VBComponent In ActivePresentation.VBProject.VBComponents
         Select Case VBComponent.Type
             Case ClassModule, Document
-                extension = ".cls"
+                Extension = ".cls"
             Case form
-                extension = ".frm"
+                Extension = ".frm"
             Case Module
-                extension = ".bas"
+                Extension = ".bas"
             Case Else
-                extension = ".txt"
+                Extension = ".txt"
         End Select
             
                 
         On Error Resume Next
         Err.Clear
         
-        path = directory & PathSep & VBComponent.Name & extension
+        path = directory & PathSep & VBComponent.Name & Extension
         VBComponent.Export path
         
         If Err.Number <> 0 Then

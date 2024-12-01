@@ -103,7 +103,7 @@ Private Const GWL_HINSTANCE As Long = (-6)
 'Private Const VK_UP As Long = &H26
 'Private Const VK_DOWN As Long = &H28
 'Private Const WM_LBUTTONDOWN As Long = &H201
-Private mCtl As MSForms.control
+Private mCtl As MSForms.Control
 Private mbHook As Boolean
 #If VBA7 Then
     Private mLngMouseHook As LongPtr
@@ -113,7 +113,7 @@ Private mbHook As Boolean
     Private mListBoxHwnd As Long
 #End If
      
-Sub HookListBoxScroll(frm As Object, ctl As MSForms.control)
+Sub HookListBoxScroll(frm As Object, ctl As MSForms.Control)
     Dim tPT As POINTAPI
     #If VBA7 Then
         Dim lngAppInst As LongPtr

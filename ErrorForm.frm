@@ -18,6 +18,9 @@ Option Explicit
 Private Sub UserForm_Initialize()
     Me.Top = Application.Top + 110
     Me.Left = Application.Left + 25
+    ShowAcceleratorTip Me.CopyCommandButton
+    ShowAcceleratorTip Me.CloseErrorButton
+    
 '    Me.Height = 180
 '    Me.Width = 344
 '    #If Mac Then

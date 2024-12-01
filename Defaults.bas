@@ -5,12 +5,12 @@ Option Explicit
 Public Const DEFAULT_TEMP_DIR As String = vbNullString
 Public Const DEFAULT_TEX_EXE_PATH As String = "/Library/TeX/texbin/"
 Public Const DEFAULT_TEX_EXTRA_PATH As String = vbNullString
-Public Const DEFAULT_LIBGS As String = "/opt/local/lib/libgs.9.dylib"
+Public Const DEFAULT_LIBGS As String = "/usr/local/lib/libgs.9.dylib"
 Public Const DEFAULT_VECTOR_OUTPUT_TYPE As String = "dvisvgm"
 Public Const DEFAULT_PICTURE_OUTPUT_TYPE As String = "PDF"
 Public Const DEFAULT_GS_COMMAND As String = "/usr/local/bin/gs"
-Public Const DEFAULT_IM_CONV As String = "/usr/local/bin/convert"
-Public Const DEFAULT_TEX2IMG_COMMAND As String = "/usr/local/bin/tex2img"
+Public Const DEFAULT_IM_CONV As String = vbNullString
+Public Const DEFAULT_TEX2IMG_COMMAND As String = vbNullString
 Public Const DEFAULT_EDITOR As String = "open -b 'texstudio'"
 Public Const DEFAULT_ADDIN_FOLDER As String = "/Library/Application Support/Microsoft/Office365/User Content.localized/Add-Ins.localized/"
 Public Const DEFAULT_LATEXIT_METADATA_COMMAND As String = DEFAULT_ADDIN_FOLDER & "LaTeXiT-metadata-macos"

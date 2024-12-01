@@ -44,6 +44,32 @@ Private Sub ButtonIMPath_Click()
     TextBoxIMconv.SetFocus
 End Sub
 
+Private Sub ButtonExportToXML_Click()
+    Dim FolderPath As String
+    Dim FullFilePath As String
+    FolderPath = BrowseFolderPath(GetTempPath())
+    If Right$(FolderPath, 1) <> PathSep Then
+        FolderPath = FolderPath & PathSep
+    End If
+    FullFilePath = InputBox("Choose file name with .xml extension to export settings under " & FolderPath & ":", _
+                            "Export settings to XML", _
+                            "IguanaTexSettings.xml")
+    If FullFilePath <> vbNullString Then
+        FullFilePath = FolderPath & FullFilePath
+        WriteSettingsToFile FullFilePath
+    End If
+End Sub
+
+Private Sub ButtonImportFromXML_Click()
+    Dim FullFilePath As String
+    MsgBox ("WARNING!! This will *overwrite your IguanaTex settings in the registry*!" & vbCrLf & _
+             "To cancel, please click Cancel on the file selection screen.")
+    FullFilePath = BrowseFilePath(GetTempPath(), "XML Files", "*.xml")
+    If FullFilePath <> GetTempPath() Then
+        ReadSettingsFromFileIntoRegistry FullFilePath
+    End If
+End Sub
+
 Private Sub ButtonTeX2img_Click()
     TextBoxTeX2img.Text = BrowseFilePath(TextBoxTeX2img.Text, "All Files", "*.*")
     TextBoxTeX2img.SetFocus
@@ -64,7 +90,7 @@ Private Sub ButtonLibgsPath_Click()
     TextBoxLibgs.SetFocus
 End Sub
 
-Sub ButtonSetTemp_Click()
+Private Sub SaveSettings()
     Dim res As String
     
     ' Temp folder
@@ -192,7 +218,11 @@ Sub ButtonSetTemp_Click()
         SetITSetting "LatexFormHeight", REG_DWORD, CLng(val(TextBoxWindowHeight.Text))
         SetITSetting "LatexFormWidth", REG_DWORD, CLng(val(TextBoxWindowWidth.Text))
     #End If
+End Sub
+
+Sub ButtonSetTemp_Click()
     
+    SaveSettings
     Unload SetTempForm
 End Sub
 
@@ -310,8 +340,7 @@ Private Sub UserForm_Activate()
     #End If
 End Sub
 
-
-Private Sub UserForm_Initialize()
+Private Sub SetUserFormLayout()
     
     Me.Top = Application.Top + 110
     Me.Left = Application.Left + 25
@@ -408,13 +437,16 @@ Private Sub UserForm_Initialize()
         Me.LabelFontSize.Width = 52
         Me.LabelFontSize.Top = Me.LabelWindowSize.Top
         Me.TextBoxFontSize.Top = Me.TextBoxWindowHeight.Top
-        Me.ButtonCancelTemp.Top = Me.LabelWindowSize.Top + 24
+        ' No idea why it's not Me.TextBoxWindowWidth.TabIndex + 1, but this works
+        Me.TextBoxFontSize.TabIndex = Me.TextBoxWindowWidth.TabIndex
+        Me.ButtonExportToXML.Top = Me.LabelWindowSize.Top + 24
+        Me.ButtonImportFromXML.Top = Me.ButtonExportToXML.Top
+        Me.ButtonCancelTemp.Top = Me.ButtonExportToXML.Top + 34
         Me.ButtonSetTemp.Top = Me.ButtonCancelTemp.Top
         Me.ButtonReset.Top = Me.ButtonCancelTemp.Top
         Me.Height = Me.ButtonCancelTemp.Top + 58
         ResizeUserForm Me
     #Else
-        'Me.Height = 430
         Me.TextBoxLibgs.Visible = False
         Me.LabelLibgs.Visible = False
         Me.ButtonLibgsPath.Visible = False
@@ -433,12 +465,23 @@ Private Sub UserForm_Initialize()
         Me.LabelWindowWidth.Visible = False
         Me.TextBoxWindowHeight.Visible = False
         Me.TextBoxWindowWidth.Visible = False
-        Me.ButtonCancelTemp.Top = Me.TextBoxTeX2img.Top + 26
+        Me.ButtonExportToXML.Top = Me.TextBoxTeX2img.Top + 26
+        Me.ButtonImportFromXML.Top = Me.ButtonExportToXML.Top
+        Me.ButtonCancelTemp.Top = Me.ButtonExportToXML.Top + 34
         Me.ButtonSetTemp.Top = Me.ButtonCancelTemp.Top
         Me.ButtonReset.Top = Me.ButtonCancelTemp.Top
         Me.Height = Me.ButtonCancelTemp.Top + 58
     #End If
     
+    ShowAcceleratorTip Me.ButtonSetTemp
+    ShowAcceleratorTip Me.ButtonCancelTemp
+    ShowAcceleratorTip Me.ButtonReset
+    ShowAcceleratorTip Me.ButtonImportFromXML
+    ShowAcceleratorTip Me.ButtonExportToXML
+    
+End Sub
+
+Private Sub ReadSavedSettings()
     Dim res As String
     res = GetITSetting("Abs Temp Dir", DEFAULT_TEMP_DIR)
     res = AddTrailingSlash(res)
@@ -508,8 +551,231 @@ Private Sub UserForm_Initialize()
     ' Latex editor window size on Mac
     TextBoxWindowHeight.Text = GetITSetting("LatexFormHeight", 320)
     TextBoxWindowWidth.Text = GetITSetting("LatexFormWidth", 385)
+End Sub
+
+Private Sub UserForm_Initialize()
+    
+    SetUserFormLayout
+
+    ReadSavedSettings
     
     'SetPDFdependencies
     SetAbsRelDependencies
 End Sub
 
+Private Sub ReadSettingsFromFileIntoRegistry(FilePath As String)
+    Dim SZSettingsKeys As Variant
+    Dim DWORDSettingsKeys As Variant
+    Dim SettingsKey As Variant
+    Dim XMLText As String
+    Dim XMLLines() As String
+    
+    SZSettingsKeys = Array("ColorHex", _
+                        "LatexCode", _
+                        "Multipage", _
+                        "ReadFromFilePath", _
+                        "LoadVectorFileScaling", _
+                        "LoadVectorFileCalibrationX", "LoadVectorFileCalibrationY", _
+                        "Abs Temp Dir", "Rel Temp Dir", "Temp Dir", _
+                        "VectorOutputType", "PictureOutputType", _
+                        "GS Command", "IMconv", "Editor", "TeX2img Command", _
+                        "TeXExePath", "TeXExtraPath", _
+                        "LaTeXiT", "Libgs", _
+                        "VectorScalingX", "VectorScalingY", _
+                        "BitmapScalingX", "BitmapScalingY", _
+                        "TemplateSortedList", "TemplateNameSortedList")
+    DWORDSettingsKeys = Array( _
+                        "Debug", "AbsOrRel", _
+                        "PointSize", _
+                        "Transparent", _
+                        "OutputDpi", _
+                        "LatexCodeCursor", _
+                        "EditorFontSize", _
+                        "LatexFormWrap", _
+                        "LatexFormHeight", "LatexFormWidth", _
+                        "BitmapVector", _
+                        "LoadVectorFileConvertLines", _
+                        "LoadVectorFileOutputTypeIdx", _
+                        "LoadVectorFileCleanUp", _
+                        "VectorOutputTypeIdx", "PictureOutputTypeIdx", _
+                        "UseExternalEditor", _
+                        "TimeOutTime", _
+                        "LaTeXEngineID", _
+                        "UseLatexmk", _
+                        "AddAltText", _
+                        "KeepTempFiles")
+                        
+    ' Read XML file
+    If FileExists(FilePath) And GetExtension(FilePath) = "xml" Then
+        XMLText = ReadAll(FilePath)
+    Else
+        MsgBox ("The file does not exist or is not an .xml file.")
+        Exit Sub
+    End If
+    XMLLines = Split(XMLText, vbLf)
+    Dim i As Integer
+    Dim settingName As String
+    Dim settingValue As String
+    Dim thisXMLLine As String
+    Dim inSetting As Boolean
+    Dim completeSetting As Boolean
+    inSetting = False
+    completeSetting = False
+    For i = LBound(XMLLines) To UBound(XMLLines)
+        thisXMLLine = XMLLines(i)
+        If InStr(thisXMLLine, "<Setting Name='") > 0 Then
+            thisXMLLine = Right(thisXMLLine, Len(thisXMLLine) - InStr(thisXMLLine, "'"))
+            settingName = Left(thisXMLLine, InStr(thisXMLLine, "'") - 1)
+            thisXMLLine = Right(thisXMLLine, Len(thisXMLLine) - InStr(thisXMLLine, "'") - 1)
+            If InStr(thisXMLLine, "</Setting>") > 0 Then
+                inSetting = False
+                completeSetting = True
+                settingValue = Left(thisXMLLine, InStr(thisXMLLine, "</Setting>") - 1)
+            Else
+                settingValue = thisXMLLine
+                inSetting = True
+                completeSetting = False
+            End If
+        ElseIf inSetting Then
+            ' Keep adding to the settingValue until we hit "</Setting>"
+            If InStr(thisXMLLine, "</Setting>") > 0 Then
+                inSetting = False
+                completeSetting = True
+                settingValue = settingValue & vbLf & Left(thisXMLLine, InStr(thisXMLLine, "</Setting>") - 1)
+            Else
+                settingValue = settingValue & vbLf & thisXMLLine
+                completeSetting = False
+            End If
+        End If
+        If completeSetting Then
+            If IsInArray(SZSettingsKeys, settingName) Then
+                SetRegistryValue HKEY_CURRENT_USER, RegPath & "3", settingName, REG_SZ, settingValue
+            ElseIf IsInArray(DWORDSettingsKeys, settingName) Then
+                SetRegistryValue HKEY_CURRENT_USER, RegPath & "3", settingName, REG_DWORD, settingValue
+            ElseIf InStr(settingName, "Template") Then
+                If InStr(settingName, "TemplateCodeSelStart") _
+                    Or InStr(settingName, "TemplateLaTeXEngineID") _
+                    Or InStr(settingName, "TemplateBitmapVector") Then
+                    SetRegistryValue HKEY_CURRENT_USER, RegPath & "3", settingName, REG_DWORD, settingValue
+                ElseIf InStr(settingName, "TemplateCode") _
+                    Or InStr(settingName, "TemplateTempFolder") _
+                    Or InStr(settingName, "TemplateDPI") Then
+                    SetRegistryValue HKEY_CURRENT_USER, RegPath & "3", settingName, REG_SZ, settingValue
+                Else
+                    MsgBox ("Unknown setting: " & settingName & " = " & settingValue)
+                End If
+            Else
+                MsgBox ("Unknown setting: " & settingName & " = " & settingValue)
+            End If
+            
+            completeSetting = False
+        End If
+    Next i
+End Sub
+
+Private Function MakeXMLString(SettingsKey As String, DefaultValue As Variant) As String
+    Dim res As String
+    res = CStr(GetITSetting(SettingsKey, DefaultValue))
+    MakeXMLString = "<Setting Name='" & SettingsKey & "'>" & res & "</Setting>" & vbLf
+End Function
+
+Public Sub WriteSettingsToFile(FullFilePath As String)
+    Dim xmlContent As String
+    Dim SettingsKeys As Variant
+    Dim SettingsKey As Variant
+    Dim UserProfile As String
+    Dim TemplateSortedList() As String
+    Dim TemplateID As Long
+    Dim RegStr As String
+    Dim FolderPath As String
+    Dim FilePath As String
+    Dim Extension As String
+    
+    FolderPath = GetFolderFromPath(FullFilePath)
+    FilePath = GetFileFromPath(FullFilePath)
+    Extension = "." & GetExtension(FullFilePath)
+    
+    On Error GoTo FileNotWritable
+    If IsPathWritable(FolderPath) And FilePath <> vbNullString And Extension = ".xml" Then
+    
+        ' We first save the settings to registry so that we know what is retrieved from registry is reasonable
+        SaveSettings
+        
+        xmlContent = "<Settings>" & vbLf
+        
+        ' SetTempForm settings
+        xmlContent = xmlContent & MakeXMLString("Abs Temp Dir", DEFAULT_TEMP_DIR)
+        xmlContent = xmlContent & MakeXMLString("Rel Temp Dir", vbNullString)
+        xmlContent = xmlContent & MakeXMLString("Temp Dir", DEFAULT_TEMP_DIR)
+        xmlContent = xmlContent & MakeXMLString("GS Command", DEFAULT_GS_COMMAND)
+        xmlContent = xmlContent & MakeXMLString("IMconv", DEFAULT_IM_CONV)
+        xmlContent = xmlContent & MakeXMLString("OutputDpi", "1200")
+        xmlContent = xmlContent & MakeXMLString("TimeOutTime", "60")
+        xmlContent = xmlContent & MakeXMLString("EditorFontSize", "10")
+        xmlContent = xmlContent & MakeXMLString("VectorScalingX", "1")
+        xmlContent = xmlContent & MakeXMLString("VectorScalingY", "1")
+        xmlContent = xmlContent & MakeXMLString("BitmapScalingX", "1")
+        xmlContent = xmlContent & MakeXMLString("BitmapScalingY", "1")
+        xmlContent = xmlContent & MakeXMLString("Editor", DEFAULT_EDITOR)
+        xmlContent = xmlContent & MakeXMLString("TeXExePath", DEFAULT_TEX_EXE_PATH)
+        xmlContent = xmlContent & MakeXMLString("Libgs", DEFAULT_LIBGS)
+        xmlContent = xmlContent & MakeXMLString("TeXExtraPath", DEFAULT_TEX_EXTRA_PATH)
+        xmlContent = xmlContent & MakeXMLString("LatexFormHeight", 320)
+        xmlContent = xmlContent & MakeXMLString("LatexFormWidth", 385)
+        xmlContent = xmlContent & MakeXMLString("TeX2img Command", DEFAULT_TEX2IMG_COMMAND)
+        xmlContent = xmlContent & MakeXMLString("LaTeXiT", DEFAULT_LATEXIT_METADATA_COMMAND)
+        xmlContent = xmlContent & MakeXMLString("AbsOrRel", 1)
+        xmlContent = xmlContent & MakeXMLString("UseExternalEditor", 0)
+        xmlContent = xmlContent & MakeXMLString("BitmapVector", 0)
+        xmlContent = xmlContent & MakeXMLString("VectorOutputTypeIdx", 0)
+        xmlContent = xmlContent & MakeXMLString("PictureOutputTypeIdx", 0)
+        xmlContent = xmlContent & MakeXMLString("LaTeXEngineID", 0)
+        xmlContent = xmlContent & MakeXMLString("UseLatexmk", 0)
+        xmlContent = xmlContent & MakeXMLString("AddAltText", 1)
+        xmlContent = xmlContent & MakeXMLString("KeepTempFiles", 1)
+        ' LoadVectorGraphicsForm settings
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileScaling", "1")
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileConvertLines", 0)
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileCalibrationX", "1")
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileCalibrationY", "1")
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileOutputTypeIdx", 0)
+        xmlContent = xmlContent & MakeXMLString("LoadVectorFileCleanUp", 1)
+        ' LatexForm settings
+        xmlContent = xmlContent & MakeXMLString("Transparent", 1)
+        xmlContent = xmlContent & MakeXMLString("Debug", 0)
+        xmlContent = xmlContent & MakeXMLString("ColorHex", "000000")
+        xmlContent = xmlContent & MakeXMLString("PointSize", "20")
+        xmlContent = xmlContent & MakeXMLString("LatexCode", DEFAULT_LATEX_CODE)
+        xmlContent = xmlContent & MakeXMLString("LatexCodeCursor", 0)
+        xmlContent = xmlContent & MakeXMLString("Multipage", 0)
+        xmlContent = xmlContent & MakeXMLString("LatexFormWrap", 1)
+        xmlContent = xmlContent & MakeXMLString("ReadFromFilePath", vbNullString)
+        xmlContent = xmlContent & MakeXMLString("TemplateSortedList", "0")
+        xmlContent = xmlContent & MakeXMLString("TemplateNameSortedList", "New Template")
+        ' Template settings
+        TemplateSortedList = Split(GetITSetting("TemplateSortedList", "0"), "|", , vbTextCompare)
+        For TemplateID = LBound(TemplateSortedList) To UBound(TemplateSortedList) - 1
+            xmlContent = xmlContent & MakeXMLString("TemplateCode" & TemplateID, vbNullString)
+            xmlContent = xmlContent & MakeXMLString("TemplateCodeSelStart" & TemplateID, 0)
+            xmlContent = xmlContent & MakeXMLString("TemplateLaTeXEngineID" & TemplateID, 0)
+            xmlContent = xmlContent & MakeXMLString("TemplateBitmapVector" & TemplateID, 0)
+            xmlContent = xmlContent & MakeXMLString("TemplateTempFolder" & TemplateID, vbNullString)
+            xmlContent = xmlContent & MakeXMLString("TemplateDPI" & TemplateID, vbNullString)
+        Next TemplateID
+        
+        xmlContent = xmlContent & "</Settings>"
+    
+        WriteToFile FolderPath, FilePath, Extension, xmlContent
+        
+        MsgBox ("Settings succesfully export to " & FullFilePath)
+    Else
+        MsgBox "Path is not writable or extension is not .xml."
+        Exit Sub
+    End If
+    On Error GoTo 0
+
+Exit Sub
+   
+FileNotWritable:
+   MsgBox "An error occurred while trying to write the XML file."
+End Sub

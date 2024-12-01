@@ -19,6 +19,8 @@ Private Sub UserForm_Initialize()
     Me.Left = Application.Left + 25
     Me.Height = 372
     Me.Width = 451
+    ShowAcceleratorTip Me.CloseLogButton
+    ShowAcceleratorTip Me.CmdButtonExternalEditor
     #If Mac Then
         ResizeUserForm Me
     #End If
@@ -40,6 +42,10 @@ Sub CloseLogButton_Click()
 
     CloseLogButton.Caption = "Close"
     Unload LogFileViewer
+    'If LatexForm.isFormModeless Then
+    '    LatexForm.Hide
+    '    LatexForm.Show vbModal
+    'End If
     LatexForm.TextWindow1.SetFocus
     If SelStartPos < Len(LatexForm.TextWindow1.Text) Then
         LatexForm.TextWindow1.SelStart = SelStartPos

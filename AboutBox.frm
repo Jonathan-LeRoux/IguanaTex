@@ -32,7 +32,9 @@ Private Sub UserForm_Initialize()
     Me.Left = Application.Left + 25
     Me.Height = 300
     Me.Width = 448
-    Me.LabelAuthors.Caption = "by Jonathan Le Roux and Zvika Ben-Haim" & NEWLINE & NEWLINE & "Mac version by Tsung-Ju Chiang and Jonathan Le Roux"
+    Me.LabelAuthors.Caption = "by Jonathan Le Roux and Zvika Ben-Haim" & NEWLINE & NEWLINE & _
+                              "Mac version by Tsung-Ju Chiang and Jonathan Le Roux"
+    ShowAcceleratorTip Me.CloseAboutButton
     #If Mac Then
         ResizeUserForm Me
     #End If

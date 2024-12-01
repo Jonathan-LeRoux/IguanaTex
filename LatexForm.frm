@@ -248,7 +248,7 @@ Sub ButtonRun_Click()
     
     ' Write latex to a temp file
     On Error GoTo FileNotWritable
-    WriteToFile TempPath, FilePrefix, TextWindow1.Text
+    WriteToFile TempPath, FilePrefix, ".tex", TextWindow1.Text
     On Error GoTo 0
     
     ' Run latex
@@ -986,19 +986,6 @@ Private Sub ShowLogFile(LogFileName As String)
     LogFileViewer.Show 1
 End Sub
 
-
-Private Function IsInArray(ByVal arr As Variant, ByVal valueToCheck As String) As Boolean
-    IsInArray = False
-    Dim n As Variant
-    For Each n In arr
-        If n = valueToCheck Then
-            IsInArray = True
-            Exit For
-        End If
-    Next
-
-End Function
-
 Private Function TagGroupHierarchy(arr As Variant, TargetName As String) As Long
     ' Arr is the list of names of (leaf) elements in this group
     ' TargetName is the display which is being modified. We're going down the branch containing it.
@@ -1231,14 +1218,14 @@ Private Sub Apply_BitmapVector_Change()
         TextBoxChooseColor.Visible = True
         LabelChooseColor.Visible = True
         TextBoxLocalDPI.Enabled = False
-        LabelDPI.Enabled = False
+        LabelDpi.Enabled = False
     Else
         'checkboxTransp.Enabled = True
         checkboxTransp.Visible = True
         TextBoxChooseColor.Visible = False
         LabelChooseColor.Visible = False
         TextBoxLocalDPI.Enabled = True
-        LabelDPI.Enabled = True
+        LabelDpi.Enabled = True
     End If
 
 End Sub
@@ -1307,13 +1294,13 @@ Sub CmdButtonRemoveTemplate_Click()
         ComboBoxTemplate.RemoveItem RemovedIndex
         
         ' update the array that contains the sorted list of template IDs
-        Dim templateID As Long
-        templateID = TemplateSortedList(RemovedIndex)
+        Dim TemplateID As Long
+        TemplateID = TemplateSortedList(RemovedIndex)
         Dim i As Long
         For i = RemovedIndex To UBound(TemplateSortedList) - 1
             TemplateSortedList(i) = TemplateSortedList(i + 1)
         Next i
-        TemplateSortedList(UBound(TemplateSortedList)) = templateID
+        TemplateSortedList(UBound(TemplateSortedList)) = TemplateID
         'NumberOfTemplates = NumberOfTemplates - 1
     Else
         ComboBoxTemplate.Clear
@@ -1328,8 +1315,8 @@ End Sub
 
 Sub CmdButtonSaveTemplate_Click()
     ' get the right ID from the array of sorted template IDs
-    Dim templateID As Long
-    templateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
+    Dim TemplateID As Long
+    TemplateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
     ' add trailing new line if there isn't one: this helps with a bug where text with multi-byte characters gets chopped
     If Not Right$(TextWindowTemplateCode.Text, 1) = NEWLINE And Not Right$(TextWindowTemplateCode.Text, 1) = Chr$(10) Then
         TextWindowTemplateCode.Text = TextWindowTemplateCode.Text & NEWLINE
@@ -1337,17 +1324,17 @@ Sub CmdButtonSaveTemplate_Click()
     ' build the corresponding registry key string
     ' Save name, code, and LaTeXEngineID
     Dim RegStr As String
-    RegStr = "TemplateCode" & templateID
+    RegStr = "TemplateCode" & TemplateID
     SetITSetting RegStr, REG_SZ, CStr(TextWindowTemplateCode.Text)
-    RegStr = "TemplateCodeSelStart" & templateID
+    RegStr = "TemplateCodeSelStart" & TemplateID
     SetITSetting RegStr, REG_DWORD, CLng(TextWindowTemplateCode.SelStart)
-    RegStr = "TemplateLaTeXEngineID" & templateID
+    RegStr = "TemplateLaTeXEngineID" & TemplateID
     SetITSetting RegStr, REG_DWORD, ComboBoxLaTexEngine.ListIndex
-    RegStr = "TemplateBitmapVector" & templateID
+    RegStr = "TemplateBitmapVector" & TemplateID
     SetITSetting RegStr, REG_DWORD, ComboBoxBitmapVector.ListIndex
-    RegStr = "TemplateTempFolder" & templateID
+    RegStr = "TemplateTempFolder" & TemplateID
     SetITSetting RegStr, REG_SZ, CStr(TextBoxTempFolder.Text)
-    RegStr = "TemplateDPI" & templateID
+    RegStr = "TemplateDPI" & TemplateID
     SetITSetting RegStr, REG_SZ, CStr(TextBoxLocalDPI.Text)
     ' if saved template was the "New Template", prepare new spot for next new template
     If ComboBoxTemplate.ListIndex = ComboBoxTemplate.ListCount - 1 Then
@@ -1374,21 +1361,21 @@ Sub ComboBoxTemplate_Click()
         TextBoxTempFolder.Text = GetTempPath()
     Else
         ' get the right ID from the array of sorted template IDs
-        Dim templateID As Long
-        templateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
+        Dim TemplateID As Long
+        TemplateID = TemplateSortedList(ComboBoxTemplate.ListIndex)
         ' build the corresponding registry key string
         Dim RegStr As String
-        RegStr = "TemplateCode" & templateID
+        RegStr = "TemplateCode" & TemplateID
         TextWindowTemplateCode.Text = GetITSetting(RegStr, vbNullString)
-        RegStr = "TemplateCodeSelStart" & templateID
+        RegStr = "TemplateCodeSelStart" & TemplateID
         TextWindowTemplateCode.SelStart = GetITSetting(RegStr, 0)
-        RegStr = "TemplateLaTeXEngineID" & templateID
+        RegStr = "TemplateLaTeXEngineID" & TemplateID
         ComboBoxLaTexEngine.ListIndex = GetITSetting(RegStr, GetITSetting("LaTeXEngineID", 0))
-        RegStr = "TemplateBitmapVector" & templateID
+        RegStr = "TemplateBitmapVector" & TemplateID
         ComboBoxBitmapVector.ListIndex = GetITSetting(RegStr, GetITSetting("BitmapVector", False))
-        RegStr = "TemplateTempFolder" & templateID
+        RegStr = "TemplateTempFolder" & TemplateID
         TextBoxTempFolder.Text = GetITSetting(RegStr, GetTempPath())
-        RegStr = "TemplateDPI" & templateID
+        RegStr = "TemplateDPI" & TemplateID
         TextBoxLocalDPI.Text = GetITSetting(RegStr, vbNullString)
         Apply_BitmapVector_Change
     End If
@@ -1459,7 +1446,17 @@ Private Sub UserForm_Initialize()
     #If Mac Then
         ResizeUserForm Me
     #End If
+    ShowAcceleratorTip Me.ButtonRun
+    ShowAcceleratorTip Me.ButtonCancel
+    ShowAcceleratorTip Me.ButtonMakeDefault
+    ShowAcceleratorTip Me.ButtonLoadFile
+    ShowAcceleratorTip Me.ButtonLoadAndGenerate
     
+    ShowAcceleratorTip Me.MultiPage1.Pages(0)
+    ShowAcceleratorTip Me.MultiPage1.Pages(1)
+    ShowAcceleratorTip Me.MultiPage1.Pages(2)
+    
+        
     LatexForm.textboxSize.Visible = True
     LatexForm.Label2.Visible = True
     LatexForm.Label3.Visible = True
