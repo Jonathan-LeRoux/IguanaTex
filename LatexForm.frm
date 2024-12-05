@@ -1556,11 +1556,11 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             ComboBoxLaTexEngine.ListIndex = .item("LATEXENGINEID")
         End If
         If .item("LATEXFORMHEIGHT") <> vbNullString Then
-            LatexForm.Height = .item("LATEXFORMHEIGHT")
+            LatexForm.Height = SanitizeSingle(.item("LATEXFORMHEIGHT"), LatexForm.Height)
             FormHeightSet = True
         End If
         If .item("LATEXFORMWIDTH") <> vbNullString Then
-            LatexForm.Width = .item("LATEXFORMWIDTH")
+            LatexForm.Width = SanitizeSingle(.item("LATEXFORMWIDTH"), LatexForm.Width)
             FormWidthSet = True
         End If
         If .item("LATEXFORMWRAP") <> vbNullString Then
@@ -1586,6 +1586,15 @@ Private Function SanitizeBoolean(ByVal Str As String, ByVal Def As Boolean) As B
     Exit Function
 ErrWrongBoolean:
     SanitizeBoolean = Def
+    Resume Next
+End Function
+
+Private Function SanitizeSingle(ByVal Str As String, ByVal Def As Single) As Single
+    On Error GoTo ErrWrongSingle:
+    SanitizeSingle = CSng(Str)
+    Exit Function
+ErrWrongSingle:
+    SanitizeSingle = Def
     Resume Next
 End Function
 
