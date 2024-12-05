@@ -7,6 +7,7 @@ New in IguanaTex 1.62 (December 3, 2024)
 - (Win/Mac) Added test to make sure that the temporary file IguanaTex_tmp.tex can be created, to avoid raising an error (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/77)
 - (Win/Mac) Only settings that are currently visible and active in the Editor window now get saved when clicking "Make Default" (all used to be saved).
 - (Win/Mac) Added pop-ups (i.e., ControlTipText) to some buttons to remind the user about associated keyboard shortcut (i.e., Accelerator); fixed order of items when using Tab in Main Settings.
+- (Win/Mac) Update some default paths
 - (Mac) Fixed editor window size not being saved when clicking "Make default". The editor window size can also be set in the Main Settings on Mac.
 - (Mac) Automatically reset Temp folder path to default if path is set to empty
 
