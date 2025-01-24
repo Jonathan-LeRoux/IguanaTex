@@ -48,7 +48,8 @@ The add-in file (.ppam) and its source version (.pptm) can be found in the [Rele
 - PowerPoint for Mac:
   - Office 365, Office 2021 (including LTSC version), Powerpoint 2019, PowerPoint 2016 (Version 16.16.7 190210 or later)
   - SVG support is available for Office 365 and recent retail versions of PowerPoint, including 2019 and 2021. Note that volume licensed (LTSC) versions do not support SVG conversion to Shape, which is required by IguanaTex.
-- [MacTeX](https://www.tug.org/mactex/): Make sure you install `libgs` for SVG support, by selecting "Customize" at the "Installation Type" step of the MacTex installer and checking "Ghostscript Dynamic Library". (I haven't found a way to install libgs via TexLive after the initial install, without running the installer again; if you know one please let me know)
+- [XQuartz](https://www.xquartz.org/): Required by `dvisvgm` for SVG support. To be installed before MacTeX's Ghostscript (just rerun the Ghostscript part of MacTeX's installer if you had run it before installing XQuartz)
+- [MacTeX](https://www.tug.org/mactex/): For SVG support, make sure to select "Customize" at the "Installation Type" step of the MacTeX installer and check both "Ghostscript Dynamic Library" and "Mutool". [More details about SVG support via `dvisvgm` in MacTeX](https://tug.org/mactex/aboutdvisvgm.html).
 - (Optional) [LaTeXiT-metadata](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS), used to convert [LaTeXiT](https://www.chachatelier.fr/latexit/) displays into IguanaTex displays
 
 
@@ -116,7 +117,10 @@ There are 3 files to install:
    - The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**:
-   - Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the paths to GhostScript, LaTeX binaries, and libgs.dylib (used in SVG conversions) are set correctly by clicking on each "..." button next to them: if the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTex installation locations, but your installation may differ.
+   - Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the following paths are set correctly by clicking on each "..." button next to them. If the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTeX installation locations, but your installation may differ.
+     - GhostScript
+     - LaTeX binaries
+     - libgs.dylib (used in SVG conversions; this should only be needed with older versions of MacTeX; leave empty if you get an error, which may happen if you use MacPorts' TeXLive for example)
    - If you cannot find them or if IguanaTex complains that a command did not return, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
 
 6. (Optional) **Install LaTeXiT-metadata**:
@@ -172,7 +176,7 @@ Accelerator keys (i.e., keyboard shortcuts): many of IguanaTex's commands ("Gene
 ### Known Issues
 
 - "Picture" displays created on Mac (which are inserted PDFs) appear cropped on Windows ([Issue #32](https://github.com/Jonathan-LeRoux/IguanaTex/issues/32)). Regenerating them on Windows fixes the issue. This seems to be a bug with the way PowerPoint handles some PDFs on Mac, internally storing them as EMF files. The PDFs created by LaTeXiT do not have that issue, however, so there may be a way to circumvent this bug in a future version of IguanaTex.
-- IguanaTex macros cannot be added to the Quick Access Toolbar on Mac ([Issue #23](https://github.com/Jonathan-LeRoux/IguanaTex/issues/23)): this is a [known bug](https://answers.microsoft.com/en-us/msoffice/forum/all/can-add-in-commands-be-added-to-the-quick-access/6872187f-3c17-40ee-8620-80a4068edc82) on which Microsoft is allegedly working.
+- IguanaTex macros cannot be added to the Quick Access Toolbar on Mac ([Issue #23](https://github.com/Jonathan-LeRoux/IguanaTex/issues/23)): this is a [known bug](https://answers.microsoft.com/en-us/msoffice/forum/all/can-add-in-commands-be-added-to-the-quick-access/6872187f-3c17-40ee-8620-80a4068edc82) on which Microsoft is allegedly working, although there has been no progress for multiple years.
 - There may be some scaling issues when changing the format of a file (Picture <-> Shape, or even within the various SVG and EMF Shape formats). The best way to handle this is to use the "Convert to Shape"/"Convert to Picture" functions, which regenerate the display in the desired format while keeping the size fixed. One can then further modify the content if needed, and the scaling will be correct.
 - For Shape (i.e., vector graphics) displays, the default "SVG via DVI w/ dvisvgm" is recommended because of issues sometimes observed with other modes:
   - Some displays obtained via "EMF w/ TeX2img" or "EMF w/ pdfiumdraw" appear distorted. This is a PowerPoint bug that sometimes occurs when ungrouping an EMF file into a Shape object.
