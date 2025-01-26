@@ -48,8 +48,8 @@ The add-in file (.ppam) and its source version (.pptm) can be found in the [Rele
 - PowerPoint for Mac:
   - Office 365, Office 2021 (including LTSC version), Powerpoint 2019, PowerPoint 2016 (Version 16.16.7 190210 or later)
   - SVG support is available for Office 365 and recent retail versions of PowerPoint, including 2019 and 2021. Note that volume licensed (LTSC) versions do not support SVG conversion to Shape, which is required by IguanaTex.
-- [XQuartz](https://www.xquartz.org/): Required by `dvisvgm` for SVG support. To be installed before MacTeX's Ghostscript (just rerun the Ghostscript part of MacTeX's installer if you had run it before installing XQuartz). (Note: this requirement should disappear with MacTeX 2025)
-- [MacTeX](https://www.tug.org/mactex/): For SVG support, make sure to select "Customize" at the "Installation Type" step of the MacTeX installer and check both "Ghostscript Dynamic Library" and "Mutool". [More details about SVG support via `dvisvgm` in MacTeX](https://tug.org/mactex/aboutdvisvgm.html).
+- [MacTeX](https://www.tug.org/mactex/)
+- Ghostscript library: For SVG/Shape support, download and install [Ghostscript-10.04.0.pkg](https://pages.uoregon.edu/koch/Ghostscript-10.04.0.pkg) and [Ghostscript-10.04.0-Extras.pkg](https://pages.uoregon.edu/koch/Ghostscript-10.04.0-Extras.pkg) (Once MacTeX 2025 is released, this should no longer be necessary). [More details about SVG support via `dvisvgm` in MacTeX](https://tug.org/mactex/aboutdvisvgm.html).
 - (Optional) [LaTeXiT-metadata](https://github.com/LaTeXiT-metadata/LaTeXiT-metadata-MacOS), used to convert [LaTeXiT](https://www.chachatelier.fr/latexit/) displays into IguanaTex displays
 
 
