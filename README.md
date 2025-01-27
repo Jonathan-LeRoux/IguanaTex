@@ -117,13 +117,18 @@ There are 3 files to install:
    - The first time you click on one of the add-in buttons, you may be notified that `libIguanaTexHelper.dylib` was blocked. Go to the Mac's Settings, then Security and Privacy, and click "Allow Anyway".
 
 5. **Verify that paths are set correctly**:
-   - Click on "Main Settings" in the IguanaTex ribbon tab, and verify that the following paths are set correctly by clicking on each "..." button next to them. If the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTeX installation locations, but your installation may differ.
+   Click on "Main Settings" in the IguanaTex ribbon tab:
+   - Set the Temp folder used for file conversions in one of the following ways:
+     - (Recommended) The simplest is to let Iguanatex pick the Temp folder by selecting "Absolute" and leaving the path empty. The Temp folder will be inside the PowerPoint sandbox and everything will work without having to give permissions.
+     - (If needed) If you need the Temp folder to be a specific folder outside the sandbox, or if you'd rather it be relative to your PowerPoint presentation (e.g., because you are using specific macros in an external file), you will need to give access permission to that folder to IguanaTex. The best thing to do is to drag and drop that folder from the Finder on top of the PowerPoint application. This will allow you to give permission to the whole folder at least for the current session.
+   - Verify that the following paths are set correctly by clicking on each "..." button next to them. If the path is correct, this should take you to its location; otherwise, you'll need to navigate to the relevant path. The defaults should match the MacTeX installation locations, but your installation may differ.
      - GhostScript
      - LaTeX binaries
      - libgs.dylib (used in SVG conversions; this should only be needed with older versions of MacTeX; leave empty if you get an error, which may happen if you use MacPorts' TeXLive for example)
-   - If you cannot find them or if IguanaTex complains that a command did not return, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
+     
+     If you cannot find them or if IguanaTex complains that a command did not return, open a terminal and use `locate gs`, `locate pdflatex`, and `locate libgs`.
 
-6. (Optional) **Install LaTeXiT-metadata**:
+7. (Optional) **Install LaTeXiT-metadata**:
    - Needed to convert displays generated with [LaTeXiT](https://www.chachatelier.fr/latexit/) on Mac into IguanaTex displays
    - Download [`LaTeXiT-metadata-macos`](https://github.com/Jonathan-LeRoux/IguanaTex/releases/download/v1.60.3/LaTeXiT-metadata-macos) from the Releases page, add executable permission, and either set the path to its location in the "Main Settings" window or copy it to the secure add-in folder:  
   `chmod 755 ./LaTeXiT-metadata-macos`  
