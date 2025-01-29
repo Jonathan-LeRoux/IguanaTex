@@ -1,10 +1,10 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
-   ClientHeight    =   5880
-   ClientLeft      =   -264
-   ClientTop       =   -960
-   ClientWidth     =   9192.001
+   ClientHeight    =   7056
+   ClientLeft      =   -240
+   ClientTop       =   -864
+   ClientWidth     =   11028
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -703,12 +703,12 @@ Sub ButtonRun_Click()
         End If
         ' Tag shape and its components with their "original" sizes,
         ' which we get by dividing their current height/width by the scaling factors applied above
-        NewShape.Tags.Add "ORIGINALHEIGHT", NewShape.Height / tScaleHeight
-        NewShape.Tags.Add "ORIGINALWIDTH", NewShape.Width / tScaleWidth
+        NewShape.Tags.Add "ORIGINALHEIGHT", Str(NewShape.Height / tScaleHeight)
+        NewShape.Tags.Add "ORIGINALWIDTH", Str(NewShape.Width / tScaleWidth)
         If NewShape.Type = msoGroup Then
             For Each s In NewShape.GroupItems
-                s.Tags.Add "ORIGINALHEIGHT", s.Height / tScaleHeight
-                s.Tags.Add "ORIGINALWIDTH", s.Width / tScaleWidth
+                s.Tags.Add "ORIGINALHEIGHT", Str(s.Height / tScaleHeight)
+                s.Tags.Add "ORIGINALWIDTH", Str(s.Width / tScaleWidth)
             Next
         End If
     Else
@@ -719,10 +719,10 @@ Sub ButtonRun_Click()
             .LockAspectRatio = msoFalse
             .ScaleHeight BitmapScalingY, msoFalse
             .ScaleWidth BitmapScalingX, msoFalse
-            .Tags.Add "OUTPUTDPI", OutputDpi ' Stores this display's resolution
+            .Tags.Add "OUTPUTDPI", Str(OutputDpi) ' Stores this display's resolution
             ' Add tags storing the original height and width, used next time to keep resizing ratio.
-            .Tags.Add "ORIGINALHEIGHT", NewShape.Height
-            .Tags.Add "ORIGINALWIDTH", NewShape.Width
+            .Tags.Add "ORIGINALHEIGHT", Str(NewShape.Height)
+            .Tags.Add "ORIGINALWIDTH", Str(NewShape.Width)
             ' Apply scaling factors
             .ScaleHeight tScaleHeight, msoFalse
             .ScaleWidth tScaleWidth, msoFalse
@@ -975,7 +975,7 @@ End Sub
 Private Sub AddTagsToShape(ByVal vSh As Shape)
     With vSh.Tags
         .Add "LATEXADDIN", TextWindow1.Text
-        .Add "IguanaTexSize", val(NormalizeDecimalNumber(textboxSize.Text))
+        .Add "IGUANATEXSIZE", NormalizeDecimalNumber(textboxSize.Text)
         .Add "IGUANATEXCURSOR", TextWindow1.SelStart
         .Add "TRANSPARENCY", checkboxTransp.value
         .Add "CHOOSECOLOR", CheckBoxChooseColor.value
@@ -983,8 +983,8 @@ Private Sub AddTagsToShape(ByVal vSh As Shape)
         .Add "FILENAME", TextBoxFile.Text
         .Add "LATEXENGINEID", ComboBoxLaTexEngine.ListIndex
         .Add "TEMPFOLDER", TextBoxTempFolder.Text
-        .Add "LATEXFORMHEIGHT", LatexForm.Height
-        .Add "LATEXFORMWIDTH", LatexForm.Width
+        .Add "LATEXFORMHEIGHT", Str(LatexForm.Height)
+        .Add "LATEXFORMWIDTH", Str(LatexForm.Width)
         .Add "LATEXFORMWRAP", TextWindow1.WordWrap
         .Add "BitmapVector", ComboBoxBitmapVector.ListIndex
     End With
@@ -1577,11 +1577,11 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             ComboBoxLaTexEngine.ListIndex = .item("LATEXENGINEID")
         End If
         If .item("LATEXFORMHEIGHT") <> vbNullString Then
-            LatexForm.Height = NormalizeDecimalNumber(.item("LATEXFORMHEIGHT"))
+            LatexForm.Height = val(NormalizeDecimalNumber(.item("LATEXFORMHEIGHT")))
             FormHeightSet = True
         End If
         If .item("LATEXFORMWIDTH") <> vbNullString Then
-            LatexForm.Width = NormalizeDecimalNumber(.item("LATEXFORMWIDTH"))
+            LatexForm.Width = val(NormalizeDecimalNumber(.item("LATEXFORMWIDTH")))
             FormWidthSet = True
         End If
         If .item("LATEXFORMWRAP") <> vbNullString Then

@@ -1,6 +1,6 @@
 New in IguanaTex 1.62.1 (January 31, 2025)
 - (Win/Mac) Added checkbox to let user decide whether to specify the color of a Shape display or not. Specifying a color in IguanaTex can interfere with color commands in the LaTeX source, or corrupt some displays such as tikz diagrams (fixes https://github.com/Jonathan-LeRoux/IguanaTex/issues/80)
-- (Win/Mac) Fixed handling of Shape Tags for different locales (fixes https://github.com/Jonathan-LeRoux/IguanaTex/pull/79)
+- (Win/Mac) Fixed handling of VBA Shape Tags for different locales (fixes https://github.com/Jonathan-LeRoux/IguanaTex/pull/79)
 - (Win/Mac) Fixed bug where error running LaTeX compilation before generation of a .log file would display a previous .log file in certain cases.
 
 New in IguanaTex 1.62 (December 3, 2024)

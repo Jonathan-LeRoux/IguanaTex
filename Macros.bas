@@ -530,7 +530,7 @@ Private Function GetLatexTextFromTexPointShape(vSh As Shape) As String
         If .item("TEXPOINT") = "template" Then
             IsTemplate = True
         End If
-        vSh.Tags.Add "TEXPOINTSCALING", ScalingFactor
+        vSh.Tags.Add "TEXPOINTSCALING", Str(ScalingFactor)
         
         If IsTemplate = True Then
             SourceParts = Split(.item("SOURCE"), vbTab, , vbTextCompare)
