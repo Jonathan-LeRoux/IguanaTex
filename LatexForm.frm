@@ -2,9 +2,9 @@ VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} LatexForm 
    Caption         =   "IguanaTex"
    ClientHeight    =   5880
-   ClientLeft      =   -288
-   ClientTop       =   -1044
-   ClientWidth     =   7668
+   ClientLeft      =   -264
+   ClientTop       =   -960
+   ClientWidth     =   9192.001
    OleObjectBlob   =   "LatexForm.frx":0000
    StartUpPosition =   1  'CenterOwner
 End
@@ -229,10 +229,10 @@ Sub ButtonRun_Click()
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
     TimeOutTimeString = GetITSetting("TimeOutTime", "20") ' Wait N seconds for the processes to complete
-    TimeOutTime = val(TimeOutTimeString) * 1000
+    TimeOutTime = val(NormalizeDecimalNumber(TimeOutTimeString)) * 1000
     
     Dim OutputDpiString As String
-    OutputDpiString = TextBoxLocalDPI.Text
+    OutputDpiString = NormalizeDecimalNumber(TextBoxLocalDPI.Text)
     Dim OutputDpi As Long
     OutputDpi = val(OutputDpiString)
     
@@ -241,10 +241,10 @@ Sub ButtonRun_Click()
     dpi = 96 'lDotsPerInch ' I'm not convinced that this is the right thing to do, so for now I stop trying to take dpi into account
     default_screen_dpi = 96
     Dim VectorScalingX As Single, VectorScalingY As Single, BitmapScalingX As Single, BitmapScalingY As Single
-    VectorScalingX = dpi / default_screen_dpi * val(GetITSetting("VectorScalingX", "1"))
-    VectorScalingY = dpi / default_screen_dpi * val(GetITSetting("VectorScalingY", "1"))
-    BitmapScalingX = val(GetITSetting("BitmapScalingX", "1"))
-    BitmapScalingY = val(GetITSetting("BitmapScalingY", "1"))
+    VectorScalingX = dpi / default_screen_dpi * val(NormalizeDecimalNumber(GetITSetting("VectorScalingX", "1")))
+    VectorScalingY = dpi / default_screen_dpi * val(NormalizeDecimalNumber(GetITSetting("VectorScalingY", "1")))
+    BitmapScalingX = val(NormalizeDecimalNumber(GetITSetting("BitmapScalingX", "1")))
+    BitmapScalingY = val(NormalizeDecimalNumber(GetITSetting("BitmapScalingY", "1")))
     
     ' Write latex to a temp file
     On Error GoTo FileNotWritable
@@ -263,6 +263,15 @@ Sub ButtonRun_Click()
     Dim FinalFilename As String
     Dim ErrorMessage As String
     Dim RunCommand As String
+    
+    ' Remove the log file if it exists
+    If fs.FileExists(TempPath & FilePrefix & ".log") Then
+        #If Mac Then
+            fs.FindDelete TempPath, FilePrefix & ".log"
+        #Else
+            fs.DeleteFile TempPath + FilePrefix & ".log"
+        #End If
+    End If
     
     If UseVector = True And VectorOutputType = "tex2img" Then
         ' Use TeX2img to generate an EMF file from LaTeX
@@ -604,7 +613,7 @@ Sub ButtonRun_Click()
     
     Dim PointSize As Single
     If ButtonRun.Caption <> "ReGenerate" Or CheckBoxReset.value Then
-        PointSize = val(textboxSize.Text)
+        PointSize = val(NormalizeDecimalNumber(textboxSize.Text))
         tScaleWidth = PointSize / 10 * MagicScalingFactor  ' 1/10 is for the default LaTeX point size (10 pt)
         tScaleHeight = tScaleWidth
     Else
@@ -615,11 +624,11 @@ Sub ButtonRun_Click()
         With oldshape.Tags
             If .item("TEXPOINTSCALING") <> vbNullString Then
                 isTexpoint = True
-                tScaleWidth = val(.item("TEXPOINTSCALING")) * MagicScalingFactor
+                tScaleWidth = val(NormalizeDecimalNumber(.item("TEXPOINTSCALING"))) * MagicScalingFactor
                 tScaleHeight = tScaleWidth
             End If
             If .item("OUTPUTDPI") <> vbNullString Then
-                OldDpi = val(.item("OUTPUTDPI"))
+                OldDpi = val(NormalizeDecimalNumber(.item("OUTPUTDPI")))
             End If
         End With
         If Not isTexpoint Then ' modifying a normal display, either PNG or EMF
@@ -637,12 +646,12 @@ Sub ButtonRun_Click()
             With oldshape.Tags
                 If .item("ORIGINALHEIGHT") <> vbNullString Then
                     Dim tmpHeight As Single
-                    tmpHeight = val(.item("ORIGINALHEIGHT"))
+                    tmpHeight = val(NormalizeDecimalNumber(.item("ORIGINALHEIGHT")))
                     tScaleHeight = HeightOld / tmpHeight * OldDpi / OutputDpi
                 End If
                 If .item("ORIGINALWIDTH") <> vbNullString Then
                     Dim tmpWidth As Single
-                    tmpWidth = val(.item("ORIGINALWIDTH"))
+                    tmpWidth = val(NormalizeDecimalNumber(.item("ORIGINALWIDTH")))
                     tScaleWidth = WidthOld / tmpWidth * OldDpi / OutputDpi
                 End If
             End With
@@ -922,7 +931,7 @@ Sub ButtonRun_Click()
         NewShape.Fill.Visible = True
     End If
     
-    If TextBoxChooseColor.Visible Then
+    If CheckBoxChooseColor.value Then
         NewShape.Fill.ForeColor.RGB = CLng("&H" & ReverseHex(TextBoxChooseColor.Text))
     End If
     
@@ -966,9 +975,10 @@ End Sub
 Private Sub AddTagsToShape(ByVal vSh As Shape)
     With vSh.Tags
         .Add "LATEXADDIN", TextWindow1.Text
-        .Add "IguanaTexSize", val(textboxSize.Text)
+        .Add "IguanaTexSize", val(NormalizeDecimalNumber(textboxSize.Text))
         .Add "IGUANATEXCURSOR", TextWindow1.SelStart
         .Add "TRANSPARENCY", checkboxTransp.value
+        .Add "CHOOSECOLOR", CheckBoxChooseColor.value
         .Add "COLORHEX", TextBoxChooseColor.Text
         .Add "FILENAME", TextBoxFile.Text
         .Add "LATEXENGINEID", ComboBoxLaTexEngine.ListIndex
@@ -1068,7 +1078,7 @@ Private Function BoundingBoxString(ByVal BBXFile As String) As String
     Dim llx As Double, lly As Double, urx As Double, ury As Double
     Dim sx As String, sy As String, cx As String, cy As String
     Dim OutputDpiString As String
-    OutputDpiString = TextBoxLocalDPI.Text
+    OutputDpiString = NormalizeDecimalNumber(TextBoxLocalDPI.Text)
     Dim OutputDpi As Long
     #If Mac Then
         OutputDpi = 720
@@ -1132,13 +1142,19 @@ End Function
 
 Private Sub SaveSettings()
     SetITSetting "Debug", REG_DWORD, BoolToInt(checkboxDebug.value)
-    SetITSetting "PointSize", REG_DWORD, CLng(val(textboxSize.Text))
+    SetITSetting "PointSize", REG_DWORD, CLng(val(NormalizeDecimalNumber(textboxSize.Text)))
     If ComboBoxBitmapVector.ListIndex = 0 Then
         SetITSetting "Transparent", REG_DWORD, BoolToInt(checkboxTransp.value)
-        SetITSetting "OutputDpi", REG_DWORD, CLng(val(TextBoxLocalDPI.Text))
+        SetITSetting "OutputDpi", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxLocalDPI.Text)))
+    End If
+    If CheckBoxResetFormat.Visible Then
+        SetITSetting "ResetFormat", REG_DWORD, BoolToInt(CheckBoxResetFormat.value)
     End If
     If ComboBoxBitmapVector.ListIndex = 1 Then
-        SetITSetting "ColorHex", REG_SZ, CStr(TextBoxChooseColor.Text)
+        SetITSetting "ChooseColor", REG_DWORD, BoolToInt(CheckBoxChooseColor.value)
+        If CheckBoxChooseColor.value Then
+            SetITSetting "ColorHex", REG_SZ, CStr(TextBoxChooseColor.Text)
+        End If
     End If
     If MultiPage1.value = 0 Then
         SetITSetting "LatexCode", REG_SZ, CStr(TextWindow1.Text)
@@ -1166,6 +1182,8 @@ End Sub
 Private Sub LoadSettings()
     checkboxTransp.value = CBool(GetITSetting("Transparent", True))
     checkboxDebug.value = CBool(GetITSetting("Debug", False))
+    CheckBoxResetFormat.value = CBool(GetITSetting("ResetFormat", False))
+    CheckBoxChooseColor.value = CBool(GetITSetting("ChooseColor", False))
     TextBoxChooseColor.Text = GetITSetting("ColorHex", "000000")
     textboxSize.Text = GetITSetting("PointSize", "20")
     TextWindow1.Text = GetITSetting("LatexCode", DEFAULT_LATEX_CODE)
@@ -1216,16 +1234,16 @@ Private Sub Apply_BitmapVector_Change()
         checkboxTransp.Visible = False
         checkboxTransp.value = True
         TextBoxChooseColor.Visible = True
-        LabelChooseColor.Visible = True
+        CheckBoxChooseColor.Visible = True
         TextBoxLocalDPI.Enabled = False
-        LabelDpi.Enabled = False
+        LabelDPI.Enabled = False
     Else
         'checkboxTransp.Enabled = True
         checkboxTransp.Visible = True
         TextBoxChooseColor.Visible = False
-        LabelChooseColor.Visible = False
+        CheckBoxChooseColor.Visible = False
         TextBoxLocalDPI.Enabled = True
-        LabelDpi.Enabled = True
+        LabelDPI.Enabled = True
     End If
 
 End Sub
@@ -1533,10 +1551,10 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
      
     With oldshape.Tags
         If .item("IGUANATEXSIZE") <> vbNullString Then
-            textboxSize.Text = .item("IGUANATEXSIZE")
+            textboxSize.Text = CStr(val(NormalizeDecimalNumber(.item("IGUANATEXSIZE"))))
         End If
         If .item("OUTPUTDPI") <> vbNullString Then
-            TextBoxLocalDPI.Text = .item("OUTPUTDPI")
+            TextBoxLocalDPI.Text = CStr(val(NormalizeDecimalNumber(.item("OUTPUTDPI"))))
         End If
         If .item("BitmapVector") <> vbNullString Then
             ComboBoxBitmapVector.ListIndex = .item("BitmapVector")
@@ -1545,6 +1563,9 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             checkboxTransp.value = SanitizeBoolean(.item("TRANSPARENCY"), True)
         ElseIf .item("TRANSPARENT") <> vbNullString Then
             checkboxTransp.value = SanitizeBoolean(.item("TRANSPARENT"), True)
+        End If
+        If .item("CHOOSECOLOR") <> vbNullString Then
+            CheckBoxChooseColor.value = SanitizeBoolean(.item("CHOOSECOLOR"), False)
         End If
         If .item("COLORHEX") <> vbNullString Then
             TextBoxChooseColor.Text = .item("COLORHEX")
@@ -1556,11 +1577,11 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             ComboBoxLaTexEngine.ListIndex = .item("LATEXENGINEID")
         End If
         If .item("LATEXFORMHEIGHT") <> vbNullString Then
-            LatexForm.Height = .item("LATEXFORMHEIGHT")
+            LatexForm.Height = NormalizeDecimalNumber(.item("LATEXFORMHEIGHT"))
             FormHeightSet = True
         End If
         If .item("LATEXFORMWIDTH") <> vbNullString Then
-            LatexForm.Width = .item("LATEXFORMWIDTH")
+            LatexForm.Width = NormalizeDecimalNumber(.item("LATEXFORMWIDTH"))
             FormWidthSet = True
         End If
         If .item("LATEXFORMWRAP") <> vbNullString Then
@@ -1568,7 +1589,7 @@ Sub RetrieveOldShapeInfo(ByVal oldshape As Shape, ByVal mainText As String)
             ToggleButtonWrap.value = TextWindow1.WordWrap
         End If
     End With
-    If ComboBoxBitmapVector.ListIndex = 1 Then
+    If ComboBoxBitmapVector.ListIndex = 1 And CheckBoxChooseColor.value Then
         ' We override the Fill color for Shape objects, in case it has been manually changed after generation
         TextBoxChooseColor.Text = BGR2HEX(oldshape.Fill.ForeColor.RGB)
     End If
@@ -1652,9 +1673,9 @@ Private Sub ResizeForm()
     CheckBoxForcePreserveSize.Top = checkboxTransp.Top
     CheckBoxForcePreserveSize.Left = CheckBoxResetFormat.Left + CheckBoxResetFormat.Width - CheckBoxForcePreserveSize.Width
     TextBoxChooseColor.Top = checkboxTransp.Top
-    LabelChooseColor.Left = checkboxTransp.Left
-    TextBoxChooseColor.Left = LabelChooseColor.Left + LabelChooseColor.Width
-    LabelChooseColor.Top = TextBoxChooseColor.Top + Round(TextBoxChooseColor.Height - LabelChooseColor.Height) / 2
+    CheckBoxChooseColor.Left = checkboxTransp.Left
+    TextBoxChooseColor.Left = CheckBoxChooseColor.Left + CheckBoxChooseColor.Width
+    CheckBoxChooseColor.Top = TextBoxChooseColor.Top + Round(TextBoxChooseColor.Height - CheckBoxChooseColor.Height) / 2
     checkboxDebug.Top = checkboxTransp.Top + 21 ' checkboxTransp.Height + 2
     CheckBoxResetFormat.Top = checkboxDebug.Top
     CheckBoxResetFormat.Left = checkboxDebug.Left + checkboxDebug.Width + 10

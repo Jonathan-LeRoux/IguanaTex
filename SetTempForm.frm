@@ -192,13 +192,13 @@ Private Sub SaveSettings()
     SetITSetting "BitmapScalingY", REG_SZ, TextBoxBitmapScalingY.Text
     
     ' Global dpi setting for latex output
-    SetITSetting "OutputDpi", REG_DWORD, CLng(val(TextBoxDpi.Text))
+    SetITSetting "OutputDpi", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxDpi.Text)))
     
     ' Time Out Interval for Processes
-    SetITSetting "TimeOutTime", REG_DWORD, CLng(val(TextBoxTimeOut.Text))
+    SetITSetting "TimeOutTime", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxTimeOut.Text)))
     
     ' Font size for text in editor/template windows
-    SetITSetting "EditorFontSize", REG_DWORD, CLng(val(TextBoxFontSize.Text))
+    SetITSetting "EditorFontSize", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxFontSize.Text)))
     
     ' LaTeX Engine
     'SetITSetting "LaTeXEngine", REG_SZ, CStr(ComboBoxEngine.Text)
@@ -215,8 +215,8 @@ Private Sub SaveSettings()
     
     ' Height and Width of the Editor Window on Mac (remnant from when it wasn't resizable)
     #If Mac Then
-        SetITSetting "LatexFormHeight", REG_DWORD, CLng(val(TextBoxWindowHeight.Text))
-        SetITSetting "LatexFormWidth", REG_DWORD, CLng(val(TextBoxWindowWidth.Text))
+        SetITSetting "LatexFormHeight", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxWindowHeight.Text)))
+        SetITSetting "LatexFormWidth", REG_DWORD, CLng(val(NormalizeDecimalNumber(TextBoxWindowWidth.Text)))
     #End If
 End Sub
 

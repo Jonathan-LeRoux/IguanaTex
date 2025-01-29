@@ -122,7 +122,7 @@ Private Sub DoInsertVectorGraphicsFile()
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
     TimeOutTimeString = GetITSetting("TimeOutTime", "20") ' Wait 20 seconds for the processes to complete
-    TimeOutTime = val(TimeOutTimeString) * 1000
+    TimeOutTime = val(NormalizeDecimalNumber(TimeOutTimeString)) * 1000
     Dim debugMode As Boolean
     debugMode = False
     #If Mac Then
@@ -158,8 +158,8 @@ Private Sub DoInsertVectorGraphicsFile()
         posX = 200
         posY = 200
     End If
-    ScalingX = textboxScalor.value * TextBoxCalibrationX.value
-    ScalingY = textboxScalor.value * TextBoxCalibrationY.value
+    ScalingX = val(NormalizeDecimalNumber(textboxScalor.value)) * val(NormalizeDecimalNumber(TextBoxCalibrationX.value))
+    ScalingY = val(NormalizeDecimalNumber(textboxScalor.value)) * val(NormalizeDecimalNumber(TextBoxCalibrationY.value))
     
     ' Get the path and extension of the file to be inserted
     Dim path As String, Ext As String, pdfPath As String, psPath As String

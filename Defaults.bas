@@ -5,7 +5,7 @@ Option Explicit
 Public Const DEFAULT_TEMP_DIR As String = vbNullString
 Public Const DEFAULT_TEX_EXE_PATH As String = "/Library/TeX/texbin/"
 Public Const DEFAULT_TEX_EXTRA_PATH As String = vbNullString
-Public Const DEFAULT_LIBGS As String = "/usr/local/lib/libgs.9.dylib"
+Public Const DEFAULT_LIBGS As String = "/usr/local/lib/libgs.dylib"
 Public Const DEFAULT_VECTOR_OUTPUT_TYPE As String = "dvisvgm"
 Public Const DEFAULT_PICTURE_OUTPUT_TYPE As String = "PDF"
 Public Const DEFAULT_GS_COMMAND As String = "/usr/local/bin/gs"

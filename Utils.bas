@@ -959,3 +959,36 @@ Public Sub ShowAcceleratorTip(ThisButton As Object)
     #End If
     On Error GoTo 0
 End Sub
+
+Public Function NormalizeDecimalNumber(inputString As String) As String
+    Dim cleanedString As String
+    Dim decimalSeparator As String
+    Dim thousandsSeparator As String
+    
+    cleanedString = inputString
+
+    ' Determine separators based on content
+    If InStr(inputString, ",") > 0 And InStr(inputString, ".") > 0 Then
+        ' Ambiguous: Choose the last separator as decimal
+        If InStrRev(inputString, ",") > InStrRev(inputString, ".") Then
+            decimalSeparator = ","
+            thousandsSeparator = "."
+        Else
+            decimalSeparator = "."
+            thousandsSeparator = ","
+        End If
+        ' Remove thousands separator
+        cleanedString = Replace(cleanedString, thousandsSeparator, "")
+    ElseIf InStr(inputString, ",") > 0 Then
+        decimalSeparator = ","
+    Else
+        ' No separators, no conversion needed
+        NormalizeDecimalNumber = inputString
+        Exit Function
+    End If
+
+    ' Replace decimal separator with "."
+    NormalizeDecimalNumber = Replace(cleanedString, decimalSeparator, ".")
+
+End Function
+

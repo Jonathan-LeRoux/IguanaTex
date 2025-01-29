@@ -403,7 +403,7 @@ Private Function GetLatexTextFromLatexItShape(vSh As Shape) As String
     Dim TimeOutTimeString As String
     Dim TimeOutTime As Long
     TimeOutTimeString = GetITSetting("TimeOutTime", "20") ' Wait N seconds for the processes to complete
-    TimeOutTime = val(TimeOutTimeString) * 1000
+    TimeOutTime = val(NormalizeDecimalNumber(TimeOutTimeString)) * 1000
     Dim debugMode As Boolean
     debugMode = False
     Dim RetVal As Long
@@ -525,7 +525,7 @@ Private Function GetLatexTextFromTexPointShape(vSh As Shape) As String
         ScalingFactor = 1
         IsTemplate = False
         If .item("ORIGWIDTH") <> vbNullString Then
-            ScalingFactor = ScalingFactor * vSh.Width / val(.item("ORIGWIDTH"))
+            ScalingFactor = ScalingFactor * vSh.Width / val(NormalizeDecimalNumber(.item("ORIGWIDTH")))
         End If
         If .item("TEXPOINT") = "template" Then
             IsTemplate = True
