@@ -91,6 +91,8 @@ Then follow **5. Verify that paths are set correctly** in the Manual installatio
 
 For more details (e.g., how to **upgrade** or **uninstall**), please see [Tsung-Ju's Homebrew instructions](https://github.com/tsung-ju/homebrew-iguanatexmac).
 
+Note that the Homebrew installation may fail on some organization-managed Macs with a restrictive `sudo` configuration (cf. [this issue](https://github.com/Jonathan-LeRoux/IguanaTex/issues/93)). In this case, please use the Manual installation instructions below.
+
 #### Manual installation
 
 1. **Download the "prebuilt files for Mac" zip** from this repository's [Releases page](https://github.com/Jonathan-LeRoux/IguanaTex/releases)  
